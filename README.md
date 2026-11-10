@@ -32,13 +32,26 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 - Celebrates your first responder with a gold lion flare and an Alliance fanfare. More allies update the count.
 - Compares ground travel, flight-master-confirmed flights, boats and zeppelins for each responder.
 - Supports private responses, extinguishing calls and five-minute beacon expiry.
+- Shares guild addon users' positions about every 10 seconds, even without a
+  beacon, on zone, continent and full Azeroth maps. **Sharing defaults to on**;
+  each player can turn it off in Options → Map & beacon controls.
+- Shows a movable brazier button by default, with individual filters to silence
+  or hide beacons, hide someone's location, or hide all shared locations.
 - Lets callers add a short message and save three quick templates per character.
   Messages appear on allies' alerts, beacon cards and map-pin tooltips.
 - Offers optional automatic PvP death alerts when the client exposes readable
   evidence of a hostile player’s killing blow. Automatic alerts default to off;
   a manual death prompt is available when attribution is restricted.
 
-**1.3.0:** the compact Rally card keeps the caller, message and answer action at
+**1.4.0:** your own call confirms in the Rally card without a popup. Response
+celebrations and incoming alerts no longer overlap. The floating brazier is on
+by default; hide it in **Options → Map & beacon controls**. Left-click to ignite/extinguish,
+Shift-drag to move, and right-click for the full card. **Player filters** offers
+Normal, Silence and Hide for beacons, plus a separate Hide location checkbox.
+Both guildmates need 1.4.0 for background location sharing; stale markers expire
+after 45 seconds. Alliance lion markers show locations; braziers show beacons.
+
+The compact Rally card keeps the caller, message and answer action at
 hand. **Details** reveals the route, map and responders; answering adds a short
 next-step strip. Your own call offers **Extinguish My Beacon**. The author credit
 is tucked into **Options**, and the original royal brazier ships with the addon.
@@ -71,7 +84,7 @@ Visit a flight master after updating to rebuild the confirmed list.
 
 Routes are estimates rather than terrain-aware GPS. The addon does not account
 for hearthstones, teleports or summons, and never moves your character for you.
-Automatic PvP attribution and guild delivery still require live multiplayer
+Automatic PvP attribution, guild delivery and shared map positions still require live multiplayer
 verification; simulated-client checks cannot establish those live behaviors.
 
 ## Development
@@ -90,7 +103,8 @@ python3 tools/package_light_beacons.py
 The packager validates Lua syntax, media hashes, bindings, archive paths and an
 extracted copy with simulated clients, then creates one portable ZIP. The tests
 cover private delivery, templates, Unicode messages, reordered packets, malformed messages, cooldowns, discovery isolation,
-routes, death attribution, reload/login startup and UI construction.
+routes, death attribution, reload/login startup, notification overlap, floating
+controls, per-player filters, location privacy/expiry and world-map projection.
 
 Optional `tools/build_light_beacons_media.py` restores missing artwork from pinned sources. The preview renderer
 accepts `LTB_PREVIEW_FONT` if its default serif fonts are unavailable.

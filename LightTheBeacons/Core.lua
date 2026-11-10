@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.3.0"
+B.version="1.4.0"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -23,13 +23,13 @@ function B.Sound(test,answer)
 end
 function B.List()
     local list={}
-    for _,beacon in pairs(B.session and B.session.beacons or {}) do list[#list+1]=beacon end
+    for _,beacon in pairs(B.session and B.session.beacons or {}) do if B.BeaconMode(beacon.owner)~="hidden" then list[#list+1]=beacon end end
     table.sort(list,function(a,b) if a.sent==b.sent then return a.name<b.name end;return a.sent>b.sent end)
     return list
 end
 function B.Selected()
     if B.preview then return B.preview end
-    return B.selected and B.session and B.session.beacons[B.selected]
+    return B.selected and B.session and B.BeaconMode(B.selected)~="hidden" and B.session.beacons[B.selected] or nil
 end
 function B.TravelSpeed()
     return B.db and B.db.travelMode=="foot" and 7 or B.ridingPace or 7
@@ -77,6 +77,7 @@ function B.Receive(msg,sender,channel)
     if not B.session then return end
     local event,b,sound=P.Receive(B.session,msg,sender,channel,B.members,C.Now())
     if event=="query" then
+        B.BroadcastLocation()
         if B.own and B.own.expires>C.Now() and (not B.lastReply or GetTime()-B.lastReply>10) then
             B.lastReply=GetTime()
             local message=P.EncodeMessage(B.own);if message then C.Send(message) end
@@ -84,14 +85,19 @@ function B.Receive(msg,sender,channel)
         end
     elseif event=="beacon" then
         if b.owner==B.me then B.own=b;B.db.active=b end
-        if not B.Selected() then B.selected=b.owner;B.Replan() end
-        if sound then B.Sound();B.UI.Alert(b) end
+        if not B.Selected() and B.BeaconMode(b.owner)~="hidden" then B.selected=b.owner;B.Replan() end
+        if sound and B.BeaconMode(b.owner)=="normal" then
+            B.Sound();if b.owner~=B.me then B.UI.Alert(b) end
+        end
         B.UI.Refresh()
+    elseif event=="location" then
+        B.UI.MapPins()
     elseif event=="message" then
         B.UI.UpdateAlertMessage(b);B.UI.Refresh()
     elseif event=="cancel" then
         if B.selected==b.owner then B.selected=nil;B.navigating=false;B.route=nil end
         if B.UI.alertBeacon and B.UI.alertBeacon.owner==b.owner then B.UI.banner:Hide() end
+        if B.UI.answerBanner and B.UI.answerBanner.beacon==b then B.UI.answerBanner:Hide() end
         B.UI.Refresh()
     elseif event=="response" then
         if b.owner==B.me then
@@ -142,7 +148,9 @@ function B.Light(reason,message)
     B.members[B.me]=true
     if note then B.Receive(note,B.name,"GUILD") end
     B.Receive(packet,B.name,"GUILD")
-    B.selected=B.me;B.navigating=false;B.Replan();B.UI.Refresh()
+    B.selected=B.me;B.navigating=false;B.Replan()
+    if B.UI.composer and B.UI.composer:IsShown() then B.UI.options=false;B.UI.settingsPage=nil;B.UI.frame:Show() end
+    B.UI.Refresh()
     if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
     if B.UI.composer then B.UI.composer:Hide() end
     return true
@@ -152,7 +160,7 @@ function B.Extinguish()
     local ok,why=C.Send("1|C|"..B.own.id)
     if not ok then B.Print(why);return end
     B.Receive("1|C|"..B.own.id,B.name,"GUILD")
-    B.own=nil;B.db.active=nil;B.UI.Refresh()
+    B.own=nil;B.db.active=nil;B.UI.confirmedClearUntil=GetTime()+6;B.UI.Refresh()
 end
 function B.Answer()
     local b=B.Selected()
@@ -217,7 +225,7 @@ function B.Death()
     if C_Timer then C_Timer.After(.6,decide) else decide() end
 end
 function B.Preview()
-    B.UI.options=false
+    B.UI.options=false;B.UI.settingsPage=nil
     B.UpdateTravelPace()
     local data=B.TravelData
     local start={c=0,x=-8900,y=600,n="Your position"}
@@ -255,6 +263,7 @@ function B.GuildChanged()
     if not guild and IsInGuild and IsInGuild() then B.members=C.Members();return end
     guild=tostring(guild or "")
     if B.guild and B.guild~=guild then
+        B.lastLocationAttempt=nil;B.locationShared=false;B.locationStatus=nil
         B.session=P.NewSession();B.selected=nil;B.navigating=false;B.own=nil;B.db.active=nil;B.route=nil
         if B.UI.banner then B.UI.banner:Hide() end
         if B.UI.answerBanner then B.UI.answerBanner:Hide() end
@@ -301,7 +310,7 @@ function B.Initialize()
     if not P.Number(B.db.lastSent,0,C.Now()) then B.db.lastSent=nil end
     B.session=P.NewSession();B.nonce=math.random(100000,999999)
     B.lastLivingRecap=C.RecapKey()
-    B.me,B.name=C.Me();B.GuildChanged()
+    B.me,B.name=C.Me();B.GuildChanged();B.InitializeSocial()
     if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
         C.Call(C_ChatInfo.RegisterAddonMessagePrefix,P.prefix)
     end
@@ -309,7 +318,7 @@ function B.Initialize()
     C.RefreshFlights()
     if hooksecurefunc and TakeTaxiNode then hooksecurefunc("TakeTaxiNode",C.TaxiTaken) end
     if C_Timer then
-        C_Timer.After(4,function() B.members=C.Members();if IsInGuild and IsInGuild() then C.Send("1|Q") end end)
+        C_Timer.After(4,function() B.members=C.Members();if IsInGuild and IsInGuild() then C.Send("1|Q");B.BroadcastLocation() end end)
     end
     B.UI.Refresh()
 end
@@ -364,7 +373,7 @@ frame:SetScript("OnUpdate",function(_,delta)
         B.lastLivingPoint=C.Position()
         B.lastLivingRecap=C.RecapKey()
     end
-    C.ObserveFlight();B.TickRoute();B.UI.Tick()
+    C.ObserveFlight();B.TickRoute();B.BroadcastLocation();B.UI.Tick()
 end)
 SLASH_LIGHTTHEBEACONS1="/ltb";SLASH_LIGHTTHEBEACONS2="/beacons"
 SlashCmdList.LIGHTTHEBEACONS=function(input)
@@ -377,6 +386,9 @@ SlashCmdList.LIGHTTHEBEACONS=function(input)
     elseif command=="rally" then B.UI.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true)
     elseif command=="scan" then C.RefreshFlights(true)
     elseif command=="options" then B.UI.Toggle(true)
+    elseif command=="locations" then B.UI.OpenSettingsPage("controls")
+    elseif command=="filters" then B.UI.OpenSettingsPage("filters")
+    elseif command=="button" then B.db.floatingButton=not B.db.floatingButton;B.UI.Refresh()
     elseif command=="status" then
         B.UpdateTravelPace();B.Print("Travel pace: "..B.TravelLabel()..".")
         B.Print(C.KnownCount().." confirmed flight points. Automatic PvP: "..(B.db.auto and "on, confirmed kills only" or "off")..".")

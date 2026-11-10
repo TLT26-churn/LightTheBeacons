@@ -2,7 +2,7 @@
 Preview uses a substitute serif font; the game uses Friz Quadrata.
 """
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont, ImageChops
+from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageOps
 import json, math, os, sys
 root=Path(__file__).resolve().parents[1]
 media=root/'LightTheBeacons/Media'
@@ -58,6 +58,8 @@ for s in sorted(items,key=lambda s:(s['frameLevel'],order.get(s.get('layer'),-1)
     elif s['kind']=='Texture' and s.get('file'):
         surface=asset(s['file'])
         if surface:
+            if s.get('desaturated'):
+                alpha=surface.getchannel('A');surface=ImageOps.grayscale(surface).convert('RGBA');surface.putalpha(alpha)
             if s.get('vertexColor'):surface=tint(surface,s['vertexColor'])
             if s.get('coords'):
                 l,r,t,b=s['coords'];surface=surface.crop((round(l*surface.width),round(t*surface.height),round(r*surface.width),round(b*surface.height)))

@@ -106,12 +106,38 @@ function C.World(map,x,y)
 end
 function C.MapPoint(p,override)
     if not p then return end
-    if p.map and not override then return p.map,p.px,p.py end
-    if not C_Map or not C_Map.GetMapPosFromWorldPos or not CreateVector2D then return end
-    local map,vec=call(C_Map.GetMapPosFromWorldPos,p.c,CreateVector2D(p.x,p.y),override)
-    if not P.Number(map,1,100000) or not vec or not P.Plain(vec) then return end
-    if not P.Number(vec.x,0,1) or not P.Number(vec.y,0,1) then return end
-    return map,vec.x,vec.y
+    if P.Number(p.map,1,100000) and P.Number(p.px,0,1) and P.Number(p.py,0,1) and (not override or p.map==override) then return p.map,p.px,p.py end
+    if not C_Map then return end
+    local world=p.c and p or C.World(p.map,p.px,p.py)
+    if world and CreateVector2D then
+        local map,vec=call(C_Map.GetMapPosFromWorldPos,world.c,CreateVector2D(world.x,world.y),override)
+        if P.Number(map,1,100000) and (not override or map==override) and vec and P.Plain(vec)
+            and P.Number(vec.x,0,1) and P.Number(vec.y,0,1) then return map,vec.x,vec.y end
+    end
+    -- Azeroth is an atlas of continents, not a single world-coordinate plane.
+    -- Walk the client's map rectangles instead of hardcoding continent offsets.
+    local map,x,y=p.map,p.px,p.py
+    local visited={}
+    for _=1,12 do
+        if not P.Number(map,1,100000) or not P.Number(x,0,1) or not P.Number(y,0,1) or visited[map] then return end
+        if map==override then return map,x,y end
+        visited[map]=true
+        local info=call(C_Map.GetMapInfo,map)
+        if type(info)~="table" or not P.Plain(info) or not P.Number(info.parentMapID,1,100000) then return end
+        local parent=info.parentMapID
+        local l,r,t,b=call(C_Map.GetMapRectOnMap,map,parent)
+        -- A child map can extend past its parent's edge; validate the projected
+        -- point on the next iteration rather than rejecting the whole rectangle.
+        if not P.Number(l,-100,100) or not P.Number(r,-100,100) or not P.Number(t,-100,100) or not P.Number(b,-100,100) or l>=r or t>=b then return end
+        map,x,y=parent,l+x*(r-l),t+y*(b-t)
+    end
+end
+function C.Location()
+    local map=C_Map and call(C_Map.GetBestMapForUnit,"player")
+    if not P.Number(map,1,100000) then return end
+    local vec=call(C_Map.GetPlayerMapPosition,map,"player")
+    if not vec or not P.Plain(vec) or not P.Number(vec.x,0,1) or not P.Number(vec.y,0,1) then return end
+    return {map=map,px=vec.x,py=vec.y}
 end
 function C.Position()
     local map=C_Map and call(C_Map.GetBestMapForUnit,"player")

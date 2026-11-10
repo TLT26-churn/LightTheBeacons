@@ -3,6 +3,7 @@ B.Protocol = {}
 local P = B.Protocol
 P.prefix, P.ttl, P.cooldown = "LTB1", 300, 60
 P.messageLimit = 48 -- Even 48 four-byte UTF-8 characters fit in one addon packet.
+P.locationTTL = 45
 
 function P.Plain(v)
     return not (issecretvalue and issecretvalue(v))
@@ -61,6 +62,16 @@ function P.Parse(msg, now)
     for part in (msg .. "|"):gmatch("(.-)|") do f[#f+1] = part end
     if f[1] ~= "1" then return end
     if f[2] == "Q" and #f == 2 then return {kind="Q"} end
+    if f[2]=="L" or f[2]=="H" then
+        local sent=tonumber(f[3])
+        if not P.Number(sent,now-P.locationTTL+1,now+10) or sent%1~=0 then return end
+        if f[2]=="H" and #f==3 then return {kind="H",sent=sent,hidden=true} end
+        local map,x,y=tonumber(f[4]),tonumber(f[5]),tonumber(f[6])
+        if f[2]=="L" and #f==6 and P.Number(map,1,100000) and map%1==0 and P.Number(x,0,1) and P.Number(y,0,1) then
+            return {kind="L",sent=sent,map=map,px=x,py=y}
+        end
+        return
+    end
     if not idOK(f[3]) then return end
     if f[2] == "C" and #f == 3 then return {kind="C", id=f[3]} end
     if f[2] == "M" and #f == 4 and P.Text(f[4],P.messageLimit*4) and f[4]==P.Message(f[4]) then
@@ -80,9 +91,10 @@ function P.Parse(msg, now)
 end
 
 function P.NewSession(now)
-    return {beacons={}, pending={}, dead={}, heard={}, lastNew={}, lastQuery={}, newest={}, budget={}, now=now or 0}
+    return {beacons={}, locations={}, pending={}, dead={}, heard={}, lastNew={}, lastQuery={}, newest={}, budget={}, now=now or 0}
 end
 function P.Prune(s, now)
+    for key,p in pairs(s.locations) do if p.expires<=now then s.locations[key]=nil end end
     for key,b in pairs(s.beacons) do if b.expires <= now then s.beacons[key] = nil end end
     for key,b in pairs(s.pending) do if b.expires <= now then s.pending[key] = nil end end
     for key,t in pairs(s.dead) do if t <= now then s.dead[key] = nil end end
@@ -102,6 +114,16 @@ function P.Receive(s, msg, sender, channel, members, now)
     local budget=s.budget[key]
     if not budget or now-budget.at>=10 then budget={at=now,count=0};s.budget[key]=budget end
     budget.count=budget.count+1;if budget.count>12 then return end
+    if b.kind=="L" or b.kind=="H" then
+        local old=s.locations[key]
+        -- A privacy withdrawal wins over a delayed location from the same second.
+        if old and (old.sent>b.sent or old.sent==b.sent and (old.hidden or not b.hidden)) then return end
+        local count=0;for _ in pairs(s.locations) do count=count+1 end
+        if not old and count>=1000 then return end
+        b.owner,b.name,b.expires=key,sender,math.min(now+P.locationTTL,b.sent+P.locationTTL)
+        s.locations[key]=b
+        return "location",b
+    end
     if b.kind == "Q" then
         if s.lastQuery[key] and now-s.lastQuery[key] < 30 then return end
         s.lastQuery[key] = now

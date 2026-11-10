@@ -1,5 +1,27 @@
 # Release notes
 
+## 1.4.0 — Guild watch
+
+- Share guild addon users' positions about every 10 seconds without a lit beacon.
+  Sharing defaults to on, with a persistent opt-out in Map & beacon controls.
+  Withdraw markers when sharing is disabled or positions are unreadable; stale
+  positions expire after 45 seconds. No location history is saved.
+- Show locations and beacons on zone, continent and full Azeroth maps using the
+  client's map transforms. Distinguish Alliance lion location pins from brazier
+  beacon pins. Add tooltips, map waypoints and right-click access to player filters.
+- Add local hide-all and individual location filters, independently of sharing.
+  Beacon filters offer Normal, Silence (keep calls without horn/popup), and Hide
+  (also remove their calls/pins and stop guidance to them).
+- Remove the own-beacon popup. Confirm in the card or floating button instead.
+  Queue incoming alerts during response celebrations to prevent overlapping text.
+- Add a small royal brazier enabled by default: click to light/extinguish,
+  Shift-drag to move, right-click for the full card. Settings can hide it; save
+  explicit visibility choices and position per character.
+- Add `/ltb locations`, `/ltb filters` and `/ltb button`. Preserve existing saves,
+  messages, native horn and beacon compatibility with earlier addon versions.
+- Validate 276 simulated-client checks, native Lua layout renders and one portable
+  Windows/Linux ZIP. Live multiplayer location sharing still needs in-game testing.
+
 ## 1.3.0 — Compact Rally card
 
 - Replace the large main window with a 400-pixel-wide Rally card. Keep the caller,

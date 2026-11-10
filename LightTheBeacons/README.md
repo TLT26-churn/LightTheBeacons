@@ -1,4 +1,4 @@
-# Light the Beacons 1.3.0
+# Light the Beacons 1.4.0
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -49,6 +49,9 @@ Options contains settings, local previews and the subtle
 - `/ltb sound`: show the last playback result and current audio settings.
 - `/ltb rally`: preview the response celebration and Alliance fanfare locally.
 - `/ltb options`: sound, automatic alerts, death prompts and travel pace.
+- `/ltb locations`: sharing, map visibility and floating beacon button settings.
+- `/ltb filters`: individual beacon and location filters.
+- `/ltb button`: show or hide the movable beacon button.
 - `/ltb scan`: refresh from an open flight-master map, or explain how to scan.
 - `/ltb status`: show local discovery and automatic-detection diagnostics.
 
@@ -69,8 +72,9 @@ An incoming call shows **“The beacons are lit! <Name> calls for aid!”** in a
 compact WoW-style banner. Left-click the banner to answer and start guidance;
 right-click to dismiss. Answering acknowledges your response to other addon
 users in your guild. The main card has **Answer the Call**; **Show Map** is in Details.
-Your own banner opens your beacon details; you cannot answer or start navigation
-to your own call.
+Your own call confirms with **Beacon lit** in the card instead of another popup;
+you cannot answer or start navigation to your own call. Incoming alerts wait
+until the response celebration finishes, so the two banners never overlap.
 Use the pager below the actions to switch between simultaneous calls. It appears
 only when multiple calls exist. Scroll longer route lists inside Details.
 The caller's optional message appears in the alert, caller card and map-pin
@@ -93,6 +97,53 @@ Your beacon stays at the incident
 location when you release spirit. Use **Extinguish My Beacon** when aid is no
 longer needed.
 
+## Movable beacon button and player filters
+
+The movable beacon button is **on by default**. Hide it with **Show movable
+beacon button** under **Options → Map & beacon controls**, or toggle it with
+`/ltb button`. The small royal brazier shows whether your beacon is lit.
+Left-click to ignite immediately without a message, or extinguish an active call.
+Right-click opens the full card. **Shift-drag** moves the icon; its position and
+visibility are saved per character. Reset its position from the same settings page.
+The normal message composer remains available through the card and `/ltb light`.
+
+Under **Options → Player filters**, add a player's full character name including
+surname. Click their beacon mode to cycle **Normal → Silence → Hide**. Silence
+removes their beacon horn and popup while keeping their call in the list and on
+the map. Hide also removes their calls and beacon pins, and stops guidance to
+their beacon. **Hide location** independently hides their background position.
+Remove the filter to restore normal behavior. These choices apply locally and
+are never sent to the guild.
+
+## Guild location sharing
+
+**Sharing is on by default.** Guildmates running 1.4.0 or later share their current
+map position about every **10 seconds**, even without lighting a beacon. The
+data travels only through the guild addon channel. Locations use Alliance lion
+markers; active beacons use royal braziers. Both appear on **zone, continent and
+the full Azeroth world map**, using the client's map transforms. The addon does
+not guess positions when a transform or player position is unavailable.
+
+Open **Options → Map & beacon controls** or `/ltb locations` to turn off **Share
+my location with guildmates**. Turning it off stops background position sends
+and withdraws your marker. A lit beacon still shares the incident location you
+called from. If the game delays a withdrawal, old markers expire within **45
+seconds**. Unreadable positions also withdraw the old marker rather than reuse
+stale coordinates. Offline or disconnected players disappear when their last
+update expires. Sharing preferences persist through reloads.
+
+Turn off **Show guildmates on my map** to hide all background position markers
+locally, or use **Hide location** in Player filters for particular people. Map
+display choices do not change whether you share your own location. Hover a
+marker for name, zone, coordinates and update age. Left-click to open its source
+map and set a waypoint; right-click to open the player's filter setup.
+
+Background sharing makes no horns, popups or calls for aid. Remote locations
+remain in memory only, with no saved location history. Updates are approximate
+and can be delayed by game messaging restrictions. A marker does not establish
+that another player is on your layer. Earlier addon versions continue to
+exchange beacons normally but do not share background positions.
+
 ## Private guild alerts
 
 All network traffic uses `C_ChatInfo.SendAddonMessage`, prefix `LTB1`, on the
@@ -102,8 +153,9 @@ of your guild running the addon display the alert. Non-guild senders and packets
 received on other channels are ignored. Your identity comes from the game's
 sender field, never from an asserted name inside a packet.
 
-Messages contain a beacon ID, timestamp, map position, reason, optional caller
-text, and response/cancellation. They contain no flight-discovery list: each responder
+Beacon messages contain a beacon ID, timestamp, map position, reason, optional
+caller text, and response/cancellation. Background location messages contain a
+timestamp, map and coordinates, or a withdrawal. They contain no flight-discovery list: each responder
 plans their own route locally. The game may restrict or throttle addon messages;
 a failed send is reported locally and is never displayed as a successful call.
 
@@ -165,8 +217,9 @@ instances do not create beacons or automatic prompts.
 ## Saves and verification
 
 `LightTheBeaconsDB` is saved **per character**. It contains options, discovered
-flights, learned connections/times, three message templates and your own unexpired
-beacon including its message. Remote beacons
+flights, learned connections/times, three message templates, sharing/display
+preferences, player filters, floating-button position and your own unexpired
+beacon including its message. Remote beacons and shared locations
 are held in memory only. Reloading preserves your ability to extinguish your
 own active beacon. Leaving/changing guild clears active guild data. Installing
 or updating the addon does not modify the game's `WTF` directory or other saves.
@@ -174,7 +227,9 @@ or updating the addon does not modify the game's `WTF` directory or other saves.
 The included workspace tests exercise two simulated clients, protocol filtering,
 duplicate/cancel ordering, cooldowns, expiry, discovery isolation, directed
 routing, boats/zeppelins, new flight connections, saved settings, death detection
-and UI construction. Rendered previews are generated from the real Lua widget
+and UI construction, plus popup arbitration, movable controls, per-player
+filters, location opt-out/expiry and zone-to-continent-to-world map projection.
+Rendered previews are generated from the real Lua widget
 tree with bundled art and a substitute serif font; the game uses Friz Quadrata.
 These checks do not substitute for live guild delivery, PvP, map and taint tests.
 

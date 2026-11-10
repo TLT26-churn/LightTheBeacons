@@ -36,7 +36,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     function methods:HookScript(e,f) local old=self.scripts[e];self.scripts[e]=function(...) if old then old(...) end;f(...) end end
     function methods:RegisterEvent(e) assert(validEvents[e],"Unknown Forever event: "..tostring(e));self.events[e]=true end
     function methods:UnregisterEvent(e) self.events[e]=nil end
-    function methods:Show() self.shown=true end
+    function methods:Show() local was=self.shown;self.shown=true;if not was and self.scripts.OnShow then self.scripts.OnShow(self) end end
     function methods:Hide() local was=self.shown;self.shown=false;if was and self.scripts.OnHide then self.scripts.OnHide(self) end end
     function methods:SetShown(v) self.shown=v and true or false end
     function methods:IsShown() return self.shown end
@@ -54,6 +54,8 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     function methods:SetTexture(v) self.file=v end
     function methods:SetTexCoord(...) self.coords={...} end
     function methods:SetAlpha(v) self.alpha=v end
+    function methods:SetDesaturated(v) self.desaturated=v end
+    function methods:GetCenter() return self.centerX or 720,self.centerY or 500 end
     function methods:SetRotation(v) self.rotation=v end
     function methods:SetJustifyH(v) self.align=v end
     function methods:SetWordWrap(v) self.wrap=v end
@@ -71,6 +73,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     for _,name in ipairs({"SetShadowColor","SetShadowOffset","SetJustifyV","SetBlendMode","SetMovable","SetClampedToScreen",
         "EnableMouse","RegisterForDrag","StartMoving","StopMovingOrSizing","SetFrameStrata","EnableMouseWheel","RegisterForClicks",
         "SetOwner","AddLine","SetParent","SetAutoFocus","SetMultiLine","SetMaxLetters","SetMaxBytes","SetCursorPosition"}) do methods[name]=function() end end
+    function methods:SetParent(parent) self.parent=parent end
     for _,stateName in ipairs({"Normal","Pushed","Disabled","Highlight","Checked"}) do
         methods["Set"..stateName.."Texture"]=function(self,path)
             local t=self:CreateTexture(nil,"ARTWORK");t.file=path;t.allPoints=self;t.state=stateName
@@ -84,6 +87,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     env.GameTooltip=obj("GameTooltip",env.UIParent);env.GameTooltip:Hide()
     env.UISpecialFrames={};env.SlashCmdList={};env.DEFAULT_CHAT_FRAME={AddMessage=function(_,m) state.lastMessage=m end}
     env.GetTime=function() return state.now end;env.GetServerTime=function() return state.time end
+    env.IsShiftKeyDown=function() return state.shift==true end
     env.IsLoggedIn=function() return not coldLogin end
     env.RegionalUniqueNamesEnabled=function() return true end
     env.UnitNameUnmodified=function() return first,surname end;env.UnitName=env.UnitNameUnmodified
@@ -117,10 +121,17 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
         [1433]={c=0,x=-8800,y=-1600,w=2000,h=1500,name="Redridge Mountains",parentMapID=1415},
         [1415]={c=0,x=5000,y=6000,w=17000,h=25000,name="Eastern Kingdoms",parentMapID=947},
         [1414]={c=1,x=10000,y=5000,w=16000,h=20000,name="Kalimdor",parentMapID=947},
+        [1446]={c=1,x=-7000,y=-3000,w=7000,h=6000,name="Tanaris",parentMapID=1414},
         [947]={name="Azeroth",parentMapID=0}}
     env.C_Map={GetBestMapForUnit=function() return state.pos.map end,
         GetPlayerMapPosition=function() return {x=state.pos.px,y=state.pos.py} end,
         GetMapInfo=function(id) return maps[id] end,
+        GetMapRectOnMap=function(id,parent)
+            local m,top=maps[id],maps[parent]
+            if parent==947 and id==1415 then return .55,.95,.15,.85 end
+            if parent==947 and id==1414 then return .05,.45,.1,.8 end
+            if m and top and m.c==top.c and m.c then return (top.y-m.y)/top.w,(top.y-m.y+m.w)/top.w,(top.x-m.x)/top.h,(top.x-m.x+m.h)/top.h end
+        end,
         GetMapChildrenInfo=function() return {{mapID=1429},{mapID=1433},{mapID=1415},{mapID=1414}} end,
         GetWorldPosFromMapPos=function(map,v) local m=maps[map];if m and m.c then return m.c,{x=m.x-v.y*m.h,y=m.y-v.x*m.w} end end,
         GetMapPosFromWorldPos=function(c,v,override)
@@ -142,7 +153,10 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
         return a
     end,GetAllTaxiNodes=function() return state.taxiNodes or {{nodeID=2,slotIndex=1,state=0},{nodeID=5,slotIndex=2,state=1},{nodeID=39,slotIndex=3,state=2}} end}
     env.GetTaxiMapID=function() return 1415 end
-    env.hooksecurefunc=function(name,fn) state.hook=fn end;env.TakeTaxiNode=function() end
+    env.hooksecurefunc=function(name,fn,hook)
+        if type(name)=="table" then local old=name[fn];name[fn]=function(...) local result={old(...)};hook(...);return unpack(result) end
+        else state.hook=fn end
+    end;env.TakeTaxiNode=function() end
     env.issecretvalue=function(v) return type(v)=="table" and rawget(v,"secret")==true end
     for line in io.lines(root.."/LightTheBeacons.toc") do
         if line:match("%.lua$") then local chunk=assert(loadfile(root.."/"..line));setfenv(chunk,env);chunk("LightTheBeacons",B) end
@@ -551,12 +565,12 @@ end
 -- Own-call actions must never acknowledge or navigate back to the caller.
 do
     local own=client("Aldric","Stoneward");own.B.Light()
-    check(own.B.UI.alertHint:GetText():find("view your beacon"),"Own alert advertises viewing, not answering")
+    check(not own.B.UI.banner:IsShown() and own.B.UI.summary:GetText():find("Beacon lit"),"Own call confirms in the card without a popup")
     local sent=#own.s.sent
-    own.B.UI.banner.scripts.OnClick(own.B.UI.banner,"LeftButton")
+    own.B.UI.frame:Show();own.B.UI.light.scripts.OnClick()
     own.B.UI.Tick()
-    check(not own.B.navigating and not own.B.UI.hud:IsShown() and not own.s.waypoint,"Clicking own alert opens details without route guidance or a waypoint")
-    check(own.B.UI.frame:IsShown() and own.B.Selected()==own.B.own and #own.s.sent==sent,"Own toast remains useful without sending a response")
+    check(not own.B.navigating and not own.B.UI.hud:IsShown() and not own.s.waypoint,"Viewing one's own card never starts route guidance or a waypoint")
+    check(own.B.UI.frame:IsShown() and own.B.Selected()==own.B.own and #own.s.sent==sent,"Own card remains useful without sending a response")
     own.B.navigating=true;own.B.UI.hud:Show();own.B.Answer()
     check(not own.B.navigating and not own.B.UI.hud:IsShown() and next(own.B.own.responders)==nil,"Core guard rejects direct self-answer and clears stale guidance")
     own.B.Receive("1|R|"..own.B.own.id.."|"..own.B.me,own.B.name,"GUILD")
@@ -627,7 +641,7 @@ do
     u.answer.scripts.OnClick()
     check(helper.B.navigating and #helper.s.sent==1,"Resuming does not send another acknowledgement")
     u.optionsButton.scripts.OnClick()
-    check(u.optionsPanel:IsShown() and not u.main:IsShown() and u.frame:GetHeight()==520,"Options replaces the compact contents and reveals the credit")
+    check(u.optionsPanel:IsShown() and not u.main:IsShown() and u.frame:GetHeight()==560,"Options replaces the compact contents and reveals the credit")
     u.optionsButton.scripts.OnClick()
     check(u.main:IsShown() and not u.optionsPanel:IsShown() and u.details:IsShown(),"Back restores the expanded card without resetting its state")
     helper.B.Light()
@@ -656,6 +670,140 @@ do
     check(u.callMessage:GetText()=='"'..selected.message..'"' and u.callMessage.nonSpaceWrap,"Maximum-length unbroken messages remain wrapped, not truncated by protocol")
     local fresh=client("Aldric","Stoneward",helper.B.db)
     check(not fresh.B.UI.expanded and fresh.B.UI.frame:GetWidth()==400,"Reload starts compact while preserving character saves")
+end
+
+-- Own confirmation, non-overlapping notifications, floating control, player filters.
+do
+    local c=client("Aldric","Stoneward");local u=c.B.UI
+    c.B.RequestLight();u.messageEdit:SetText("Rally here");u.composeSend.scripts.OnClick()
+    check(u.frame:IsShown() and not u.banner:IsShown() and u.summary:GetText():find("Beacon lit"),"Manual light confirms inside the card, never in an own-call popup")
+    local helper=client("Elowen","Dawnwatch");helper.B.Light()
+    local packet=helper.s.sent[#helper.s.sent][2];c.B.Receive(packet,helper.B.name,"GUILD")
+    check(u.banner:IsShown(),"An ally call still shows the incoming alert")
+    u.Answered("Elowen Dawnwatch",1,true,c.B.own)
+    check(u.answerBanner:IsShown() and not u.banner:IsShown() and u.pendingAlert,"First responder celebration suspends an incoming alert")
+    u.Alert(c.B.session.beacons[helper.B.me])
+    check(not u.banner:IsShown(),"An incoming call cannot overlap an active rally")
+    u.answerBanner:Hide()
+    check(u.banner:IsShown() and not u.pendingAlert,"Pending ally alert resumes after the celebration")
+    u.Answered("Elowen Dawnwatch",1,true,c.B.own)
+    c.B.SetPlayerFilter(helper.B.name,"silent",false);u.answerBanner:Hide()
+    check(not u.banner:IsShown(),"Muting a queued caller prevents the queued popup from resurfacing")
+    c.B.SetPlayerFilter(helper.B.name,"hidden",false)
+    check(#c.B.List()==1 and c.B.List()[1].owner==c.B.me,"Hidden beacon is removed from the call list while own remains")
+    c.B.SetPlayerFilter(helper.B.name,"normal",false);c.B.Select(c.B.session.beacons[helper.B.me]);c.B.Answer()
+    c.B.SetPlayerFilter(helper.B.name,"hidden",false)
+    check(not c.B.navigating and not u.hud:IsShown() and c.B.Selected().owner~=helper.B.me,"Hiding the followed caller stops their route and selects a visible call")
+    c.B.RemovePlayerFilter(helper.B.me)
+    check(#c.B.List()==2,"Removing a filter restores an active call without another horn")
+    check(not c.B.SetPlayerFilter(c.B.name,"hidden",true) and not c.B.SetPlayerFilter("Bad|Name","silent",false),"Filters reject self and markup-containing names")
+    local silent=client("Aldric","Stoneward");silent.B.SetPlayerFilter(" Elowen   Dawnwatch ","silent",false)
+    silent.B.Receive(packet,helper.B.name,"GUILD")
+    check(#silent.B.List()==1 and not silent.B.UI.banner:IsShown() and #silent.s.sounds==0,"Silence matches the canonical full name and keeps a quiet call")
+    silent.B.SetPlayerFilter(helper.B.name,"hidden",true)
+    local reload=client("Aldric","Stoneward",silent.B.db)
+    check(reload.B.Filter(helper.B.me).beacons=="hidden" and reload.B.Filter(helper.B.me).hideLocation,"Player filter modes survive reload")
+    local fresh=client("Aldric","Stoneward");local f=fresh.B.UI.floating
+    check(f:IsShown() and fresh.B.db.floatingButton,"Floating beacon control is enabled by default")
+    fresh.env.SlashCmdList.LIGHTTHEBEACONS("button")
+    local hidden=client("Aldric","Stoneward",fresh.B.db)
+    check(not f:IsShown() and not hidden.B.UI.floating:IsShown() and not hidden.B.db.floatingButton,"An explicit hidden-button preference survives reload")
+    fresh.env.SlashCmdList.LIGHTTHEBEACONS("button")
+    check(f:IsShown() and f.label:GetText()=="Light" and f.icon.desaturated,"Floating button is visible and clearly unlit when enabled")
+    fresh.s.shift=true;f.scripts.OnDragStart(f);f.centerX=360;f.centerY=250;f.scripts.OnDragStop(f);fresh.s.shift=false
+    f.scripts.OnClick(f,"LeftButton")
+    check(#fresh.s.sent==0 and fresh.B.db.buttonPosition.x==.25 and fresh.B.db.buttonPosition.y==.25,"Shift-drag saves normalized position and never ignites on release")
+    fresh.advance(1);f.scripts.OnClick(f,"LeftButton")
+    check(fresh.B.own and f.label:GetText()=="Lit" and not f.icon.desaturated and not fresh.B.UI.frame:IsShown() and not fresh.B.UI.banner:IsShown(),"One-click ignition stays compact and confirms on the lit icon")
+    f.scripts.OnClick(f,"RightButton")
+    check(fresh.B.UI.frame:IsShown() and fresh.B.Selected()==fresh.B.own,"Right-click opens the full own-beacon card")
+    f.scripts.OnClick(f,"LeftButton")
+    check(not fresh.B.own and f.icon.desaturated and f.label:GetText():find("s") and fresh.B.UI.summary:GetText()=="Beacon extinguished","Extinguish updates the icon, cooldown and card confirmation")
+    local saved=client("Aldric","Stoneward",fresh.B.db)
+    check(saved.B.UI.floating:IsShown() and saved.B.db.buttonPosition.x==.25 and saved.B.UI.floating.anchor[4]==360,"Floating visibility and placement survive reload")
+    saved.B.UI.OpenSettingsPage("controls");saved.B.UI.resetFloating.scripts.OnClick()
+    check(not saved.B.db.buttonPosition and saved.B.UI.floating.anchor[1]=="TOPRIGHT","Reset returns the floating button to its default anchor")
+end
+
+-- Private periodic positions, consent withdrawal, world-map projection and filters.
+do
+    local sender=client("Aldric","Stoneward");local viewer=client("Elowen","Dawnwatch")
+    local function locationPacket(c)
+        c.B.lastLocationAttempt=nil;c.B.BroadcastLocation();return c.s.sent[#c.s.sent][2]
+    end
+    local packet=locationPacket(sender)
+    check(packet:find('^1|L|') and not sender.B.own and sender.B.db.shareLocation,"Default sharing works without a lit beacon")
+    viewer.B.Receive(packet,sender.B.name,"WHISPER");viewer.B.Receive(packet,"Stranger","GUILD")
+    check(#viewer.B.Locations()==0,"Position sharing accepts only guild-addon traffic from roster members")
+    viewer.B.Receive(packet,sender.B.name,"GUILD")
+    check(#viewer.B.Locations()==1 and #viewer.B.List()==0 and not viewer.B.UI.banner:IsShown() and #viewer.s.sounds==0,"Locations never create beacons, horns or popup alerts")
+    local sent=#sender.s.sent;sender.B.BroadcastLocation()
+    check(#sender.s.sent==sent,"Position heartbeats are rate-limited to one every ten seconds")
+    sender.advance(10);sender.s.pos.px=.7;sender.B.BroadcastLocation();packet=sender.s.sent[#sender.s.sent][2]
+    viewer.advance(10);viewer.B.Receive(packet,sender.B.name,"GUILD")
+    check(viewer.B.Locations()[1].px==.7,"A new heartbeat updates the live marker position")
+    sender.B.ShareLocation(false);local withdraw=sender.s.sent[#sender.s.sent][2];viewer.B.Receive(withdraw,sender.B.name,"GUILD")
+    check(withdraw:find('^1|H|') and #viewer.B.Locations()==0,"Opt-out immediately withdraws the remote marker")
+    viewer.B.Receive(packet,sender.B.name,"GUILD")
+    check(#viewer.B.Locations()==0,"An in-flight location from the same second cannot undo a privacy withdrawal")
+    sent=#sender.s.sent;sender.advance(15);sender.B.BroadcastLocation()
+    check(#sender.s.sent==sent,"Disabled sharing stops future location heartbeats")
+    local restored=client("Aldric","Stoneward",sender.B.db)
+    check(not restored.B.db.shareLocation,"Opt-out survives reload and character saves")
+    sender.B.ShareLocation(true);viewer.advance(15);packet=sender.s.sent[#sender.s.sent][2];viewer.B.Receive(packet,sender.B.name,"GUILD")
+    check(#viewer.B.Locations()==1,"Turning sharing back on publishes a fresh position")
+    viewer.B.SetPlayerFilter(sender.B.name,"hidden",false)
+    check(#viewer.B.Locations()==1,"Hiding someone's beacons does not silently hide their separate location")
+    viewer.B.SetPlayerFilter(sender.B.name,"normal",true)
+    check(#viewer.B.Locations()==0,"Individual location filter hides the marker independently of beacon mode")
+    viewer.B.RemovePlayerFilter(sender.B.me);viewer.B.db.showLocations=false
+    check(#viewer.B.Locations()==0 and viewer.B.db.shareLocation,"Hide-all map display is independent of one's own sharing consent")
+    viewer.B.db.showLocations=true
+    local env=viewer.env;local world=env.CreateFrame("Frame","WorldMapFrame",env.UIParent);env.WorldMapFrame=world;world:SetSize(900,600)
+    local canvas=env.CreateFrame("Frame",nil,world);canvas:SetSize(900,600);canvas:SetAllPoints(world)
+    viewer.s.worldMapID=947;world.GetCanvas=function() return canvas end;world.GetMapID=function() return viewer.s.worldMapID end
+    world.SetMapID=function(_,id) viewer.s.worldMapID=id end
+    viewer.B.UI.MapPins()
+    local pin=viewer.B.UI.locationPins[1]
+    check(pin and pin:IsShown() and pin.location.owner==sender.B.me,"Guildmate marker appears on the full Azeroth world map")
+    local p=viewer.B.Locations()[1];local id,cx,cy=viewer.B.Client.MapPoint(p,1415);local wid,wx,wy=viewer.B.Client.MapPoint(p,947)
+    check(id==1415 and wid==947 and math.abs(wx-(.55+cx*.4))<1e-8 and math.abs(wy-(.15+cy*.7))<1e-8,"Continent-to-world placement uses the client's atlas rectangles")
+    world:SetMapID(1429)
+    check(pin:IsShown() and math.abs(pin.anchor[4]-.7*900)<.01,"Zooming to the zone immediately repositions the marker")
+    world:SetMapID(1414)
+    check(not pin:IsShown(),"Eastern Kingdoms marker is absent on the unrelated Kalimdor map")
+    world:SetMapID(947)
+    check(pin:IsShown(),"Zooming back out immediately restores the world marker")
+    viewer.B.SetPlayerFilter(sender.B.name,"normal",true)
+    check(not pin:IsShown(),"Changing a player location filter immediately removes an already visible pin")
+    viewer.B.RemovePlayerFilter(sender.B.me)
+    local savedWorld=env.C_Map.GetWorldPosFromMapPos;env.C_Map.GetWorldPosFromMapPos=nil
+    local fallback,x,y=viewer.B.Client.MapPoint(p,947)
+    check(fallback==947 and math.abs(x-wx)<1e-8 and math.abs(y-wy)<1e-8,"World markers still use the map hierarchy when world-coordinate conversion is unavailable")
+    env.C_Map.GetWorldPosFromMapPos=savedWorld
+    local kalimdor={map=1446,px=.4,py=.3};local kid,kx,ky=viewer.B.Client.MapPoint(kalimdor,947)
+    check(kid==947 and kx<.5 and ky>=0 and ky<=1,"Kalimdor zones project into their side of the world atlas")
+    local rect=env.C_Map.GetMapRectOnMap;env.C_Map.GetMapRectOnMap=function() return nil end
+    check(viewer.B.Client.MapPoint(p,947)==nil,"Missing map transforms never invent a world-marker position")
+    env.C_Map.GetMapRectOnMap=rect
+    local before=#viewer.s.sent;pin.scripts.OnClick(pin,"RightButton")
+    check(viewer.B.UI.filtersPanel:IsShown() and viewer.B.UI.filterName:GetText()==sender.B.name and #viewer.s.sent==before,"Right-click a marker opens that player's local filter setup")
+    viewer.B.UI.addFilter.scripts.OnClick();viewer.B.UI.filterRows[1].mode.scripts.OnClick()
+    check(viewer.B.BeaconMode(sender.B.me)=="silent","Player filter controls switch the stored beacon mode")
+    viewer.B.UI.filterRows[1].location:SetChecked(true);viewer.B.UI.filterRows[1].location.scripts.OnClick(viewer.B.UI.filterRows[1].location)
+    check(viewer.B.Filter(sender.B.me).hideLocation and not pin:IsShown(),"Player filter checkbox controls marker visibility")
+    viewer.B.RemovePlayerFilter(sender.B.me);viewer.advance(46);viewer.B.Protocol.Prune(viewer.B.session,viewer.B.Client.Now());viewer.B.UI.MapPins()
+    check(#viewer.B.Locations()==0 and not pin:IsShown(),"Offline/stale locations expire and disappear without a new packet")
+    local failed=client("Aldric","Stoneward");failed.s.sendResult=3;failed.B.ShareLocation(false)
+    check(not failed.B.db.shareLocation and failed.B.locationWithdrawPending,"A throttled privacy withdrawal disables sharing immediately and queues a retry")
+    failed.s.sendResult=0;failed.advance(2);failed.B.BroadcastLocation()
+    check(not failed.B.locationWithdrawPending and failed.s.sent[#failed.s.sent][2]:find('^1|H|'),"Privacy withdrawal retries without leaking another location")
+    local missing=client("Aldric","Stoneward");missing.env.C_Map.GetPlayerMapPosition=function() return nil end
+    check(locationPacket(missing):find('^1|H|'),"Unreadable positions withdraw stale coordinates instead of rebroadcasting them")
+    local parser=viewer.B.Protocol
+    for _,bad in ipairs({"1|L|"..viewer.s.time.."|1429|1.1|0.2","1|L|"..viewer.s.time.."|1429|0.1|nan","1|H|"..viewer.s.time.."|someone", "1|L|"..(viewer.s.time-46).."|1429|0.2|0.3"}) do
+        check(not parser.Parse(bad,viewer.s.time),"Malformed/stale location packets are rejected")
+    end
 end
 
 local perf=os.clock()
@@ -719,7 +867,7 @@ local function snapshot(c,target,path)
     for _,o in ipairs(c.objects) do if inside(o) and visible(o) then
         local x,y,w,h=bounds(o);local item={id=o.id,kind=o.kind,x=x-ox,y=y-oy,width=w,height=h,
             frameLevel=o.frameLevel,layer=o.layer,text=o.text,fontSize=o.fontSize,color=o.color,align=o.align,
-            wrap=o.wrap,nonSpaceWrap=o.nonSpaceWrap,file=o.file,coords=o.coords,solid=o.solid,alpha=o.alpha,vertexColor=o.vertexColor,backdrop=o.backdrop,
+            wrap=o.wrap,nonSpaceWrap=o.nonSpaceWrap,file=o.file,coords=o.coords,solid=o.solid,alpha=o.alpha,desaturated=o.desaturated,vertexColor=o.vertexColor,backdrop=o.backdrop,
             backdropColor=o.backdropColor,border=o.border}
         local ancestor=o
         while ancestor do
@@ -755,5 +903,19 @@ if arg[2] then
     preview.B.own=sample;preview.B.UI.expanded=true;preview.B.UI.Refresh()
     for _,o in ipairs(preview.objects) do o.box=nil end
     snapshot(preview,preview.B.UI.frame,arg[2].."-own.json")
+    preview.B.UI.OpenSettingsPage("controls")
+    for _,o in ipairs(preview.objects) do o.box=nil end
+    snapshot(preview,preview.B.UI.frame,arg[2].."-controls.json")
+    preview.B.SetPlayerFilter("Jackdark Featherfall","silent",false)
+    preview.B.SetPlayerFilter("Blackbeard Soulless","hidden",true)
+    preview.B.UI.OpenSettingsPage("filters")
+    for _,o in ipairs(preview.objects) do o.box=nil end
+    snapshot(preview,preview.B.UI.frame,arg[2].."-filters.json")
+    preview.B.db.floatingButton=true;preview.B.UI.RefreshFloating()
+    for _,o in ipairs(preview.objects) do o.box=nil end
+    snapshot(preview,preview.B.UI.floating,arg[2].."-floating-lit.json")
+    preview.B.own=nil;preview.B.UI.RefreshFloating()
+    for _,o in ipairs(preview.objects) do o.box=nil end
+    snapshot(preview,preview.B.UI.floating,arg[2].."-floating-idle.json")
 end
 print("Light the Beacons: "..total.." checks passed (protocol, routing, two clients, death detection, UI).")

@@ -62,6 +62,7 @@ local function closeButton(parent,x,y,callback)
     b:SetHighlightTexture(media.."UI-Panel-MinimizeButton-Highlight.tga","ADD")
     b:SetScript("OnClick",callback);return b
 end
+U.Widgets={text=text,texture=texture,fill=fill,panel=panel,button=button,tip=tip}
 local reasons={aid="Calls for aid",pvp="Fallen in battle",fallen="Fallen ally"}
 function U.StepTitle(step)
     if step.kind=="flight" then return "Fly to "..(step.to.n:match("^[^,]+") or step.to.n) end
@@ -129,7 +130,10 @@ function U.Create()
         if B.own and B.own.expires>C.Now() then B.Select(B.own);U.options=false;U.Refresh()
         else B.RequestLight() end
     end)
-    U.optionsButton=link(f,"Options",303,12,48,function() U.options=not U.options;U.Refresh() end)
+    U.optionsButton=link(f,"Options",303,12,48,function()
+        if U.settingsPage then U.settingsPage=nil;U.options=true else U.options=not U.options end
+        U.Refresh()
+    end)
     tip(U.optionsButton,"Options","Sound, automatic calls, travel pace, quick messages and credits.")
     closeButton(f,365,10,function() f:Hide() end)
     U.main=CreateFrame("Frame",nil,f);U.main:SetAllPoints()
@@ -200,10 +204,12 @@ function U.Create()
     U.previewButton=button(op,"Preview a call",201,354,183,function()
         U.options=false;U.expanded=false;B.Preview()
     end)
-    U.status=text(op,16,395,368,34,11,pale)
-    text(op,16,436,368,32,11,muted):SetText("Only guild addon users receive calls. Beacons last 5 minutes; calls have a 60-second cooldown.")
-    fill(op,16,480,368,1,.57,.45,.24,.3)
-    U.credit=text(op,16,490,368,16,11,muted);U.credit:SetText("Made by Whitebeard Tinkerton - US PVP")
+    button(op,"Map & beacon controls",16,392,232,function() U.OpenSettingsPage("controls") end)
+    button(op,"Player filters",258,392,126,function() U.OpenSettingsPage("filters") end)
+    U.status=text(op,16,435,368,34,11,pale)
+    text(op,16,476,368,32,11,muted):SetText("Only guild addon users receive calls. Beacons last 5 minutes; calls have a 60-second cooldown.")
+    fill(op,16,520,368,1,.57,.45,.24,.3)
+    U.credit=text(op,16,530,368,16,11,muted);U.credit:SetText("Made by Whitebeard Tinkerton - US PVP")
     -- Compose locally; choosing or saving a template never broadcasts it.
     local composer=panel(UIParent,"LightTheBeaconsComposer",620,418);U.composer=composer
     composer:SetPoint("CENTER");composer:SetFrameStrata("FULLSCREEN_DIALOG");draggable(composer)
@@ -320,12 +326,23 @@ function U.Create()
         U.answerGlow:SetAlpha(.30+.40*math.exp(-t/2)*(.5+.5*math.cos(t*7)))
         if t>=duration or (self.beacon and (self.beacon.expires<=C.Now() or B.own~=self.beacon)) then self:Hide() end
     end)
+    answer:SetScript("OnHide",function()
+        local pending=U.pendingAlert;U.pendingAlert=nil
+        if pending and (pending.preview or B.session.beacons[pending.beacon.owner]==pending.beacon) and pending.beacon.expires>C.Now() then
+            U.Alert(pending.beacon,pending.preview)
+        end
+    end)
     answer:Hide()
+    U.CreateControls()
     f:Hide()
 end
 function U.Answered(name,count,first,beacon,preview)
     if not U.answerBanner then return end
     local a=U.answerBanner
+    if U.banner:IsShown() then
+        if U.alertBeacon and U.alertBeacon.owner~=B.me then U.pendingAlert={beacon=U.alertBeacon,preview=U.alertPreview} end
+        U.banner:Hide()
+    end
     U.answerTitle:SetText(preview and "RALLY PREVIEW" or first and "THE ALLIANCE ANSWERS!" or "REINFORCEMENTS INBOUND")
     U.answerTitle:SetFont("Fonts\\FRIZQT__.TTF",first and 21 or 18,"")
     U.answerName:SetText(name)
@@ -336,7 +353,7 @@ end
 function U.Toggle(options)
     if not U.frame then return end
     B.preview=nil
-    if options then U.options=true;U.frame:Show()
+    if options then U.options=true;U.settingsPage=nil;U.frame:Show()
     else U.frame:SetShown(not U.frame:IsShown()) end
     if U.frame:IsShown() and not B.navigating then B.Replan() end
     U.Refresh()
@@ -366,10 +383,12 @@ function U.UpdateAlertMessage(b)
 end
 function U.Alert(b,preview)
     if not U.banner then return end
+    if b.owner==B.me or (not preview and B.BeaconMode(b.owner)~="normal") then return end
+    if U.answerBanner and U.answerBanner:IsShown() then U.pendingAlert={beacon=b,preview=preview};return end
     U.alertBeacon=b
-    local own=b.owner==B.me
-    U.alertName:SetText(own and "Your guild has been called to your aid." or b.name.." calls for aid!")
-    U.alertHint:SetText(own and "Click to view your beacon  -  Right-click to dismiss" or "Click to answer the call  -  Right-click to dismiss")
+    U.alertPreview=preview
+    U.alertName:SetText(b.name.." calls for aid!")
+    U.alertHint:SetText("Click to answer the call  -  Right-click to dismiss")
     U.alertZone:SetText((preview and "PREVIEW - " or "")..C.Zone(b.map).."  |  "..(reasons[b.reason] or "Calls for aid"))
     U.UpdateAlertMessage(b)
     U.banner.elapsed=0;U.banner:Show()
@@ -384,7 +403,7 @@ function U.Refresh()
     local function position(frame,x,y)
         frame:ClearAllPoints();frame:SetPoint("TOPLEFT",x,-y)
     end
-    U.main:SetShown(not U.options);U.optionsPanel:SetShown(U.options and true or false)
+    U.main:SetShown(not U.options);U.optionsPanel:SetShown(U.options and not U.settingsPage and true or false)
     U.optionsButton.label:SetText(U.options and "Back" or "Options")
     local list=B.preview and {B.preview} or B.List()
     local selected=B.Selected()
@@ -407,8 +426,8 @@ function U.Refresh()
     tip(U.identity,selected and selected.name or "Your guild's watch",selected and
         (C.Zone(selected.map).." - "..(reasons[selected.reason] or reasons.aid)) or "No active calls.")
     local allies=#names..(#names==1 and " ally" or " allies")
-    U.summary:SetText(selected and ((B.preview and "PREVIEW - " or own and "Your beacon - " or C.Zone(selected.map).." - ")..
-        allies..(own and " coming to you" or " answering")) or guild and "No active calls" or "Join a guild to call for aid")
+    U.summary:SetText(selected and ((B.preview and "PREVIEW - " or own and "Beacon lit - " or C.Zone(selected.map).." - ")..
+        allies..(own and " coming to you" or " answering")) or U.confirmedClearUntil and U.confirmedClearUntil>GetTime() and "Beacon extinguished" or guild and "No active calls" or "Join a guild to call for aid")
     U.beacon:SetAlpha(selected and 1 or .45)
     local callMessage=selected and selected.message
     local hasMessage=callMessage and callMessage~=""
@@ -489,10 +508,12 @@ function U.Refresh()
     end
     U.details:SetShown(U.expanded and selected~=nil and true or false)
     if U.expanded and selected then position(U.details,0,y);y=y+detailsHeight end
-    local height=U.options and 520 or y+7
+    local height=U.options and (U.settingsPage and 510 or 560) or y+7
     U.frame:SetHeight(height);U.frame.surface:SetHeight(height-12)
+    U.RefreshControls()
 end
 function U.MapPins()
+    U.LocationPins()
     if not WorldMapFrame or not WorldMapFrame:IsShown() then
         for _,pin in ipairs(U.pins or {}) do pin:Hide() end;return
     end
@@ -525,6 +546,7 @@ end
 function U.Tick()
     if not U.frame then return end
     if U.frame:IsShown() then U.Refresh() end
+    U.RefreshFloating()
     if U.alertBeacon and U.alertBeacon.expires<=C.Now() then U.banner:Hide() end
     U.hud:SetShown(B.navigating and B.Selected()~=nil and true or false)
     if U.hud:IsShown() then
