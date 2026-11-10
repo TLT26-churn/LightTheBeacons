@@ -1,4 +1,4 @@
-# Light the Beacons 1.4.0
+# Light the Beacons 1.4.1
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -219,7 +219,8 @@ instances do not create beacons or automatic prompts.
 `LightTheBeaconsDB` is saved **per character**. It contains options, discovered
 flights, learned connections/times, three message templates, sharing/display
 preferences, player filters, floating-button position and your own unexpired
-beacon including its message. Remote beacons and shared locations
+beacon including its message and responder names. Expired or invalid saved
+beacons are cleared at login; WoW writes the cleanup at its next normal save. Remote beacons and shared locations
 are held in memory only. Reloading preserves your ability to extinguish your
 own active beacon. Leaving/changing guild clears active guild data. Installing
 or updating the addon does not modify the game's `WTF` directory or other saves.
@@ -230,7 +231,7 @@ routing, boats/zeppelins, new flight connections, saved settings, death detectio
 and UI construction, plus popup arbitration, movable controls, per-player
 filters, location opt-out/expiry and zone-to-continent-to-world map projection.
 Rendered previews are generated from the real Lua widget
-tree with bundled art and a substitute serif font; the game uses Friz Quadrata.
+tree with local native-texture preview fixtures and a substitute serif font; the game uses Friz Quadrata.
 These checks do not substitute for live guild delivery, PvP, map and taint tests.
 
 From the source workspace:
@@ -245,8 +246,9 @@ python3 tools/package_light_beacons.py
 Flight/transport data is adapted from [Lodestar](https://github.com/danielcosta42/lodestar),
 Copyright (c) 2026 Daniel Costa, under the included MIT license. Its source is
 Blizzard's Forever client DB2 data via wago.tools. Source hash, build and changes
-are recorded in `ThirdParty/TravelData-source.txt`. Original UI artwork belongs
-to Blizzard Entertainment; pinned sources and hashes are in `Media/sources.json`.
+are recorded in `ThirdParty/TravelData-source.txt`. Native UI artwork belongs
+to Blizzard Entertainment and is referenced from the installed client, not bundled;
+references and local preview source records are in `Media/sources.json`.
 The royal brazier is original artwork created for Light the Beacons with OpenAI
 image generation. It ships as a transparent TGA; its source and prompt are in
 the repository's `art/` directory. No extra program or download is needed in game.
@@ -263,3 +265,15 @@ particularly SkillInfo, SpellBook, ChatInfo, TaxiMap, Map, DeathInfo, DeathRecap
 
 Forever discovery compatibility: the world-map flag limitation is also documented
 in [ForeverPlusPlus API observations](https://github.com/xIGBClutchIx/ForeverPlusPlus/blob/main/docs/forever-api.md).
+
+## License and privacy
+
+All Rights Reserved with Free Player Use: players may download, install, run and
+make personal backups at no cost. Redistribution, resale and publication of
+modified original code require separate permission. See [LICENSE.txt](LICENSE.txt).
+Third-party materials retain their own rights, including Lodestar’s MIT license.
+
+**Location sharing is on by default.** Guild members can receive and record addon
+packets, including beacon messages and responses. Local player filters are not
+recipient blocks. Read [PRIVACY.txt](PRIVACY.txt) for transmitted fields,
+local saves, retention and instructions to stop sharing.

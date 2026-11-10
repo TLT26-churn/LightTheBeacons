@@ -1,0 +1,21 @@
+local _,B=...
+-- Native game artwork remains in the installed WoW client.
+B.MediaPaths = {
+    ["UI-DialogBox-Background"]="Interface\\DialogFrame\\UI-DialogBox-Background",
+    ["UI-DialogBox-Border"]="Interface\\DialogFrame\\UI-DialogBox-Border",
+    ["UI-Panel-Button-Up"]="Interface\\Buttons\\UI-Panel-Button-Up",
+    ["UI-Panel-Button-Down"]="Interface\\Buttons\\UI-Panel-Button-Down",
+    ["UI-Panel-Button-Disabled"]="Interface\\Buttons\\UI-Panel-Button-Disabled",
+    ["UI-Panel-Button-Highlight"]="Interface\\Buttons\\UI-Panel-Button-Highlight",
+    ["UI-CheckBox-Up"]="Interface\\Buttons\\UI-CheckBox-Up",
+    ["UI-CheckBox-Check"]="Interface\\Buttons\\UI-CheckBox-Check",
+    ["UI-Panel-MinimizeButton-Up"]="Interface\\Buttons\\UI-Panel-MinimizeButton-Up",
+    ["UI-Panel-MinimizeButton-Down"]="Interface\\Buttons\\UI-Panel-MinimizeButton-Down",
+    ["UI-Panel-MinimizeButton-Highlight"]="Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight",
+    ["Torch"]="Interface\\ICONS\\INV_Torch_Lit",
+    ["Arrow"]="Interface\\MINIMAP\\MinimapArrow",
+    ["AllianceCrest"]="Interface\\Timer\\Alliance-Logo",
+    ["AllianceCloth"]="Interface\\Glues\\CHARACTERCREATE\\AlliedRacesAllianceandHordeBanner",
+    ["AllianceGlow"]="Interface\\Timer\\AllianceGlow-Logo",
+    RoyalBrazier="Interface\\AddOns\\LightTheBeacons\\Media\\RoyalBrazier.tga",
+}

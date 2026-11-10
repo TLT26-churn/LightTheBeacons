@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.4.1 — License and privacy review
+
+- Add All Rights Reserved with Free Player Use terms to the source and addon ZIP;
+  preserve the separate Lodestar MIT license and third-party notices.
+- Add player privacy information covering default-on guild position broadcasts,
+  message/response visibility, local saves, opt-out controls and retention limits.
+- Clear expired or invalid saved beacons at login, including stale incident
+  coordinates, message text and responder names. Preserve settings and templates.
+- Reference Blizzard textures from the installed WoW client instead of bundling
+  copies; keep the original royal brazier and native horn/sound references.
+- Keep WoW Forever 1.60.1 / interface 16001 support in one Windows/Linux ZIP.
+
 ## 1.4.0 — Guild watch
 
 - Share guild addon users' positions about every 10 seconds without a lit beacon.

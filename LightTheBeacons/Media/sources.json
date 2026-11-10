@@ -1,86 +1,6 @@
 {
-  "copyright": "RoyalBrazier.tga: original Light the Beacons artwork generated with OpenAI image generation. Other textures: Blizzard Entertainment, original UI textures with unchanged pixels.",
+  "copyright": "RoyalBrazier.tga: artwork generated for Light the Beacons with OpenAI image generation. Blizzard textures and sounds remain native client assets; they are referenced, not bundled.",
   "files": [
-    {
-      "file": "UI-DialogBox-Background.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/DialogFrame/UI-DialogBox-Background.PNG",
-      "sha256": "e40a4c1ea82ab3002fc00d8cc2784319df17914e419855f770f0ccf6ce835894"
-    },
-    {
-      "file": "UI-DialogBox-Border.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/DialogFrame/UI-DialogBox-Border.PNG",
-      "sha256": "0034de6acc2de356cacd32848fa4a00c30ba99c7deb2b4f049918ca684fe35a5"
-    },
-    {
-      "file": "UI-Panel-Button-Up.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Up.PNG",
-      "sha256": "0656d9e3030fd946141d7dfc741fe8390dc7b50656dc0db9d82eb3f4630f91aa"
-    },
-    {
-      "file": "UI-Panel-Button-Down.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Down.PNG",
-      "sha256": "f1bf20c711453def388128e2d4f3aa06936b2bcb8f8390e94ba25f53e57f6108"
-    },
-    {
-      "file": "UI-Panel-Button-Disabled.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Disabled.PNG",
-      "sha256": "e4c301d79a26d512bc67032fe956163df849e6df18b4d4df06f14cccfed6175f"
-    },
-    {
-      "file": "UI-Panel-Button-Highlight.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Highlight.PNG",
-      "sha256": "f5f855e7d3f041416ea5e283b1feb7374f3492530f4fee51b03f662356d8619d"
-    },
-    {
-      "file": "UI-CheckBox-Up.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-CheckBox-Up.PNG",
-      "sha256": "5f2511f7e6df696f1d7feff0d280dbde71630bbb763d171c3ca2917ad1b35611"
-    },
-    {
-      "file": "UI-CheckBox-Check.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-CheckBox-Check.PNG",
-      "sha256": "ccef2c68d0973ebaf31b7f5d91acad6edd4cef1ada0bfcda46dfe24eeb6a8f7f"
-    },
-    {
-      "file": "UI-Panel-MinimizeButton-Up.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-MinimizeButton-Up.PNG",
-      "sha256": "24e7dad79588248e189b9a8facc0d21e5f6e11027ff32e12df30e66782ba9499"
-    },
-    {
-      "file": "UI-Panel-MinimizeButton-Down.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-MinimizeButton-Down.PNG",
-      "sha256": "5675ccea7a2c26e6c0fa198ce676a8442a6443fad27e48ca986482a45a16a495"
-    },
-    {
-      "file": "UI-Panel-MinimizeButton-Highlight.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-MinimizeButton-Highlight.PNG",
-      "sha256": "4ab6f14ab155b1feda362b8707d4eea6ec14b015b85989d35c832a5f36971a99"
-    },
-    {
-      "file": "Torch.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/ICONS/INV_Torch_Lit.PNG",
-      "sha256": "976a0894aef547330ba34879231c73105c5522c1804d565a9cc7554699b839ae"
-    },
-    {
-      "file": "Arrow.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/MINIMAP/MinimapArrow.PNG",
-      "sha256": "c5ebf879021ea651eb0ed15d28637ce41866746d039aa11f775ad6671314f9ff"
-    },
-    {
-      "file": "AllianceCrest.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/Alliance-Logo.PNG",
-      "sha256": "10423ff315a32b948a3f01651c49e92467d0b76ef28411737bf5e05eebdb23ea"
-    },
-    {
-      "file": "AllianceCloth.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Glues/CHARACTERCREATE/AlliedRacesAllianceandHordeBanner.PNG",
-      "sha256": "49e064be99379943c68991f979c8964e8f0c4495a4c7bc19949a82de4ebc6bf4"
-    },
-    {
-      "file": "AllianceGlow.tga",
-      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/AllianceGlow-Logo.PNG",
-      "sha256": "36ff5c4fc127129327a78b35ea344ba5cc7f51375890d294a9a8079b408c1891"
-    },
     {
       "file": "RoyalBrazier.tga",
       "kind": "original",
@@ -112,5 +32,104 @@
       "playback": "PlaySoundFile(fileDataID, \"Master\"); native sound kit fallback"
     }
   ],
-  "soundPolicy": "Native WoW FileDataID references with sound-kit fallback. No audio recordings bundled."
+  "soundPolicy": "Native WoW FileDataID references with sound-kit fallback. No audio recordings bundled.",
+  "nativeTextures": [
+    {
+      "file": "UI-DialogBox-Background.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/DialogFrame/UI-DialogBox-Background.PNG",
+      "sha256": "e40a4c1ea82ab3002fc00d8cc2784319df17914e419855f770f0ccf6ce835894",
+      "nativePath": "Interface\\DialogFrame\\UI-DialogBox-Background"
+    },
+    {
+      "file": "UI-DialogBox-Border.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/DialogFrame/UI-DialogBox-Border.PNG",
+      "sha256": "0034de6acc2de356cacd32848fa4a00c30ba99c7deb2b4f049918ca684fe35a5",
+      "nativePath": "Interface\\DialogFrame\\UI-DialogBox-Border"
+    },
+    {
+      "file": "UI-Panel-Button-Up.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Up.PNG",
+      "sha256": "0656d9e3030fd946141d7dfc741fe8390dc7b50656dc0db9d82eb3f4630f91aa",
+      "nativePath": "Interface\\Buttons\\UI-Panel-Button-Up"
+    },
+    {
+      "file": "UI-Panel-Button-Down.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Down.PNG",
+      "sha256": "f1bf20c711453def388128e2d4f3aa06936b2bcb8f8390e94ba25f53e57f6108",
+      "nativePath": "Interface\\Buttons\\UI-Panel-Button-Down"
+    },
+    {
+      "file": "UI-Panel-Button-Disabled.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Disabled.PNG",
+      "sha256": "e4c301d79a26d512bc67032fe956163df849e6df18b4d4df06f14cccfed6175f",
+      "nativePath": "Interface\\Buttons\\UI-Panel-Button-Disabled"
+    },
+    {
+      "file": "UI-Panel-Button-Highlight.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Highlight.PNG",
+      "sha256": "f5f855e7d3f041416ea5e283b1feb7374f3492530f4fee51b03f662356d8619d",
+      "nativePath": "Interface\\Buttons\\UI-Panel-Button-Highlight"
+    },
+    {
+      "file": "UI-CheckBox-Up.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-CheckBox-Up.PNG",
+      "sha256": "5f2511f7e6df696f1d7feff0d280dbde71630bbb763d171c3ca2917ad1b35611",
+      "nativePath": "Interface\\Buttons\\UI-CheckBox-Up"
+    },
+    {
+      "file": "UI-CheckBox-Check.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-CheckBox-Check.PNG",
+      "sha256": "ccef2c68d0973ebaf31b7f5d91acad6edd4cef1ada0bfcda46dfe24eeb6a8f7f",
+      "nativePath": "Interface\\Buttons\\UI-CheckBox-Check"
+    },
+    {
+      "file": "UI-Panel-MinimizeButton-Up.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-MinimizeButton-Up.PNG",
+      "sha256": "24e7dad79588248e189b9a8facc0d21e5f6e11027ff32e12df30e66782ba9499",
+      "nativePath": "Interface\\Buttons\\UI-Panel-MinimizeButton-Up"
+    },
+    {
+      "file": "UI-Panel-MinimizeButton-Down.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-MinimizeButton-Down.PNG",
+      "sha256": "5675ccea7a2c26e6c0fa198ce676a8442a6443fad27e48ca986482a45a16a495",
+      "nativePath": "Interface\\Buttons\\UI-Panel-MinimizeButton-Down"
+    },
+    {
+      "file": "UI-Panel-MinimizeButton-Highlight.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-MinimizeButton-Highlight.PNG",
+      "sha256": "4ab6f14ab155b1feda362b8707d4eea6ec14b015b85989d35c832a5f36971a99",
+      "nativePath": "Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight"
+    },
+    {
+      "file": "Torch.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/ICONS/INV_Torch_Lit.PNG",
+      "sha256": "976a0894aef547330ba34879231c73105c5522c1804d565a9cc7554699b839ae",
+      "nativePath": "Interface\\ICONS\\INV_Torch_Lit"
+    },
+    {
+      "file": "Arrow.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/MINIMAP/MinimapArrow.PNG",
+      "sha256": "c5ebf879021ea651eb0ed15d28637ce41866746d039aa11f775ad6671314f9ff",
+      "nativePath": "Interface\\MINIMAP\\MinimapArrow"
+    },
+    {
+      "file": "AllianceCrest.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/Alliance-Logo.PNG",
+      "sha256": "10423ff315a32b948a3f01651c49e92467d0b76ef28411737bf5e05eebdb23ea",
+      "nativePath": "Interface\\Timer\\Alliance-Logo"
+    },
+    {
+      "file": "AllianceCloth.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Glues/CHARACTERCREATE/AlliedRacesAllianceandHordeBanner.PNG",
+      "sha256": "49e064be99379943c68991f979c8964e8f0c4495a4c7bc19949a82de4ebc6bf4",
+      "nativePath": "Interface\\Glues\\CHARACTERCREATE\\AlliedRacesAllianceandHordeBanner"
+    },
+    {
+      "file": "AllianceGlow.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/AllianceGlow-Logo.PNG",
+      "sha256": "36ff5c4fc127129327a78b35ea344ba5cc7f51375890d294a9a8079b408c1891",
+      "nativePath": "Interface\\Timer\\AllianceGlow-Logo"
+    }
+  ],
+  "nativeTexturePolicy": "Pinned source URLs and converted hashes identify local preview fixtures only. The distributable uses nativePath references and includes no Blizzard texture copies."
 }

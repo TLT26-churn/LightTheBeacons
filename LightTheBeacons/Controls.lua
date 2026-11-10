@@ -2,7 +2,7 @@ local _,B=...
 local U,C,P,R=B.UI,B.Client,B.Protocol,B.Routing
 local W=U.Widgets
 local text,texture,fill,button,tip=W.text,W.texture,W.fill,W.button,W.tip
-local media="Interface\\AddOns\\LightTheBeacons\\Media\\"
+local function asset(name) return assert(B.MediaPaths[name], "Unknown media: "..tostring(name)) end
 local gold,pale,muted={1,.82,.43},{.86,.90,.97},{.60,.66,.76}
 local modes={normal="Normal",silent="Silence",hidden="Hide"}
 local nextMode={normal="silent",silent="hidden",hidden="normal"}
@@ -30,7 +30,7 @@ function U.RefreshFloating()
 end
 local function checkbox(parent,label,description,y,fn)
     local c=CreateFrame("CheckButton",nil,parent);c:SetPoint("TOPLEFT",16,-y);c:SetSize(24,24)
-    c:SetNormalTexture(media.."UI-CheckBox-Up.tga");c:SetCheckedTexture(media.."UI-CheckBox-Check.tga")
+    c:SetNormalTexture(asset("UI-CheckBox-Up"));c:SetCheckedTexture(asset("UI-CheckBox-Check"))
     text(parent,47,y+3,335,22,12,gold):SetText(label)
     text(parent,47,y+27,335,47,11,pale):SetText(description)
     c:SetScript("OnClick",function(self) fn(self:GetChecked() and true or false);U.Refresh() end)
@@ -82,7 +82,7 @@ function U.CreateControls()
     text(filters,16,96,368,45,12,pale):SetText("Silence: no horn or popup. Hide: also removes their beacons. Location visibility is a separate choice.")
     text(filters,16,148,368,16,11,gold):SetText("FULL CHARACTER NAME  (including surname)")
     local field=CreateFrame("Frame",nil,filters,"BackdropTemplate");field:SetPoint("TOPLEFT",16,-171);field:SetSize(244,28)
-    field:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",edgeSize=8,insets={left=3,right=3,top=3,bottom=3}})
+    field:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),edgeSize=8,insets={left=3,right=3,top=3,bottom=3}})
     field:SetBackdropColor(.035,.09,.21,1);field:SetBackdropBorderColor(.80,.65,.38,1)
     local edit=CreateFrame("EditBox",nil,field);U.filterName=edit;edit:SetPoint("TOPLEFT",7,-5);edit:SetSize(230,20)
     edit:SetFont("Fonts\\FRIZQT__.TTF",12,"");edit:SetTextColor(unpack(pale));edit:SetAutoFocus(false);edit:SetMaxBytes(150)
@@ -114,7 +114,7 @@ local function filterRow(index)
         local f=B.Filter(row.key);if f then B.SetPlayerFilter(f.name,nextMode[f.beacons],f.hideLocation) end
     end)
     row.location=CreateFrame("CheckButton",nil,row);row.location:SetPoint("TOPLEFT",192,-30);row.location:SetSize(22,22)
-    row.location:SetNormalTexture(media.."UI-CheckBox-Up.tga");row.location:SetCheckedTexture(media.."UI-CheckBox-Check.tga")
+    row.location:SetNormalTexture(asset("UI-CheckBox-Up"));row.location:SetCheckedTexture(asset("UI-CheckBox-Check"))
     text(row,219,35,145,18,11,pale):SetText("Hide location")
     row.location:SetScript("OnClick",function(self) local f=B.Filter(row.key);if f then B.SetPlayerFilter(f.name,f.beacons,self:GetChecked()) end end)
     return row

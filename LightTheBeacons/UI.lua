@@ -1,6 +1,6 @@
 local _,B=...
 local U,C,R,P={},B.Client,B.Routing,B.Protocol;B.UI=U
-local media="Interface\\AddOns\\LightTheBeacons\\Media\\"
+local function asset(name) return assert(B.MediaPaths[name], "Unknown media: "..tostring(name)) end
 local gold={1,.82,.43};local pale={.86,.90,.97};local ink={.24,.15,.08}
 local brass={.80,.65,.38};local muted={.60,.66,.76}
 local function text(parent,x,y,w,h,size,color,align)
@@ -14,7 +14,7 @@ local function text(parent,x,y,w,h,size,color,align)
 end
 local function texture(parent,name,x,y,w,h,layer)
     local t=parent:CreateTexture(nil,layer or "ARTWORK")
-    t:SetTexture(media..name..".tga");t:SetPoint("TOPLEFT",x,-y);t:SetSize(w,h);return t
+    t:SetTexture(asset(name));t:SetPoint("TOPLEFT",x,-y);t:SetSize(w,h);return t
 end
 local function fill(parent,x,y,w,h,r,g,b,a,layer)
     local t=parent:CreateTexture(nil,layer or "BACKGROUND")
@@ -23,7 +23,7 @@ end
 local function panel(parent,name,w,h)
     local f=CreateFrame("Frame",name,parent,"BackdropTemplate")
     f:SetSize(w,h)
-    f:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",
+    f:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
         tile=true,tileSize=32,edgeSize=30,insets={left=8,right=8,top=8,bottom=8}})
     f:SetBackdropColor(.12,.24,.50,.99);f:SetBackdropBorderColor(.92,.76,.41,1)
     f.surface=fill(f,10,10,w-20,h-20,.025,.065,.145,.97)
@@ -32,7 +32,7 @@ end
 local function button(parent,label,x,y,w,fn)
     local b=CreateFrame("Button",nil,parent,"BackdropTemplate")
     b:SetPoint("TOPLEFT",x,-y);b:SetSize(w,28)
-    b:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",
+    b:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
         tile=true,tileSize=32,edgeSize=10,insets={left=3,right=3,top=3,bottom=3}})
     b:SetBackdropColor(.12,.31,.72,1);b:SetBackdropBorderColor(.94,.76,.40,1)
     fill(b,5,5,w-10,18,.07,.20,.47,.92)
@@ -57,9 +57,9 @@ local function draggable(f)
 end
 local function closeButton(parent,x,y,callback)
     local b=CreateFrame("Button",nil,parent);b:SetPoint("TOPLEFT",x,-y);b:SetSize(28,28)
-    b:SetNormalTexture(media.."UI-Panel-MinimizeButton-Up.tga")
-    b:SetPushedTexture(media.."UI-Panel-MinimizeButton-Down.tga")
-    b:SetHighlightTexture(media.."UI-Panel-MinimizeButton-Highlight.tga","ADD")
+    b:SetNormalTexture(asset("UI-Panel-MinimizeButton-Up"))
+    b:SetPushedTexture(asset("UI-Panel-MinimizeButton-Down"))
+    b:SetHighlightTexture(asset("UI-Panel-MinimizeButton-Highlight"),"ADD")
     b:SetScript("OnClick",callback);return b
 end
 U.Widgets={text=text,texture=texture,fill=fill,panel=panel,button=button,tip=tip}
@@ -109,7 +109,7 @@ end
 function U.Create()
     if U.frame then return end
     local f=panel(UIParent,"LightTheBeaconsWindow",400,180);U.frame=f
-    f:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",
+    f:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
         tile=true,tileSize=32,edgeSize=12,insets={left=4,right=4,top=4,bottom=4}})
     f.surface:ClearAllPoints();f.surface:SetPoint("TOPLEFT",6,-6);f.surface:SetSize(388,168)
     f:SetPoint("TOP",UIParent,"CENTER",0,120);f:SetFrameStrata("DIALOG");draggable(f)
@@ -186,7 +186,7 @@ function U.Create()
     local op=U.optionsPanel
     local function check(label,description,y,key)
         local c=CreateFrame("CheckButton",nil,op);c:SetPoint("TOPLEFT",16,-y);c:SetSize(24,24)
-        c:SetNormalTexture(media.."UI-CheckBox-Up.tga");c:SetCheckedTexture(media.."UI-CheckBox-Check.tga")
+        c:SetNormalTexture(asset("UI-CheckBox-Up"));c:SetCheckedTexture(asset("UI-CheckBox-Check"))
         text(op,47,y+3,335,22,12,gold):SetText(label)
         text(op,47,y+27,335,35,11,pale):SetText(description)
         c:SetScript("OnClick",function(self) B.db[key]=self:GetChecked() and true or false;U.Refresh() end)
@@ -222,7 +222,7 @@ function U.Create()
     U.messageCount=text(composer,500,103,88,14,10,muted,"RIGHT")
     local field=CreateFrame("Frame",nil,composer,"BackdropTemplate")
     field:SetPoint("TOPLEFT",30,-123);field:SetSize(560,38)
-    field:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",tile=true,tileSize=32,edgeSize=10,insets={left=3,right=3,top=3,bottom=3}})
+    field:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),tile=true,tileSize=32,edgeSize=10,insets={left=3,right=3,top=3,bottom=3}})
     field:SetBackdropColor(.035,.09,.21,1);field:SetBackdropBorderColor(.80,.65,.38,1)
     local edit=CreateFrame("EditBox",nil,field);U.messageEdit=edit
     edit:SetPoint("TOPLEFT",10,-8);edit:SetSize(540,22);edit:SetFont("Fonts\\FRIZQT__.TTF",13,"")
@@ -260,7 +260,7 @@ function U.Create()
     -- A compact click-to-answer toast, with no oversized action-button row.
     local a=CreateFrame("Button","LightTheBeaconsAlert",UIParent,"BackdropTemplate");U.banner=a
     a:SetSize(520,118)
-    a:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",
+    a:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
         tile=true,tileSize=32,edgeSize=24,insets={left=10,right=10,top=10,bottom=10}})
     a:SetBackdropColor(.12,.25,.55,1);a:SetBackdropBorderColor(.95,.78,.43,1)
     U.alertBack=fill(a,11,11,498,96,.035,.11,.27,.97)
@@ -303,7 +303,7 @@ function U.Create()
     if Minimap then
         local m=CreateFrame("Button","LightTheBeaconsMinimap",Minimap,"BackdropTemplate");U.minimap=m
         m:SetSize(30,30);m:SetPoint("TOPLEFT",Minimap,"TOPLEFT",0,0);m:SetFrameStrata("MEDIUM")
-        m:SetNormalTexture(media.."RoyalBrazier.tga");m:RegisterForClicks("LeftButtonUp","RightButtonUp")
+        m:SetNormalTexture(asset("RoyalBrazier"));m:RegisterForClicks("LeftButtonUp","RightButtonUp")
         m:SetScript("OnClick",function(_,mouse) U.Toggle(mouse=="RightButton") end)
         tip(m,"Light the Beacons","Left-click: open beacons\nRight-click: options\n/ltb light: call for aid")
     end
@@ -527,7 +527,7 @@ function U.MapPins()
             i=i+1;local pin=U.pins[i]
             if not pin then
                 pin=CreateFrame("Button",nil,canvas);pin:SetSize(24,24)
-                pin:SetNormalTexture(media.."RoyalBrazier.tga");pin:SetFrameLevel(canvas:GetFrameLevel()+15)
+                pin:SetNormalTexture(asset("RoyalBrazier"));pin:SetFrameLevel(canvas:GetFrameLevel()+15)
                 pin:SetScript("OnClick",function(self) if self.beacon then B.Select(self.beacon);U.options=false;U.Refresh();U.frame:Show() end end)
                 pin:SetScript("OnEnter",function(self)
                     if not GameTooltip or not self.beacon then return end

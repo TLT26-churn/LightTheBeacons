@@ -1,4 +1,4 @@
-"""Render the real headless widget snapshot with bundled Blizzard art.
+"""Render the real headless widget snapshot with local native-texture previews.
 Preview uses a substitute serif font; the game uses Friz Quadrata.
 """
 from pathlib import Path
@@ -15,9 +15,12 @@ font_path=next((p for p in font_candidates if p and Path(p).is_file()),None)
 if not font_path:raise SystemExit('Set LTB_PREVIEW_FONT to a readable serif TrueType font.')
 order={None:-1,'BACKGROUND':0,'BORDER':1,'ARTWORK':2,'OVERLAY':3}
 cache={}
+manifest=json.loads((media/'sources.json').read_text())
+native={item['nativePath']:root/'work'/'native-texture-previews'/item['file']
+        for item in manifest.get('nativeTextures',[])}
 def asset(file):
     name=file.split('\\')[-1]
-    p=media/name
+    p=native.get(file,media/name)
     if not p.exists():return None
     if name not in cache:cache[name]=Image.open(p).convert('RGBA')
     return cache[name].copy()

@@ -1,0 +1,36 @@
+Light the Beacons — All Rights Reserved with Free Player Use
+
+Copyright (c) 2026 Whitebeard Tinkerton (TLT26-churn).
+All rights reserved, except for the permissions stated below.
+
+You may download, install, run, configure through the addon's settings, and make
+personal backup copies of Light the Beacons, free of charge, for your own lawful
+gameplay. You may share links to the author's official download pages.
+
+This permission does not grant the right to sell, sublicense, re-upload,
+redistribute, or publish modified versions of the original project code or
+author-owned materials without separate permission from the author. Rights
+required by applicable law are not restricted. Ownership is not transferred.
+
+The author permits distribution through the author's official GitHub and
+CurseForge listings and their authorized delivery services. This notice does
+not limit rights separately granted to those services under their terms.
+
+Third-party materials are excluded from the restrictions above and retain
+their own rights and licenses:
+- TravelData.lua contains data adapted from Daniel Costa's Lodestar. See
+  LightTheBeacons/ThirdParty/Lodestar-LICENSE.txt and TravelData-source.txt
+  in the source repository, or ThirdParty/ in the installed addon.
+- Blizzard game data, trademarks, and native client artwork and sound remain
+  Blizzard Entertainment's property. This license grants no rights to them.
+  The addon references native client assets; it does not bundle those textures
+  or sound recordings. See the addon's Media/sources.json.
+- The royal brazier was generated for this project using OpenAI image generation.
+  This notice applies to that material only to the extent the author holds rights.
+
+THE ADDON IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NONINFRINGEMENT.
+TO THE EXTENT PERMITTED BY LAW, THE AUTHOR IS NOT LIABLE FOR CLAIMS, DAMAGES, OR
+OTHER LIABILITY ARISING FROM THE ADDON OR ITS USE.
+
+This project is not affiliated with or endorsed by Blizzard Entertainment.

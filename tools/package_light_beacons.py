@@ -7,6 +7,9 @@ root=Path(__file__).resolve().parents[1];addon=root/'LightTheBeacons'
 toc=(addon/'LightTheBeacons.toc').read_text()
 version=re.search(r'^## Version: (.+)$',toc,re.M)[1]
 assert re.search(r'^## Interface: 16001$',toc,re.M)
+assert (root/'LICENSE.txt').read_bytes()==(addon/'LICENSE.txt').read_bytes(), 'License copies must match'
+assert (addon/'PRIVACY.txt').is_file()
+assert (addon/'ThirdParty/Lodestar-LICENSE.txt').is_file()
 for line in toc.splitlines():
     if line and not line.startswith('#'):assert (addon/line).is_file(),line
 for path in addon.rglob('*.lua'):
@@ -27,6 +30,10 @@ assert {s['soundKitID'] for s in json.loads((addon/'Media/sources.json').read_te
 assert {s['fileDataID'] for s in json.loads((addon/'Media/sources.json').read_text())['sounds']}=={566064,569543}
 for item in json.loads((addon/'Media/sources.json').read_text())['files']:
     assert hashlib.sha256((addon/'Media'/item['file']).read_bytes()).hexdigest()==item['sha256']
+manifest=json.loads((addon/'Media/sources.json').read_text())
+assert {p.name for p in (addon/'Media').glob('*.tga')}=={item['file'] for item in manifest['files']}, 'Only original art may be bundled'
+for item in manifest.get('nativeTextures',[]):
+    assert not (addon/'Media'/item['file']).exists(), 'Native Blizzard textures must not be bundled'
 archive=root/f'LightTheBeacons-{version}.zip'
 files=sorted(p for p in addon.rglob('*') if p.is_file())
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:

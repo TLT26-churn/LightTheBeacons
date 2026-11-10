@@ -31,7 +31,7 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
   expandable numbered routes, map pins and a direction guide.
 - Celebrates your first responder with a gold lion flare and an Alliance fanfare. More allies update the count.
 - Compares ground travel, flight-master-confirmed flights, boats and zeppelins for each responder.
-- Supports private responses, extinguishing calls and five-minute beacon expiry.
+- Supports guild-only responses, extinguishing calls and five-minute beacon expiry.
 - Shares guild addon users' positions about every 10 seconds, even without a
   beacon, on zone, continent and full Azeroth maps. **Sharing defaults to on**;
   each player can turn it off in Options → Map & beacon controls.
@@ -89,7 +89,7 @@ verification; simulated-client checks cannot establish those live behaviors.
 
 ## Development
 
-The runtime is ordinary WoW Lua/XML with bundled TGA artwork and native WoW sound references. Players do
+The runtime is ordinary WoW Lua/XML with the original bundled brazier and native WoW texture/sound references. Players do
 not need Python, LuaJIT or any other external program.
 
 To run the headless tests, install LuaJIT. Packaging also requires a Lua compiler
@@ -106,7 +106,7 @@ cover private delivery, templates, Unicode messages, reordered packets, malforme
 routes, death attribution, reload/login startup, notification overlap, floating
 controls, per-player filters, location privacy/expiry and world-map projection.
 
-Optional `tools/build_light_beacons_media.py` restores missing artwork from pinned sources. The preview renderer
+Optional `tools/build_light_beacons_media.py` restores the original brazier and caches native texture references locally for previews. The preview renderer
 accepts `LTB_PREVIEW_FONT` if its default serif fonts are unavailable.
 
 ## Credits
@@ -115,6 +115,17 @@ By **Whitebeard Tinkerton — US PVP**. Flight data is adapted from Daniel Costa
 [Lodestar](https://github.com/danielcosta42/lodestar); its MIT license and source
 record are included under `LightTheBeacons/ThirdParty/`. The original royal brazier
 was created for this addon with OpenAI image generation; its source and prompt
-are under `art/`. Blizzard UI artwork remains Blizzard Entertainment’s property; pinned source URLs and
-hashes are in `LightTheBeacons/Media/sources.json`. Sounds play from Blizzard’s native
+are under `art/`. Blizzard UI artwork remains in the installed client and belongs to Blizzard Entertainment; native references and preview source records are in `LightTheBeacons/Media/sources.json`. Sounds play from Blizzard’s native
 client sound assets, with sound-kit fallback; no recordings are bundled. This project is not affiliated with Blizzard.
+
+## License and privacy
+
+All Rights Reserved with Free Player Use: players may download, install, run and
+make personal backups at no cost. Redistribution, resale and publication of
+modified original code require separate permission. See [LICENSE.txt](LICENSE.txt).
+Third-party materials retain their own rights, including Lodestar’s MIT license.
+
+**Location sharing is on by default.** Guild members can receive and record addon
+packets, including beacon messages and responses. Local player filters are not
+recipient blocks. Read [PRIVACY.txt](LightTheBeacons/PRIVACY.txt) for transmitted fields,
+local saves, retention and instructions to stop sharing.

@@ -1,0 +1,64 @@
+Light the Beacons — player privacy information
+Version 1.4.1 / 2026-11-10
+
+What leaves your client
+All addon transmissions use WoW's GUILD addon-data channel (prefix LTB1).
+There is no external telemetry, analytics endpoint, web request, or ordinary
+chat posting in the addon. The game supplies your character name to recipients.
+
+Background location sharing is ON BY DEFAULT. About every 10 seconds while
+you are in a guild, the addon sends a timestamp, map ID and in-game coordinates,
+even when you have not lit a beacon. These are game positions, not GPS or your
+real-world location. Turn off "Share my location with guildmates" under
+/ltb locations (Options > Map & beacon controls) to stop background sharing.
+
+Lighting a beacon shares its ID, timestamp, incident map/coordinates, reason
+(aid, fallen, or PvP), and any optional message you send. Answering shares your
+response and the beacon being answered with the guild, not just the caller.
+Cancellation and location-withdrawal packets also go to the guild. Automatic
+PvP beacons are off by default; enabling them can send an incident location
+after a qualifying death. Saved message templates are not attached automatically.
+
+Audience and limits
+"Private guild" means guild-channel scope, not end-to-end encryption or a
+per-recipient access list. A guildmate with another addon that listens for this
+prefix can receive and record these packets. Don't put sensitive personal
+information in a beacon message. Hiding/silencing a player or hiding map markers
+only changes your display; it does not prevent that guildmate receiving your
+broadcasts. Your discovered flights, filters, saved templates and travel timings
+are not transmitted. Templates are sent only when used in a beacon.
+
+Stopping sharing
+Turning background sharing off sends a withdrawal; existing markers expire
+within 45 seconds in unmodified Light the Beacons clients if delivery is delayed.
+A lit beacon still shares its incident location until extinguished or expired
+(five minutes). For no position broadcasts, turn off background sharing and
+automatic PvP alerts, extinguish your active beacon, and do not light new calls.
+This cannot erase information already received or recorded by another player.
+
+What is stored locally
+WoW saves LightTheBeaconsDB per character in its WTF/SavedVariables files.
+It holds settings, discovered flight points, learned flight connections/times,
+three optional message templates, player filters with character names, button
+position, a guild identifier, cooldown/response bookkeeping, and your own active
+beacon including its message and responder names. Expired or invalid saved
+beacons are discarded at login; unexpired ones are restored so you can cancel
+them. Live expiry and cancellation also clear your own beacon record. WoW
+writes these changes to disk on its normal save/reload/logout cycle.
+
+Other players' beacons and background locations are kept in session memory,
+not saved as location history. Location records expire after 45 seconds and
+beacons after five minutes. Changing/leaving guild clears active guild data.
+Templates, filters and settings remain until changed or reset. Local backups
+and WoW's saved-variable backup files may retain older data.
+
+Removing saved data
+Disable the addon and close WoW before removing this character's
+LightTheBeacons.lua and LightTheBeacons.lua.bak SavedVariables files if you
+want a complete reset. This also removes settings, templates and learned flight
+data. Do not delete your whole WTF folder. Other players' copies are unaffected.
+
+Scope
+This describes the addon, not Blizzard's, GitHub's or CurseForge's own data
+practices. It is based on source review and simulated-client checks; live guild
+delivery and other players' software cannot be guaranteed by these checks.

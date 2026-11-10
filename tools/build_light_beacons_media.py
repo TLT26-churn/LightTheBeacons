@@ -1,12 +1,13 @@
-"""Restore pinned Blizzard textures and the original brazier; audio stays native."""
+"""Restore original addon art; cache native texture references only for previews."""
 from pathlib import Path
 from PIL import Image
 import hashlib, io, json, urllib.request
 root=Path(__file__).resolve().parents[1]
 out=root/'LightTheBeacons'/'Media';out.mkdir(parents=True,exist_ok=True)
 manifest=json.loads((out/'sources.json').read_text())
-for item in manifest['files']:
-    dest=out/item['file']
+preview=root/'work'/'native-texture-previews';preview.mkdir(parents=True,exist_ok=True)
+for item in manifest['files']+manifest.get('nativeTextures',[]):
+    dest=(out if item.get('kind')=='original' else preview)/item['file']
     if not dest.exists():
         if item.get('kind')=='original':
             source=root/item['source']
@@ -16,4 +17,4 @@ for item in manifest['files']:
             raw=urllib.request.urlopen(item['source'],timeout=30).read()
             Image.open(io.BytesIO(raw)).convert('RGBA').save(dest)
     assert hashlib.sha256(dest.read_bytes()).hexdigest()==item['sha256'],dest
-print("Verified original brazier and bundled Blizzard textures. Sounds reference native WoW assets.")
+print("Verified original brazier and local preview cache. Blizzard textures and sounds stay in the WoW client.")

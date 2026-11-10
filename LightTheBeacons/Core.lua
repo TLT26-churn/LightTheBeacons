@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.4.0"
+B.version="1.4.1"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -239,6 +239,9 @@ end
 function B.RestoreOwn()
     if B.own or not B.me or not B.guild or B.guild=="" or B.db.guild~=B.guild then return end
     local active=B.db.active
+    -- Do not retain an expired or invalid incident, note, or responder list
+    -- across logins. A valid unexpired beacon is restored below.
+    B.db.active=nil
     if type(active)=="table" and P.Text(active.id,40) and P.Number(active.sent,C.Now()-P.ttl,C.Now())
         and P.Number(active.map,1,100000) and P.Number(active.px,0,1) and P.Number(active.py,0,1)
         and (active.reason=="aid" or active.reason=="pvp" or active.reason=="fallen") then
