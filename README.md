@@ -19,7 +19,7 @@ _forever_/Interface/AddOns/LightTheBeacons/LightTheBeacons.toc
 
 Enable Light the Beacons in the game’s AddOns list. Restart WoW if a newly
 installed addon is absent; use `/reload` when updating an existing installation.
-Open with **`/ltb`** or the minimap torch. Open a flight master's map to confirm
+Open with **`/ltb`** or the minimap brazier. Open a flight master's map to confirm
 your available flight points; repeat on other continents you use. Every
 participating guildmate needs the addon. Keep your SavedVariables when updating.
 
@@ -27,7 +27,8 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 - Sends alerts only through the hidden guild addon channel. **No guild chat posts.**
 - Shows “The beacons are lit! <Name> calls for aid!” with WoW’s native Horn of Cenarius / Dwarf Horn.
-- Provides an Alliance-themed window, lion crest, numbered routes, map pins and a direction guide.
+- Provides a compact Alliance Rally card, original royal brazier, lion crest,
+  expandable numbered routes, map pins and a direction guide.
 - Celebrates your first responder with a gold lion flare and an Alliance fanfare. More allies update the count.
 - Compares ground travel, flight-master-confirmed flights, boats and zeppelins for each responder.
 - Supports private responses, extinguishing calls and five-minute beacon expiry.
@@ -37,7 +38,14 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
   evidence of a hostile player’s killing blow. Automatic alerts default to off;
   a manual death prompt is available when attribution is restricted.
 
-**1.2.0:** choose **Light My Beacon** or `/ltb light`, type an optional message
+**1.3.0:** the compact Rally card keeps the caller, message and answer action at
+hand. **Details** reveals the route, map and responders; answering adds a short
+next-step strip. Your own call offers **Extinguish My Beacon**. The author credit
+is tucked into **Options**, and the original royal brazier ships with the addon.
+
+![Compact Rally card — rendered from the native Lua UI with sample data](docs/compact-rally-card.png)
+
+**Messages:** choose **Light mine** or `/ltb light`, type an optional message
 (up to 48 characters), or select one of your three saved messages. Click **Save
 current** to store a template, then **Light the Beacons** to send the call.
 Automatic PvP alerts remain immediate and do not reuse drafts or templates.
@@ -49,10 +57,10 @@ directly from WoW's native asset. `/ltb horn` tests it; `/ltb sound` shows diagn
 
 ![Message window — rendered preview with sample templates](docs/beacon-messages.png)
 
-**1.1.0:** the Alliance design includes a native WoW horn, a first-responder
-celebration, verified flight discovery, and automatic riding detection.
+The Alliance design includes a native WoW horn, a first-responder celebration,
+verified flight discovery, and automatic riding detection.
 
-![Alliance window — rendered preview with sample data](docs/alliance-window.png)
+![Expanded details — rendered from the native Lua UI with sample data](docs/compact-rally-details.png)
 
 **1.0.3:** automatically uses the character’s trained 60%/100% riding tier, or
 walking speed when untrained. Options includes an on-foot override.
@@ -91,7 +99,8 @@ accepts `LTB_PREVIEW_FONT` if its default serif fonts are unavailable.
 
 By **Whitebeard Tinkerton — US PVP**. Flight data is adapted from Daniel Costa’s
 [Lodestar](https://github.com/danielcosta42/lodestar); its MIT license and source
-record are included under `LightTheBeacons/ThirdParty/`. Original Blizzard UI
-artwork remains Blizzard Entertainment’s property; pinned source URLs and
+record are included under `LightTheBeacons/ThirdParty/`. The original royal brazier
+was created for this addon with OpenAI image generation; its source and prompt
+are under `art/`. Blizzard UI artwork remains Blizzard Entertainment’s property; pinned source URLs and
 hashes are in `LightTheBeacons/Media/sources.json`. Sounds play from Blizzard’s native
 client sound assets, with sound-kit fallback; no recordings are bundled. This project is not affiliated with Blizzard.

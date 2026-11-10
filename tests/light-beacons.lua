@@ -597,6 +597,67 @@ do
     check(failed.s.lastMessage:find("unknown"),"Sound diagnostics handle unavailable or restricted settings")
 end
 
+-- Exercise the compact card through its buttons, including private networking.
+do
+    local caller=client("Aldric","Stoneward")
+    local helper=client("Elowen","Dawnwatch")
+    local u=helper.B.UI
+    helper.env.SlashCmdList.LIGHTTHEBEACONS("")
+    check(u.frame:GetWidth()==400 and u.frame:GetHeight()<=190 and not u.details:IsShown(),"Rally card opens compact by default")
+    check(u.answer.label:GetText()=="Light My Beacon" and not u.expand:IsShown(),"Quiet watch offers a call without empty route controls")
+    check(u.credit.parent==u.optionsPanel and not u.optionsPanel:IsShown(),"Credit belongs exclusively to hidden settings")
+    u.answer.scripts.OnClick()
+    check(u.composer:IsShown() and #helper.s.sent==0,"Idle primary action opens a draft without broadcasting")
+    u.composeCancel.scripts.OnClick()
+    caller.B.Light(nil,"Need a healer at the bridge!")
+    for _,packet in ipairs(caller.s.sent) do helper.B.Receive(packet[2],caller.B.name,"GUILD") end
+    local collapsed=u.frame:GetHeight()
+    check(collapsed<=190 and u.callMessage:IsShown() and not u.brief:IsShown(),"Incoming call fits the compact card with its message")
+    u.expand.scripts.OnClick()
+    check(u.details:IsShown() and u.frame:GetHeight()>collapsed and #helper.s.sent==0 and not helper.s.waypoint,"Expanding reveals details without answering or changing a waypoint")
+    u.map.scripts.OnClick()
+    check(helper.s.mapOpened==caller.B.own.map and #helper.s.sent==0,"Details map action opens the incident map without answering")
+    u.expand.scripts.OnClick()
+    check(not u.details:IsShown() and u.frame:GetHeight()==collapsed,"Collapsing restores the compact size")
+    u.answer.scripts.OnClick()
+    check(helper.B.navigating and u.brief:IsShown() and u.briefText:GetText():find("Next:"),"Answer adds current-step guidance even while details are collapsed")
+    check(#helper.s.sent==1 and not u.answer.enabled and u.answer.label:GetText()=="On my way","Answer sends exactly one private response and disables repeat clicks")
+    u.expand.scripts.OnClick();u.stop.scripts.OnClick()
+    check(not helper.B.navigating and not u.brief:IsShown() and not u.hud:IsShown() and u.answer.label:GetText()=="Resume route","Stop guidance leaves an answered call available to resume")
+    u.answer.scripts.OnClick()
+    check(helper.B.navigating and #helper.s.sent==1,"Resuming does not send another acknowledgement")
+    u.optionsButton.scripts.OnClick()
+    check(u.optionsPanel:IsShown() and not u.main:IsShown() and u.frame:GetHeight()==520,"Options replaces the compact contents and reveals the credit")
+    u.optionsButton.scripts.OnClick()
+    check(u.main:IsShown() and not u.optionsPanel:IsShown() and u.details:IsShown(),"Back restores the expanded card without resetting its state")
+    helper.B.Light()
+    check(u.answer.label:GetText()=="Extinguish My Beacon" and not u.eta:IsShown() and not u.routeScroll:IsShown() and not u.brief:IsShown(),"Own card exposes extinguish, with no rescue route or ETA to oneself")
+    check(u.pager:IsShown() and u.position:GetText():find("2 active calls"),"Two beacons expose a compact call pager")
+    local own=helper.B.own;u.nextCall.scripts.OnClick()
+    check(helper.B.Selected().owner~=helper.B.me and u.eta:IsShown(),"Pager switches to the other caller")
+    u.light.scripts.OnClick()
+    check(helper.B.Selected()==own and not helper.B.navigating,"Header's My beacon action returns to own call without navigation")
+    local sent=#helper.s.sent;u.answer.scripts.OnClick()
+    check(not helper.B.own and #helper.s.sent==sent+1 and helper.s.sent[#helper.s.sent][2]:find('^1|C|'),"Own primary action sends cancellation, never a response")
+    check(not u.pager:IsShown(),"Pager disappears when only one call remains")
+    helper.B.route={steps={},unavailable=true,pendingFlight=true,reason="Your route will update when you land."};u.Refresh()
+    check(u.eta:GetText()=="On taxi" and u.empty:GetText():find("when you land"),"Pending flight state stays understandable in both views")
+    helper.B.route={steps={},unavailable=true,reason="This map is unsupported."};u.Refresh()
+    check(u.eta:GetText()=="No route" and u.empty:GetText()=="This map is unsupported.","Unsupported route retains the map fallback in details")
+    helper.env.SlashCmdList.LIGHTTHEBEACONS("options")
+    local before=#helper.s.sent;u.previewButton.scripts.OnClick()
+    check(helper.B.preview and not u.options and u.main:IsShown() and not u.details:IsShown() and not u.answer.enabled,"Settings preview opens a clearly marked compact sample without actionable answers")
+    check(#helper.s.sent==before and u.summary:GetText():find("PREVIEW"),"Preview stays private and visibly identified")
+    local step=helper.B.route.steps[1];helper.B.route.steps={}
+    for i=1,8 do helper.B.route.steps[i]=step end
+    u.expanded=true;u.Refresh();u.routeScroll.scripts.OnMouseWheel(u.routeScroll,-100)
+    check(u.routeScroll:GetHeight()==144 and u.routeScroll:GetVerticalScroll()==240 and u.frame:GetHeight()<600,"Long routes scroll within a bounded expanded card")
+    local selected=helper.B.preview;selected.message=string.rep("W",48);u.Refresh()
+    check(u.callMessage:GetText()=='"'..selected.message..'"' and u.callMessage.nonSpaceWrap,"Maximum-length unbroken messages remain wrapped, not truncated by protocol")
+    local fresh=client("Aldric","Stoneward",helper.B.db)
+    check(not fresh.B.UI.expanded and fresh.B.UI.frame:GetWidth()==400,"Reload starts compact while preserving character saves")
+end
+
 local perf=os.clock()
 local allKnown={};for id in pairs(data.nodes) do allKnown[id]=true end
 for _=1,50 do R.Plan(start,{c=1,x=6400,y=700},allKnown,"A",14) end
@@ -606,7 +667,7 @@ preview.B.preview.name="Aldric Stoneward";preview.B.preview.point.n="Aldric Ston
 preview.B.preview.responders.other="Elowen Dawnwatch"
 preview.B.preview.route=preview.B.Routing.Plan({c=0,x=-8900,y=600},preview.B.preview.point,{[2]=true,[5]=true},"A",7)
 preview.B.route=preview.B.preview.route;preview.B.UI.Alert(preview.B.preview,true);preview.B.UI.Refresh()
--- Separate visual proposal only: no addon broadcasts or installed theme edits.
+-- Representative sample data for rendering the actual native UI.
 local sample={name="Jackdark Featherfall",owner="jackdark featherfall",id="design-preview",sent=preview.B.Client.Now()-43,
     expires=preview.B.Client.Now()+257,map=1446,px=.47,py=.50,reason="aid",message="Three Horde at the cave. Need a healer!",
     point={c=1,x=-7224,y=-3734,n="Jackdark Featherfall's beacon"},
@@ -673,6 +734,13 @@ local function snapshot(c,target,path)
 end
 if arg[2] then
     snapshot(preview,preview.B.UI.frame,arg[2].."-window.json")
+    preview.B.UI.expanded=true;preview.B.UI.Refresh()
+    for _,o in ipairs(preview.objects) do o.box=nil end
+    snapshot(preview,preview.B.UI.frame,arg[2].."-expanded.json")
+    preview.B.navigating=true;preview.B.routeIndex=1;preview.B.UI.expanded=false;preview.B.UI.Refresh()
+    for _,o in ipairs(preview.objects) do o.box=nil end
+    snapshot(preview,preview.B.UI.frame,arg[2].."-guidance.json")
+    preview.B.navigating=false;preview.B.UI.Refresh()
     snapshot(preview,preview.B.UI.banner,arg[2].."-alert.json")
     preview.B.UI.Answered("Blackbeard Soulless",1,true,nil)
     snapshot(preview,preview.B.UI.answerBanner,arg[2].."-answer.json")
@@ -683,5 +751,9 @@ if arg[2] then
     preview.B.UI.Compose();preview.B.UI.templates[1].use.scripts.OnClick()
     for _,o in ipairs(preview.objects) do o.box=nil end
     snapshot(preview,preview.B.UI.composer,arg[2].."-composer.json")
+    preview.B.UI.options=false;preview.B.UI.composer:Hide();sample.owner=preview.B.me;preview.B.session.beacons={[sample.owner]=sample};preview.B.selected=sample.owner
+    preview.B.own=sample;preview.B.UI.expanded=true;preview.B.UI.Refresh()
+    for _,o in ipairs(preview.objects) do o.box=nil end
+    snapshot(preview,preview.B.UI.frame,arg[2].."-own.json")
 end
 print("Light the Beacons: "..total.." checks passed (protocol, routing, two clients, death detection, UI).")

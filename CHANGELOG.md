@@ -1,5 +1,22 @@
 # Release notes
 
+## 1.3.0 — Compact Rally card
+
+- Replace the large main window with a 400-pixel-wide Rally card. Keep the caller,
+  message, estimated travel and answer action visible; expand Details for the
+  route, location, responders and map. Multiple calls gain a compact pager.
+- Add a short next-step strip after answering. Expanded details support stopping
+  and resuming guidance without sending duplicate responses. Long routes scroll.
+- Bundle the original royal blue-and-gold brazier texture for the card, incoming
+  alert, minimap button, death prompt and map pins. Keep the Alliance lion crest.
+- Move the Whitebeard Tinkerton credit into Options. Settings include sound,
+  automatic calls, travel pace, flight refresh, message templates and previews.
+- Show your own call with an extinguish action and no self-route or ETA.
+- Include the previously local 1.2.0–1.2.1 message templates and native sound fixes.
+- Preserve character saves and validate 222 simulated-client checks, native Lua
+  layout renders and a portable Windows/Linux ZIP. Live multiplayer and automatic
+  PvP attribution still require in-game confirmation.
+
 ## 1.2.1 — Own-beacon and sound fixes
 
 - Your own alert opens your beacon details. It never answers the call, adds you

@@ -26,7 +26,7 @@ local function panel(parent,name,w,h)
     f:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",
         tile=true,tileSize=32,edgeSize=30,insets={left=8,right=8,top=8,bottom=8}})
     f:SetBackdropColor(.12,.24,.50,.99);f:SetBackdropBorderColor(.92,.76,.41,1)
-    fill(f,10,10,w-20,h-20,.025,.065,.145,.97)
+    f.surface=fill(f,10,10,w-20,h-20,.025,.065,.145,.97)
     return f
 end
 local function button(parent,label,x,y,w,fn)
@@ -76,7 +76,7 @@ function U.Cycle(delta)
     local index=1;for i,b in ipairs(list) do if b.owner==B.selected then index=i end end
     B.Select(list[(index-1+delta)%#list+1])
 end
-local rowPitch,rowWidth,routeHeight=44,555,128
+local rowPitch,rowWidth,routeHeight=48,368,144
 local paces={[7]="ON FOOT",[11.2]="60% MOUNT",[14]="100% MOUNT"}
 local function place(p) return p and p.n and (p.n:match("^[^,]+") or p.n) end
 local function stepDetail(step)
@@ -99,106 +99,111 @@ local function stepRow(i)
     row.face=fill(row,6,4,22,22,.035,.09,.21,1,"ARTWORK")
     row.number=text(row,5,8,24,16,12,gold,"CENTER")
     row.check=texture(row,"UI-CheckBox-Check",6,3,22,22,"OVERLAY");row.check:SetVertexColor(unpack(brass))
-    row.title=text(row,42,4,354,18,13,pale);row.title:SetWordWrap(false)
-    row.time=text(row,400,5,150,16,12,gold,"RIGHT");row.time:SetWordWrap(false)
-    row.detail=text(row,42,24,508,14,10,brass);row.detail:SetWordWrap(false)
+    row.title=text(row,36,4,247,18,12,pale);row.title:SetWordWrap(false)
+    row.time=text(row,285,5,78,16,11,gold,"RIGHT");row.time:SetWordWrap(false)
+    row.detail=text(row,36,24,327,18,11,brass);row.detail:SetWordWrap(false)
+    row:EnableMouse(true)
     return row
 end
 function U.Create()
     if U.frame then return end
-    local f=panel(UIParent,"LightTheBeaconsWindow",620,612);U.frame=f
-    f:SetPoint("CENTER");f:SetFrameStrata("DIALOG");draggable(f)
+    local f=panel(UIParent,"LightTheBeaconsWindow",400,180);U.frame=f
+    f:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",
+        tile=true,tileSize=32,edgeSize=12,insets={left=4,right=4,top=4,bottom=4}})
+    f.surface:ClearAllPoints();f.surface:SetPoint("TOPLEFT",6,-6);f.surface:SetSize(388,168)
+    f:SetPoint("TOP",UIParent,"CENTER",0,120);f:SetFrameStrata("DIALOG");draggable(f)
     UISpecialFrames[#UISpecialFrames+1]="LightTheBeaconsWindow"
-    fill(f,19,18,582,83,.035,.11,.28,.98)
-    fill(f,24,19,572,1,.85,.66,.29,.62)
-    texture(f,"AllianceCloth",29,13,83,91,"BACKGROUND"):SetTexCoord(0,.425,0,.51)
-    texture(f,"AllianceCrest",31,12,78,91):SetTexCoord(.175,.825,.09,.91)
-    fill(f,128,99,445,1,.80,.62,.29,.65)
-    text(f,125,34,421,30,24,gold):SetText("Light the Beacons")
-    U.subtitle=text(f,127,69,410,16,11,gold)
-    closeButton(f,565,24,function() f:Hide() end)
-    local function tab(label,x,fn)
-        local t=CreateFrame("Button",nil,f);t:SetPoint("TOPLEFT",x,-108);t:SetSize(106,27)
-        t.label=text(t,2,4,102,18,13,gold,"CENTER");t.label:SetText(label)
-        t.line=fill(t,6,25,94,1,.85,.64,.28,.85)
-        t:SetScript("OnClick",fn);return t
+    fill(f,6,6,388,38,.045,.12,.27,1)
+    fill(f,6,44,388,1,.80,.65,.38,.7)
+    texture(f,"AllianceCrest",16,12,22,27):SetTexCoord(.175,.825,.09,.91)
+    text(f,44,15,187,22,16,gold):SetText("Light the Beacons")
+    local function link(parent,label,x,y,w,fn)
+        local b=CreateFrame("Button",nil,parent);b:SetPoint("TOPLEFT",x,-y);b:SetSize(w,28)
+        b.label=text(b,0,7,w,18,11,gold,"CENTER");b.label:SetText(label)
+        b:SetScript("OnClick",fn)
+        b:SetScript("OnEnable",function() b.label:SetTextColor(unpack(gold)) end)
+        b:SetScript("OnDisable",function() b.label:SetTextColor(unpack(muted)) end)
+        return b
     end
-    U.callsTab=tab("Beacons",26,function() U.options=false;U.Refresh() end)
-    U.optionsTab=tab("Options",138,function() U.options=true;U.Refresh() end)
-    U.previewTab=tab("Preview",250,function()
-        if B.preview then B.preview=nil;B.Replan();U.banner:Hide();U.Refresh() else U.options=false;B.Preview() end
+    U.light=link(f,"Light mine",236,12,61,function()
+        if B.own and B.own.expires>C.Now() then B.Select(B.own);U.options=false;U.Refresh()
+        else B.RequestLight() end
     end)
-    U.count=text(f,368,115,228,17,11,pale,"RIGHT")
+    U.optionsButton=link(f,"Options",303,12,48,function() U.options=not U.options;U.Refresh() end)
+    tip(U.optionsButton,"Options","Sound, automatic calls, travel pace, quick messages and credits.")
+    closeButton(f,365,10,function() f:Hide() end)
     U.main=CreateFrame("Frame",nil,f);U.main:SetAllPoints()
-    -- Dispatch card: why, who, then the four facts a responder needs at a glance.
-    fill(U.main,25,148,570,92,.045,.125,.30,.97)
-    fill(U.main,25,240,570,44,.03,.085,.205,.97)
-    fill(U.main,25,148,570,1,.85,.66,.29,.55,"BORDER")
-    fill(U.main,40,240,545,1,.68,.48,.22,.35,"BORDER")
-    fill(U.main,25,283,570,1,.85,.66,.29,.55,"BORDER")
-    fill(U.main,25,148,3,136,.98,.77,.36,1,"BORDER")
-    U.reason=text(U.main,42,157,330,13,10,gold);U.reason:SetWordWrap(false)
-    U.destination=text(U.main,41,170,545,26,20,gold);U.destination:SetWordWrap(false)
-    U.callMessage=text(U.main,42,204,538,30,12,pale);U.callMessage:SetNonSpaceWrap(true)
-    U.position=text(U.main,440,176,74,14,10,muted,"RIGHT")
-    U.prev=button(U.main,"<",521,166,31,function() U.Cycle(-1) end)
-    U.nextCall=button(U.main,">",557,166,31,function() U.Cycle(1) end)
-    U.facts=CreateFrame("Frame",nil,U.main);U.facts:SetAllPoints()
-    local function fact(label,x,w,align)
-        if x>42 then fill(U.facts,x-10,247,1,30,.68,.48,.22,.3,"BORDER") end
-        text(U.facts,x,248,w,11,9,brass,align):SetText(label)
-        local value=text(U.facts,x,260,w,18,13,pale,align);value:SetWordWrap(false);return value
-    end
-    U.zone=fact("ZONE",42,160);U.coords=fact("COORDINATES",222,86);U.age=fact("CALLED",328,92)
-    U.eta=fact("EST. TRAVEL",440,146,"RIGHT")
-    U.idle=text(U.main,42,257,540,18,12,pale);U.idle:SetText("Light a beacon when you need allies at your side.")
-    -- Itinerary: numbered legs with their times in one right-hand column.
-    text(U.main,40,294,200,14,11,gold):SetText("YOUR ROUTE")
-    U.routeMeta=text(U.main,250,295,335,14,10,muted,"RIGHT");U.routeMeta:SetWordWrap(false)
-    fill(U.main,40,311,545,1,.68,.48,.22,.45)
-    U.routeScroll=CreateFrame("ScrollFrame",nil,U.main)
-    U.routeScroll:SetPoint("TOPLEFT",35,-317);U.routeScroll:SetSize(rowWidth,routeHeight);U.routeScroll:EnableMouseWheel(true)
+    U.beacon=texture(U.main,"RoyalBrazier",16,55,32,36)
+    U.destination=text(U.main,58,55,248,23,17,gold);U.destination:SetWordWrap(false)
+    U.identity=CreateFrame("Frame",nil,U.main);U.identity:SetPoint("TOPLEFT",58,-52);U.identity:SetSize(248,26);U.identity:EnableMouse(true)
+    U.eta=text(U.main,308,58,76,18,12,gold,"RIGHT");U.eta:SetWordWrap(false)
+    U.summary=text(U.main,58,82,326,17,11,muted);U.summary:SetWordWrap(false)
+    U.callMessage=text(U.main,16,106,368,31,12,pale);U.callMessage:SetNonSpaceWrap(true)
+    U.answer=button(U.main,"Answer the Call",16,139,169,function()
+        local b=B.Selected()
+        if not b then B.RequestLight()
+        elseif b.owner==B.me then B.Extinguish()
+        else B.Answer() end
+    end)
+    U.expand=link(U.main,"Details +",310,139,74,function() U.expanded=not U.expanded;U.Refresh() end)
+    U.brief=CreateFrame("Frame",nil,U.main);U.brief:SetSize(368,38)
+    fill(U.brief,0,0,368,38,.045,.13,.29,1)
+    fill(U.brief,0,0,2,38,.85,.66,.29,.9)
+    U.briefText=text(U.brief,9,6,349,30,12,pale);U.briefText:SetNonSpaceWrap(true)
+    -- Simultaneous calls use a quiet pager, present only when there is a choice.
+    U.pager=CreateFrame("Frame",nil,U.main);U.pager:SetSize(368,28)
+    U.prev=link(U.pager,"<",0,0,30,function() U.Cycle(-1) end)
+    U.position=text(U.pager,38,7,292,16,11,muted,"CENTER")
+    U.nextCall=link(U.pager,">",338,0,30,function() U.Cycle(1) end)
+    U.details=CreateFrame("Frame",nil,U.main);U.details:SetSize(400,304)
+    fill(U.details,16,0,368,1,.80,.65,.38,.45)
+    U.reason=text(U.details,16,12,180,16,11,gold)
+    U.routeMeta=text(U.details,190,12,194,16,11,muted,"RIGHT");U.routeMeta:SetWordWrap(false)
+    U.routeScroll=CreateFrame("ScrollFrame",nil,U.details)
+    U.routeScroll:SetPoint("TOPLEFT",16,-36);U.routeScroll:SetSize(rowWidth,routeHeight);U.routeScroll:EnableMouseWheel(true)
     U.routeChild=CreateFrame("Frame",nil,U.routeScroll);U.routeChild:SetSize(rowWidth,routeHeight);U.routeScroll:SetScrollChild(U.routeChild)
     U.routeScroll:SetScript("OnMouseWheel",function(self,delta)
         local max=math.max(0,U.routeChild:GetHeight()-self:GetHeight())
         self:SetVerticalScroll(math.max(0,math.min(max,(self:GetVerticalScroll() or 0)-delta*rowPitch)))
     end)
     U.stepRows={}
-    texture(U.main,"AllianceCrest",410,319,158,196):SetAlpha(.065)
-    U.empty=text(U.main,70,344,480,76,13,pale,"CENTER")
-    U.routeNote=text(U.main,40,453,545,14,10,muted);U.routeNote:SetWordWrap(false)
-    fill(U.main,35,475,550,1,.68,.48,.22,.35)
-    U.responders=text(U.main,35,483,550,20,11,pale)
-    U.answer=button(U.main,"Answer the Call",26,518,181,function() B.Answer() end)
-    U.map=button(U.main,"Show Map",215,518,117,function()
+    U.empty=text(U.details,20,44,360,76,12,pale)
+    U.routeNote=text(U.details,16,190,368,30,11,muted)
+    U.location=text(U.details,16,223,368,17,11,pale)
+    U.age=text(U.details,16,244,368,17,11,muted)
+    U.responderBox=CreateFrame("Frame",nil,U.details);U.responderBox:SetPoint("TOPLEFT",16,-267);U.responderBox:SetSize(368,44);U.responderBox:EnableMouse(true)
+    U.responders=text(U.responderBox,0,0,368,44,11,pale);U.responders:SetNonSpaceWrap(true)
+    U.map=button(U.details,"Show Map",16,318,116,function()
         local p=B.Destination(B.Selected());if p and not B.preview then C.OpenMap(p) end
     end)
-    U.light=button(f,"Light My Beacon",416,518,179,function()
-        if B.own and B.own.expires>C.Now() then B.Extinguish() else B.RequestLight() end
-    end)
-    U.status=text(f,30,557,560,17,10,pale,"CENTER")
-    fill(f,33,581,554,1,.57,.45,.24,.25)
-    text(f,32,588,556,13,9,{.56,.63,.73},"CENTER"):SetText("Made by Whitebeard Tinkerton - US PVP")
+    U.stop=button(U.details,"Stop guidance",204,318,180,function() B.navigating=false;U.Tick() end)
+    U.details:SetHeight(358)
     U.optionsPanel=CreateFrame("Frame",nil,f);U.optionsPanel:SetAllPoints();U.optionsPanel:Hide()
     local op=U.optionsPanel
     local function check(label,description,y,key)
-        local c=CreateFrame("CheckButton",nil,op);c:SetPoint("TOPLEFT",31,-y);c:SetSize(26,26)
+        local c=CreateFrame("CheckButton",nil,op);c:SetPoint("TOPLEFT",16,-y);c:SetSize(24,24)
         c:SetNormalTexture(media.."UI-CheckBox-Up.tga");c:SetCheckedTexture(media.."UI-CheckBox-Check.tga")
-        text(op,66,y+3,516,22,13,gold):SetText(label)
-        text(op,66,y+29,510,34,11,pale):SetText(description)
+        text(op,47,y+3,335,22,12,gold):SetText(label)
+        text(op,47,y+27,335,35,11,pale):SetText(description)
         c:SetScript("OnClick",function(self) B.db[key]=self:GetChecked() and true or false;U.Refresh() end)
         return c
     end
-    U.sound=check("Sound the war horn", "A deep WoW horn for calls; an Alliance fanfare for your first responder.",148,"sound")
-    U.auto=check("Call automatically after a confirmed PvP death", "Requires a readable hostile-player killing blow. Otherwise, use the call-for-aid prompt.",216,"auto")
-    U.prompt=check("Offer a call for aid when I fall", "A private prompt after an outdoor death. Nothing is sent until you accept.",284,"prompt")
-    U.pace=button(op,"Auto: On foot",34,354,207,function() B.ToggleTravelMode() end)
+    U.sound=check("Sound the war horn","Deep WoW horn for calls; Alliance fanfare for your first responder.",56,"sound")
+    U.auto=check("Automatic PvP death alerts","Needs a readable hostile-player killing blow. Use the death prompt when attribution is unavailable.",126,"auto")
+    U.prompt=check("Offer a call for aid when I fall","Private prompt after an outdoor death. Nothing is sent until you accept.",204,"prompt")
+    U.pace=button(op,"Auto: On foot",16,278,232,function() B.ToggleTravelMode() end)
     tip(U.pace,"Travel pace","Auto uses your trained riding tier: on foot, 60%, or 100%. Click to switch between Auto and an on-foot override.")
-    button(op,"Test horn",251,354,125,function() B.Sound(true) end)
-    button(op,"Refresh flights",386,354,193,function() C.RefreshFlights(true) end)
-    button(op,"Preview the rally",34,391,207,function() U.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true) end)
-    text(op,36,432,546,34,11,pale):SetText("Only guildmates with the addon receive your call. Beacons last 5 minutes; calls have a 60-second cooldown.")
-    button(op,"Quick messages",34,478,207,function() U.Compose() end)
+    button(op,"Test horn",258,278,126,function() B.Sound(true) end)
+    button(op,"Refresh flights",16,316,175,function() C.RefreshFlights(true) end)
+    button(op,"Preview the rally",201,316,183,function() U.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true) end)
+    button(op,"Quick messages",16,354,175,function() U.Compose() end)
+    U.previewButton=button(op,"Preview a call",201,354,183,function()
+        U.options=false;U.expanded=false;B.Preview()
+    end)
+    U.status=text(op,16,395,368,34,11,pale)
+    text(op,16,436,368,32,11,muted):SetText("Only guild addon users receive calls. Beacons last 5 minutes; calls have a 60-second cooldown.")
+    fill(op,16,480,368,1,.57,.45,.24,.3)
+    U.credit=text(op,16,490,368,16,11,muted);U.credit:SetText("Made by Whitebeard Tinkerton - US PVP")
     -- Compose locally; choosing or saving a template never broadcasts it.
     local composer=panel(UIParent,"LightTheBeaconsComposer",620,418);U.composer=composer
     composer:SetPoint("CENTER");composer:SetFrameStrata("FULLSCREEN_DIALOG");draggable(composer)
@@ -254,7 +259,7 @@ function U.Create()
     a:SetBackdropColor(.12,.25,.55,1);a:SetBackdropBorderColor(.95,.78,.43,1)
     U.alertBack=fill(a,11,11,498,96,.035,.11,.27,.97)
     a:SetPoint("TOP",UIParent,"TOP",0,-125);a:SetFrameStrata("DIALOG")
-    U.flame=texture(a,"AllianceCrest",20,24,53,66);U.flame:SetTexCoord(.175,.825,.09,.91)
+    U.flame=texture(a,"RoyalBrazier",20,29,53,53)
     U.alertTitle=text(a,81,20,401,26,20,gold);U.alertTitle:SetText("The beacons are lit!")
     U.alertName=text(a,82,49,408,20,14,pale)
     U.alertZone=text(a,82,73,408,16,11,gold)
@@ -267,8 +272,8 @@ function U.Create()
         if b and b.owner~="preview" and B.session.beacons[b.owner] then
             B.Select(B.session.beacons[b.owner])
             if b.owner~=B.me then B.Answer() end
-            U.options=false;f:Show()
-        elseif b and b.owner=="preview" then U.options=false;f:Show() end
+            U.options=false;U.Refresh();f:Show()
+        elseif b and b.owner=="preview" then U.options=false;U.Refresh();f:Show() end
         a:Hide()
     end)
     a:Hide();a.elapsed=0
@@ -278,7 +283,7 @@ function U.Create()
     end)
     local d=panel(UIParent,"LightTheBeaconsDeathPrompt",410,128);U.deathPrompt=d
     d:SetPoint("CENTER",UIParent,"CENTER",0,-170);d:SetFrameStrata("DIALOG")
-    texture(d,"Torch",23,23,34,34):SetTexCoord(.08,.92,.08,.92)
+    texture(d,"RoyalBrazier",23,23,34,34)
     text(d,77,21,310,25,18,gold):SetText("Call for aid?")
     U.deathText=text(d,77,49,310,32,12,pale)
     U.deathCall=button(d,"Light the Beacons",74,87,183,function() B.RequestLight(U.deathConfirmed and "pvp" or "fallen");d:Hide() end)
@@ -292,7 +297,7 @@ function U.Create()
     if Minimap then
         local m=CreateFrame("Button","LightTheBeaconsMinimap",Minimap,"BackdropTemplate");U.minimap=m
         m:SetSize(30,30);m:SetPoint("TOPLEFT",Minimap,"TOPLEFT",0,0);m:SetFrameStrata("MEDIUM")
-        m:SetNormalTexture(media.."Torch.tga");m:RegisterForClicks("LeftButtonUp","RightButtonUp")
+        m:SetNormalTexture(media.."RoyalBrazier.tga");m:RegisterForClicks("LeftButtonUp","RightButtonUp")
         m:SetScript("OnClick",function(_,mouse) U.Toggle(mouse=="RightButton") end)
         tip(m,"Light the Beacons","Left-click: open beacons\nRight-click: options\n/ltb light: call for aid")
     end
@@ -376,53 +381,62 @@ function U.PromptDeath(confirmed)
 end
 function U.Refresh()
     if not U.frame or not B.db then return end
+    local function position(frame,x,y)
+        frame:ClearAllPoints();frame:SetPoint("TOPLEFT",x,-y)
+    end
     U.main:SetShown(not U.options);U.optionsPanel:SetShown(U.options and true or false)
-    U.callsTab.line:SetShown(not U.options and not B.preview)
-    U.optionsTab.line:SetShown(U.options and true or false)
-    U.previewTab.line:SetShown(B.preview~=nil and not U.options)
-    U.subtitle:SetText(B.preview and "LOCAL PREVIEW  -  No guild messages sent" or "FOR THE ALLIANCE")
+    U.optionsButton.label:SetText(U.options and "Back" or "Options")
     local list=B.preview and {B.preview} or B.List()
     local selected=B.Selected()
     if not selected and #list>0 then B.selected=list[1].owner;B.Replan();selected=B.Selected() end
-    U.count:SetText(#list==0 and "No active calls" or #list==1 and "1 active call" or #list.." active calls")
-    U.prev:SetShown(#list>1 and not B.preview);U.nextCall:SetShown(#list>1 and not B.preview)
+    local own=selected and selected.owner==B.me
+    local navigating=selected and not own and not B.preview and B.navigating
+    local guild=IsInGuild and IsInGuild() and true or false
+    local id=selected and selected.id
+    if U.selectionID~=id then U.selectionID=id;U.routeScroll:SetVerticalScroll(0) end
     U.pace.label:SetText(B.TravelLabel())
     U.sound:SetChecked(B.db.sound);U.auto:SetChecked(B.db.auto);U.prompt:SetChecked(B.db.prompt)
-    U.light.label:SetText(B.own and B.own.expires>C.Now() and "Extinguish My Beacon" or "Light My Beacon")
-    U.light:SetEnabled(IsInGuild and IsInGuild() and true or false)
-    U.status:SetText((IsInGuild and IsInGuild()) and (B.db.flightMasterScanned and
-        (C.KnownCount().." confirmed flight points  -  Alerts stay within your guild's addon users") or
-        "Open a flight master's map to confirm your discovered flight points") or "Join a guild to call for aid")
-    local multi=#list>1 and not B.preview
-    local index=1;for i,b in ipairs(list) do if selected and b.owner==selected.owner then index=i end end
-    U.position:SetText(multi and (index.." of "..#list) or "")
-    U.reason:SetText(selected and (reasons[selected.reason] or "Calls for aid"):upper() or "STANDING BY")
+    U.light.label:SetText(B.own and B.own.expires>C.Now() and "My beacon" or "Light mine")
+    U.light:SetEnabled(guild)
+    U.status:SetText(guild and (B.db.flightMasterScanned and
+        (C.KnownCount().." confirmed flight points. Open a flight master's map to refresh them.") or
+        "Open a flight master's map to confirm your discovered flight points.") or "Join a guild to call for aid.")
+    local names={};if selected then for _,name in pairs(selected.responders or {}) do names[#names+1]=name end end
+    table.sort(names)
     U.destination:SetText(selected and selected.name or "Your guild's watch")
-    U.destination:SetWidth(multi and 395 or 545)
+    tip(U.identity,selected and selected.name or "Your guild's watch",selected and
+        (C.Zone(selected.map).." - "..(reasons[selected.reason] or reasons.aid)) or "No active calls.")
+    local allies=#names..(#names==1 and " ally" or " allies")
+    U.summary:SetText(selected and ((B.preview and "PREVIEW - " or own and "Your beacon - " or C.Zone(selected.map).." - ")..
+        allies..(own and " coming to you" or " answering")) or guild and "No active calls" or "Join a guild to call for aid")
+    U.beacon:SetAlpha(selected and 1 or .45)
     local callMessage=selected and selected.message
-    U.callMessage:SetText(callMessage and ('"'..callMessage..'"') or selected and "No message attached." or "")
-    U.callMessage:SetTextColor(unpack(callMessage and pale or muted))
-    U.facts:SetShown(selected~=nil);U.idle:SetShown(selected==nil)
-    if selected then
-        U.zone:SetText(C.Zone(selected.map))
-        U.coords:SetText(math.floor(selected.px*100+.5)..", "..math.floor(selected.py*100+.5))
-        U.age:SetText(math.max(0,C.Now()-selected.sent).." sec ago")
-    end
-    U.answer:SetEnabled(selected~=nil and not B.preview and selected.owner~=B.me)
+    local hasMessage=callMessage and callMessage~=""
+    U.callMessage:SetText(hasMessage and ('"'..callMessage..'"') or not selected and "Light a beacon when you need allies at your side." or "")
+    U.callMessage:SetShown(hasMessage or not selected)
+    local actionsY=(hasMessage or not selected) and 139 or 107
+    position(U.answer,16,actionsY);position(U.expand,310,actionsY)
+    U.answer.label:SetText(not selected and "Light My Beacon" or own and "Extinguish My Beacon" or B.preview and "Preview only" or
+        navigating and "On my way" or selected.responders and selected.responders[B.me] and "Resume route" or "Answer the Call")
+    U.answer:SetEnabled(guild and not B.preview and not navigating)
+    U.expand.label:SetText(U.expanded and "Less -" or "Details +");U.expand:SetShown(selected~=nil)
     U.map:SetEnabled(selected~=nil and not B.preview)
-    local plan=selected and B.route
+    U.stop:SetShown(navigating and true or false)
+    local plan=selected and not own and B.route
     local routed=plan and not plan.unavailable
-    U.eta:SetText(plan and plan.pendingFlight and "Routing after landing" or routed and R.Time(plan.seconds) or "Route unavailable")
-    U.eta:SetTextColor(unpack(routed and gold or pale));U.eta:SetFont("Fonts\\FRIZQT__.TTF",routed and 14 or 12,"")
+    U.eta:SetShown(selected~=nil and not own)
+    U.eta:SetText(plan and plan.pendingFlight and "On taxi" or routed and
+        (plan.seconds<60 and R.Time(plan.seconds) or "~"..math.floor(plan.seconds/60+.5).." min") or "No route")
     local steps=plan and plan.steps or {}
     local meta={}
     if routed and paces[plan.speed] then meta[#meta+1]=paces[plan.speed] end
     if #steps>0 then meta[#meta+1]=#steps..(#steps==1 and " STEP" or " STEPS") end
-    local listHeight=math.max(routeHeight,#steps*rowPitch-4)
-    if listHeight>routeHeight then meta[#meta+1]="SCROLL FOR MORE" end
-    U.routeMeta:SetText(table.concat(meta,"  -  "))
-    U.routeChild:SetHeight(listHeight)
-    local at=B.navigating and (B.routeIndex or 1) or 0
+    U.routeMeta:SetText(table.concat(meta," - "))
+    U.reason:SetText(own and "YOUR BEACON" or "YOUR ROUTE")
+    local viewport=math.min(routeHeight,math.max(rowPitch,#steps*rowPitch))
+    U.routeScroll:SetHeight(viewport);U.routeChild:SetHeight(math.max(viewport,#steps*rowPitch))
+    U.routeScroll:SetShown(#steps>0 and not own)
+    local at=navigating and (B.routeIndex or 1) or 0
     for i=1,math.max(#steps,#U.stepRows) do
         local row=U.stepRows[i] or stepRow(i);U.stepRows[i]=row
         local step=steps[i];row:SetShown(step~=nil)
@@ -436,17 +450,47 @@ function U.Refresh()
             row.title:SetText(U.StepTitle(step));row.title:SetTextColor(unpack(done and muted or pale))
             row.time:SetText(R.Time(step.seconds));row.time:SetTextColor(unpack(done and muted or gold))
             row.detail:SetText(done and "COMPLETED" or stepDetail(step));row.detail:SetTextColor(unpack(done and muted or brass))
+            tip(row,U.StepTitle(step),stepDetail(step).."\nEstimated travel: "..R.Time(step.seconds))
         end
     end
-    U.routeScroll:SetVerticalScroll(math.min(U.routeScroll:GetVerticalScroll() or 0,math.max(0,U.routeChild:GetHeight()-routeHeight)))
-    local message=not selected and "The watch is quiet.\n\nWhen the horn sounds, your guild's call will appear here." or
-        not plan and "Route unavailable.\n\nOpen the beacon on your map." or #steps==0 and (plan.reason or "Route unavailable.") or nil
+    U.routeScroll:SetVerticalScroll(math.min(U.routeScroll:GetVerticalScroll() or 0,math.max(0,U.routeChild:GetHeight()-viewport)))
+    local message=own and "Your beacon is lit. Allies plan their own routes to you." or
+        not selected and "The watch is quiet." or #steps==0 and (plan and plan.reason or "Route unavailable. Open the beacon on your map.") or nil
     U.empty:SetText(message or "");U.empty:SetShown(message~=nil)
-    U.routeNote:SetText(not selected and "Preview a call to see the route display and alert." or
-        #steps>0 and "Estimated travel. Follow roads around obstacles." or "")
-    local names={};if selected then for _,name in pairs(selected.responders or {}) do names[#names+1]=name end end
-    table.sort(names)
-    U.responders:SetText(selected and (#names>0 and ("Answering: "..table.concat(names,", ")) or "Waiting for a guildmate to answer.") or "The horn reaches guildmates who have this addon.")
+    local routeBottom=36+(own and 44 or #steps>0 and viewport or 76)
+    position(U.routeNote,16,routeBottom+6)
+    U.routeNote:SetText(#steps>0 and ("Estimated travel. Follow roads around obstacles."..(#steps*rowPitch>viewport and " Scroll for more steps." or "")) or "")
+    local factsY=routeBottom+(#steps>0 and 40 or 8)
+    position(U.location,16,factsY);position(U.age,16,factsY+20);position(U.responderBox,16,factsY+44)
+    if selected then
+        U.location:SetText(C.Zone(selected.map).." - "..math.floor(selected.px*100+.5)..", "..math.floor(selected.py*100+.5).." - "..(reasons[selected.reason] or reasons.aid))
+        U.age:SetText("Called "..R.Time(math.max(0,C.Now()-selected.sent)).." ago"..(own and " - Expires in "..R.Time(math.max(0,selected.expires-C.Now())) or ""))
+    end
+    local responders=#names>0 and "Answering: "..table.concat(names,", ") or "Waiting for a guildmate to answer."
+    U.responders:SetText(responders);tip(U.responderBox,"Allies answering",responders)
+    position(U.map,16,factsY+94);position(U.stop,204,factsY+94)
+    local detailsHeight=factsY+134;U.details:SetHeight(detailsHeight)
+    local y=actionsY+38
+    U.brief:SetShown(navigating and true or false)
+    if navigating then
+        position(U.brief,16,y)
+        local step=steps[B.routeIndex or 1]
+        U.briefText:SetText(step and "Next: "..U.StepTitle(step).." - "..R.Time(step.seconds) or
+            plan and plan.pendingFlight and "Finish your current flight. Routing updates on landing." or
+            plan and plan.unavailable and "Route unavailable. Open Details to view the map." or "You have reached the beacon area.")
+        y=y+46
+    end
+    local multi=#list>1 and not B.preview
+    U.pager:SetShown(multi)
+    if multi then
+        local index=1;for i,b in ipairs(list) do if selected and b.owner==selected.owner then index=i end end
+        U.position:SetText(index.." of "..#list.." active calls")
+        position(U.pager,16,y);y=y+30
+    end
+    U.details:SetShown(U.expanded and selected~=nil and true or false)
+    if U.expanded and selected then position(U.details,0,y);y=y+detailsHeight end
+    local height=U.options and 520 or y+7
+    U.frame:SetHeight(height);U.frame.surface:SetHeight(height-12)
 end
 function U.MapPins()
     if not WorldMapFrame or not WorldMapFrame:IsShown() then
@@ -462,8 +506,8 @@ function U.MapPins()
             i=i+1;local pin=U.pins[i]
             if not pin then
                 pin=CreateFrame("Button",nil,canvas);pin:SetSize(24,24)
-                pin:SetNormalTexture(media.."Torch.tga");pin:SetFrameLevel(canvas:GetFrameLevel()+15)
-                pin:SetScript("OnClick",function(self) if self.beacon then B.Select(self.beacon);U.options=false;U.frame:Show() end end)
+                pin:SetNormalTexture(media.."RoyalBrazier.tga");pin:SetFrameLevel(canvas:GetFrameLevel()+15)
+                pin:SetScript("OnClick",function(self) if self.beacon then B.Select(self.beacon);U.options=false;U.Refresh();U.frame:Show() end end)
                 pin:SetScript("OnEnter",function(self)
                     if not GameTooltip or not self.beacon then return end
                     GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:AddLine(self.beacon.name.." calls for aid!",1,.8,.3)

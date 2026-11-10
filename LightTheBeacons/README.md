@@ -1,4 +1,4 @@
-# Light the Beacons 1.1.0
+# Light the Beacons 1.3.0
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -26,15 +26,22 @@ then, routes use ground travel and boats instead of guessing at flight access.
 `/ltb` from registering. Key bindings load through WoW's dedicated binding
 loader. Existing users can replace the addon folder and `/reload`; keep saves.
 
-## Alliance design
+## Compact Rally card
 
-Stormwind blue, gold trim and an Alliance lion frame the caller's details and a
-numbered itinerary with leg times. Completed steps show checks; the current step
-is highlighted. The footer credits **Whitebeard Tinkerton - US PVP**.
+Stormwind blue, gold trim, an Alliance lion and the original royal brazier frame
+a compact card with the caller, optional message, travel estimate and answer
+action. **Details** expands the numbered itinerary, location, responders and map
+button. Completed steps show checks; the current step is highlighted. Answering
+adds a short next-step strip even when Details is collapsed. Long routes scroll;
+hover a step or the responder list for its complete text. **Stop guidance** in
+Details pauses navigation; **Resume route** restarts it without another reply.
+
+Options contains settings, local previews and the subtle
+**Whitebeard Tinkerton - US PVP** credit. The default card has no credit footer.
 
 ## Use
 
-- `/ltb` or the torch beside the minimap: open the panel.
+- `/ltb` or the brazier beside the minimap: open the card.
 - `/ltb light`: compose a call at your position (or your fallen body).
 - `/ltb clear`: extinguish your beacon.
 - `/ltb preview`: show a local sample alert and route. Nothing is transmitted.
@@ -47,7 +54,7 @@ is highlighted. The footer credits **Whitebeard Tinkerton - US PVP**.
 
 Bindings are available under **Light the Beacons** in the game's key bindings.
 
-Choose **Light My Beacon**, `/ltb light`, or the call key binding to open the
+Choose **Light mine**, `/ltb light`, or the call key binding to open the
 message window. Add an optional message of up to **48 characters**, then click
 **Light the Beacons** to send it. Leaving the field blank still sends a normal
 call. Enter finishes editing; it does not send. Cancel or Escape closes the draft.
@@ -61,15 +68,16 @@ are private until you use one in a call. You can also manage them through
 An incoming call shows **“The beacons are lit! <Name> calls for aid!”** in a
 compact WoW-style banner. Left-click the banner to answer and start guidance;
 right-click to dismiss. Answering acknowledges your response to other addon
-users in your guild. The main panel also has **Answer the Call** and **Show Map**.
+users in your guild. The main card has **Answer the Call**; **Show Map** is in Details.
 Your own banner opens your beacon details; you cannot answer or start navigation
 to your own call.
-Use its arrows to switch between simultaneous calls. Scroll longer route lists.
+Use the pager below the actions to switch between simultaneous calls. It appears
+only when multiple calls exist. Scroll longer route lists inside Details.
 The caller's optional message appears in the alert, caller card and map-pin
 tooltip. Both players need **1.2.0 or later** to exchange custom text. Older
 versions still receive the beacon, horn and route without the extra message.
 
-The guide displays the next travel step and a direction arrow. World-map torch
+The guide displays the next travel step and a direction arrow. World-map brazier
 pins identify active beacons. Waypoints change only after you choose to answer
 or open a beacon on the map. Travel remains under your control.
 
@@ -184,6 +192,9 @@ Copyright (c) 2026 Daniel Costa, under the included MIT license. Its source is
 Blizzard's Forever client DB2 data via wago.tools. Source hash, build and changes
 are recorded in `ThirdParty/TravelData-source.txt`. Original UI artwork belongs
 to Blizzard Entertainment; pinned sources and hashes are in `Media/sources.json`.
+The royal brazier is original artwork created for Light the Beacons with OpenAI
+image generation. It ships as a transparent TGA; its source and prompt are in
+the repository's `art/` directory. No extra program or download is needed in game.
 Sounds are referenced from the WoW client rather than bundled as recordings:
 [Horn of Cenarius / Dwarf Horn](https://www.wowhead.com/sound=10843/hornofcenarius)
 (FileDataID 566064; sound kit fallback 10843) for a beacon, and

@@ -1,0 +1,10 @@
+{
+  "tool": "built-in image_gen",
+  "status": "Selected royal brazier; packaged as a 128x128 RGBA TGA.",
+  "prompts": [
+    {
+      "key": "brazier",
+      "prompt": "Use case: stylized-concept. Create one ORIGINAL fantasy game UI icon for an addon called Light the Beacons. Subject: a stout royal war brazier, a wide gold-rimmed fire bowl on a short cobalt-blue iron pedestal, with a large bright amber and pale-gold flame. A proud Alliance-inspired blue and gold medieval military aesthetic, noble and epic, but no existing faction logo or lion, no lettering. Style: polished hand-painted fantasy game icon with bold readable silhouette, chunky deliberate shapes, convincing highlights, restrained detail. Designed to read at only 32 pixels high. Front view, centered, compact approximately square silhouette filling 85% of the canvas. The flame should occupy the upper half; substantial dark blue and burnished gold bowl below. True transparent background. No square icon frame, no shield behind it, no environment, no floating particles, no drop shadow or diffuse haze outside the silhouette. One standalone asset, not a presentation or sprite sheet."
+    }
+  ]
+}

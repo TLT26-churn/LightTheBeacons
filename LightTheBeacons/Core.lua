@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.2.1"
+B.version="1.3.0"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -217,6 +217,7 @@ function B.Death()
     if C_Timer then C_Timer.After(.6,decide) else decide() end
 end
 function B.Preview()
+    B.UI.options=false
     B.UpdateTravelPace()
     local data=B.TravelData
     local start={c=0,x=-8900,y=600,n="Your position"}

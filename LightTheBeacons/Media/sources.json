@@ -1,5 +1,5 @@
 {
-  "copyright": "Blizzard Entertainment. Original UI textures, unchanged pixels.",
+  "copyright": "RoyalBrazier.tga: original Light the Beacons artwork generated with OpenAI image generation. Other textures: Blizzard Entertainment, original UI textures with unchanged pixels.",
   "files": [
     {
       "file": "UI-DialogBox-Background.tga",
@@ -80,6 +80,18 @@
       "file": "AllianceGlow.tga",
       "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/AllianceGlow-Logo.PNG",
       "sha256": "36ff5c4fc127129327a78b35ea344ba5cc7f51375890d294a9a8079b408c1891"
+    },
+    {
+      "file": "RoyalBrazier.tga",
+      "kind": "original",
+      "source": "art/RoyalBrazier.png",
+      "sourceSha256": "b4320c1d6d69c20d43d5cda7aa51c0f36498cce7748414586ba32c924b504a2d",
+      "size": [
+        128,
+        128
+      ],
+      "sha256": "dfaf83128898c2b17551ce116123f18ed7f59aea20ae8031983fca2eb171d162",
+      "description": "Original royal blue and gold brazier, generated for Light the Beacons. Transparent RGBA texture."
     }
   ],
   "sounds": [

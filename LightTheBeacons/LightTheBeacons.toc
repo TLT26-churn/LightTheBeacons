@@ -2,9 +2,9 @@
 ## Title: Light the Beacons
 ## Notes: A private guild call for aid, a war horn, and routes using your discovered flights.
 ## Author: Whitebeard Tinkerton - US PVP
-## Version: 1.2.1
+## Version: 1.3.0
 ## SavedVariablesPerCharacter: LightTheBeaconsDB
-## IconTexture: Interface\Icons\INV_Torch_Lit
+## IconTexture: Interface\AddOns\LightTheBeacons\Media\RoyalBrazier.tga
 
 TravelData.lua
 Protocol.lua
