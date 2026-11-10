@@ -62,7 +62,7 @@ for s in sorted(items,key=lambda s:(s['frameLevel'],order.get(s.get('layer'),-1)
             if s.get('coords'):
                 l,r,t,b=s['coords'];surface=surface.crop((round(l*surface.width),round(t*surface.height),round(r*surface.width),round(b*surface.height)))
             surface=surface.resize((w,h),Image.Resampling.LANCZOS)
-    elif s['kind']=='FontString' and s.get('text') is not None:
+    elif s['kind'] in ('FontString','EditBox') and s.get('text') is not None:
         # Draw at 2x then downsample to closely approximate in-game font rasterization.
         surface=Image.new('RGBA',(w*scale,h*scale));draw=ImageDraw.Draw(surface)
         font=ImageFont.truetype(font_path,round(s.get('fontSize',12)*scale))
@@ -75,6 +75,12 @@ for s in sorted(items,key=lambda s:(s['frameLevel'],order.get(s.get('layer'),-1)
             else:
                 line=''
                 for word in paragraph.split(' '):
+                    if s.get('nonSpaceWrap') and draw.textlength(word,font=font)>w*scale:
+                        if line:lines.append(line);line=''
+                        while draw.textlength(word,font=font)>w*scale:
+                            cut=len(word)
+                            while cut>1 and draw.textlength(word[:cut],font=font)>w*scale:cut-=1
+                            lines.append(word[:cut]);word=word[cut:]
                     candidate=(line+' '+word).strip()
                     if line and draw.textlength(candidate,font=font)>w*scale:lines.append(line);line=word
                     else:line=candidate

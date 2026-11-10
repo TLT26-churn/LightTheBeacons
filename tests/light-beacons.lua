@@ -37,14 +37,16 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     function methods:RegisterEvent(e) assert(validEvents[e],"Unknown Forever event: "..tostring(e));self.events[e]=true end
     function methods:UnregisterEvent(e) self.events[e]=nil end
     function methods:Show() self.shown=true end
-    function methods:Hide() self.shown=false end
+    function methods:Hide() local was=self.shown;self.shown=false;if was and self.scripts.OnHide then self.scripts.OnHide(self) end end
     function methods:SetShown(v) self.shown=v and true or false end
     function methods:IsShown() return self.shown end
     function methods:SetEnabled(v) self.enabled=v;local f=self.scripts[v and "OnEnable" or "OnDisable"];if f then f(self) end end
     function methods:SetChecked(v) self.checked=v;if self.CheckedTexture then self.CheckedTexture.shown=v and true or false end end
     function methods:GetChecked() return self.checked end
-    function methods:SetText(v) self.text=v end
+    function methods:SetText(v) self.text=v;if self.scripts.OnTextChanged then self.scripts.OnTextChanged(self,false) end end
     function methods:GetText() return self.text end
+    function methods:SetFocus() self.focused=true end
+    function methods:ClearFocus() self.focused=false end
     function methods:SetFont(path,size) self.fontSize=size;self.font=path end
     function methods:SetTextColor(...) self.color={...} end
     function methods:SetVertexColor(...) self.vertexColor={...} end
@@ -55,6 +57,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     function methods:SetRotation(v) self.rotation=v end
     function methods:SetJustifyH(v) self.align=v end
     function methods:SetWordWrap(v) self.wrap=v end
+    function methods:SetNonSpaceWrap(v) self.nonSpaceWrap=v end
     function methods:SetBackdrop(v) self.backdrop=v end
     function methods:SetBackdropColor(...) self.backdropColor={...} end
     function methods:SetBackdropBorderColor(...) self.border={...} end
@@ -67,7 +70,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     function methods:CreateFontString() local t=obj(nil,self,"FontString");t.frameLevel=self.frameLevel;t.layer="OVERLAY";return t end
     for _,name in ipairs({"SetShadowColor","SetShadowOffset","SetJustifyV","SetBlendMode","SetMovable","SetClampedToScreen",
         "EnableMouse","RegisterForDrag","StartMoving","StopMovingOrSizing","SetFrameStrata","EnableMouseWheel","RegisterForClicks",
-        "SetOwner","AddLine","SetParent"}) do methods[name]=function() end end
+        "SetOwner","AddLine","SetParent","SetAutoFocus","SetMultiLine","SetMaxLetters","SetMaxBytes","SetCursorPosition"}) do methods[name]=function() end end
     for _,stateName in ipairs({"Normal","Pushed","Disabled","Highlight","Checked"}) do
         methods["Set"..stateName.."Texture"]=function(self,path)
             local t=self:CreateTexture(nil,"ARTWORK");t.file=path;t.allPoints=self;t.state=stateName
@@ -431,6 +434,113 @@ for _,step in ipairs(slowFlight.steps) do if step.kind=="flight" then
     end end
 end end
 
+-- Optional messages, saved templates and mixed-version protocol delivery.
+do
+    local caller=client("Aldric","Stoneward")
+    local ally=client("Elowen","Dawnwatch")
+    local u=caller.B.UI
+    caller.env.SlashCmdList.LIGHTTHEBEACONS("light")
+    check(u.composer:IsShown() and #caller.s.sent==0,"Manual call opens a composer without broadcasting")
+    check(u.messageEdit:GetText()=="" and u.messageEdit.focused,"Composer starts blank and accepts typing")
+    local notes={"Three Horde at the cave. Need a healer!","Escort needed to the flight master.","Rally here. We ride together!"}
+    for slot=1,3 do
+        u.messageEdit:SetText(notes[slot]);u.templates[slot].save.scripts.OnClick()
+    end
+    check(#caller.B.db.messages==3 and #caller.s.sent==0,"Three quick messages save locally without sending")
+    check(not caller.B.SaveTemplate(4,"Fourth") and not caller.B.SaveTemplate(1.5,"Fraction"),"Only the three integer slots are accepted")
+    u.templates[1].use.scripts.OnClick()
+    check(u.messageEdit:GetText()==notes[1] and #caller.s.sent==0,"Selecting a quick message fills the draft only")
+    u.messageEdit:SetText("Two Horde at the cave. Need a healer!");u.templates[1].save.scripts.OnClick()
+    notes[1]=u.messageEdit:GetText()
+    check(caller.B.db.messages[1]==notes[1],"Saving an edited template replaces that slot")
+    u.messageEdit.scripts.OnEnterPressed(u.messageEdit)
+    check(#caller.s.sent==0 and not u.messageEdit.focused,"Enter finishes editing without accidentally lighting a beacon")
+    u.composeCancel.scripts.OnClick()
+    check(not u.composer:IsShown() and #caller.s.sent==0,"Cancelling a draft never broadcasts")
+    caller.B.RequestLight();check(u.messageEdit:GetText()=="","A new manual call never reuses an abandoned draft")
+    u.templates[1].use.scripts.OnClick();u.composeSend.scripts.OnClick()
+    check(not u.composer:IsShown() and #caller.s.sent==2,"Send closes the composer and sends a note plus a normal beacon")
+    local notePacket,basePacket=caller.s.sent[1][2],caller.s.sent[2][2]
+    check(caller.s.sent[1][3]=="GUILD" and caller.s.sent[2][3]=="GUILD","Both message packets stay on the private guild addon channel")
+    check(basePacket==P.Encode(caller.B.own) and select(2,basePacket:gsub("|",""))==7,"Beacon remains in the exact eight-field legacy format")
+    ally.B.Receive(notePacket,caller.B.name,"WHISPER");ally.B.Receive(notePacket,"Outsider","GUILD")
+    check(next(ally.B.session.pending)==nil,"Notes from other channels or non-guild members are ignored")
+    ally.B.Receive(notePacket,caller.B.name,"GUILD")
+    check(#ally.B.List()==0 and #ally.s.sounds==0 and not ally.B.UI.banner:IsShown(),"A note alone never creates a call, toast or horn")
+    ally.B.Receive(basePacket,caller.B.name,"GUILD")
+    check(ally.B.Selected().message==notes[1] and caller.B.own.message==notes[1],"Caller and ally retain the same message")
+    check(ally.B.UI.callMessage:GetText()=='"'..notes[1]..'"' and ally.B.UI.alertMessage:GetText()=='"'..notes[1]..'"',"Ally sees the note in both caller card and alert")
+    check(#ally.s.sounds==1 and ally.B.UI.banner:GetHeight()==158,"A message-bearing call plays one horn and makes room in the toast")
+    ally.B.Receive(notePacket,caller.B.name,"GUILD");ally.B.Receive(basePacket,caller.B.name,"GUILD")
+    check(#ally.s.sounds==1,"Duplicate notes and beacons do not replay the horn")
+    local reordered=client("Elowen","Dawnwatch")
+    reordered.B.Receive(basePacket,caller.B.name,"GUILD");reordered.B.UI.banner.elapsed=8
+    reordered.B.Receive(notePacket,caller.B.name,"GUILD")
+    check(reordered.B.Selected().message==notes[1] and reordered.B.UI.alertMessage:GetText()=='"'..notes[1]..'"',"A late note updates an already received beacon")
+    check(#reordered.s.sounds==1 and reordered.B.UI.banner.elapsed==8,"Late note never resets the banner timer or sounds again")
+    reordered.B.UI.banner:Hide();reordered.B.Receive(notePacket,caller.B.name,"GUILD")
+    check(not reordered.B.UI.banner:IsShown(),"Late duplicate does not reopen a dismissed alert")
+    local spoof=client("Elowen","Dawnwatch")
+    spoof.B.Receive(basePacket,caller.B.name,"GUILD");spoof.B.Receive(notePacket,spoof.B.name,"GUILD")
+    check(not spoof.B.Selected().message,"A guildmate cannot attach a note to someone else's beacon ID")
+    local restored=client("Aldric","Stoneward",caller.B.db,caller.s.time)
+    check(restored.B.own.message==notes[1] and restored.B.db.messages[3]==notes[3],"Active note and three saved templates survive reload")
+    restored.B.Receive("1|Q",ally.B.name,"GUILD")
+    check(#restored.s.sent==2 and restored.s.sent[1][2]==notePacket and restored.s.sent[2][2]==basePacket,"Reloaded caller includes the message when a late guildmate queries active calls")
+    check(next(ally.B.db.messages)==nil,"Templates are private to the sender's character")
+    restored.B.UI.Compose();restored.B.UI.templates[2].clear.scripts.OnClick()
+    local cleared=client("Aldric","Stoneward",restored.B.db,restored.s.time)
+    check(cleared.B.db.messages[1]==notes[1] and not cleared.B.db.messages[2] and cleared.B.db.messages[3]==notes[3],"Clearing one template preserves the other two across reloads")
+    local badSave=client("Aldric","Stoneward",{messages={[1]={secret=true},[2]="ok",[3]="",[4]="extra",garbage="extra"}})
+    check(not badSave.B.db.messages[1] and badSave.B.db.messages[2]=="ok" and not badSave.B.db.messages[4] and not badSave.B.db.messages.garbage,"Saved template migration discards malformed values and extra slots")
+    local failed=client("Aldric","Stoneward");failed.B.RequestLight();failed.B.UI.messageEdit:SetText(notes[1]);failed.s.sendResult=3
+    failed.B.UI.composeSend.scripts.OnClick()
+    check(failed.B.UI.composer:IsShown() and failed.B.UI.messageEdit:GetText()==notes[1] and not failed.B.own,"Failed sends keep the typed draft for retry")
+    local failedBase=client("Aldric","Stoneward")
+    local sendCount=0;failedBase.env.C_ChatInfo.SendAddonMessage=function() sendCount=sendCount+1;return sendCount==1 and 0 or 3 end
+    check(not failedBase.B.Light(nil,notes[1]) and not failedBase.B.own and not failedBase.B.db.lastSent,"A note sent before a failed beacon never marks a call as successful")
+    local abandoned=client("Elowen","Dawnwatch")
+    abandoned.B.Receive(notePacket,caller.B.name,"GUILD");abandoned.advance(16)
+    abandoned.B.Protocol.Prune(abandoned.B.session,abandoned.s.time)
+    check(next(abandoned.B.session.pending)==nil,"Orphaned notes expire promptly")
+    local cancelled=client("Elowen","Dawnwatch")
+    cancelled.B.Receive(notePacket,caller.B.name,"GUILD")
+    cancelled.B.Receive("1|C|"..caller.B.own.id,caller.B.name,"GUILD")
+    cancelled.B.Receive(notePacket,caller.B.name,"GUILD");cancelled.B.Receive(basePacket,caller.B.name,"GUILD")
+    check(next(cancelled.B.session.pending)==nil and #cancelled.B.List()==0,"Cancellation discards pending messages and blocks delayed resurrection")
+    local auto=client("Aldric","Stoneward",{auto=true,messages=notes});auto.B.RequestLight();auto.B.UI.messageEdit:SetText("Do not send this draft")
+    auto.s.dead=true;auto.s.recapLink="new";auto.s.recap={{sourceGUID="Player-2-enemy",sourceFlags=0x440,overkill=1,timeBeforeDeath=0}}
+    auto.B.Death();auto.advance(1)
+    check(auto.B.own.reason=="pvp" and not auto.B.own.message and #auto.s.sent==1,"Automatic PvP calls bypass the composer and never send an old draft or template")
+    check(not auto.B.UI.composer:IsShown(),"Automatic send dismisses a now-stale composer")
+    local fallen=client("Aldric","Stoneward");fallen.s.dead=true;fallen.B.Death();fallen.advance(1)
+    fallen.B.UI.deathCall.scripts.OnClick();fallen.B.UI.messageEdit:SetText("Horde camping my body.")
+    check(fallen.B.UI.composer:IsShown() and #fallen.s.sent==0,"Manual death prompt lets the caller add a message")
+    fallen.B.UI.composeSend.scripts.OnClick()
+    check(fallen.B.own.reason=="fallen" and fallen.B.own.message=="Horde camping my body.","Manual death call retains its reason and custom message")
+    local blank=client("Aldric","Stoneward");blank.B.RequestLight();blank.B.UI.composeSend.scripts.OnClick()
+    check(#blank.s.sent==1 and not blank.B.own.message and blank.B.UI.banner:GetHeight()==118,"Blank message remains optional and keeps the compact alert")
+    local accent="\195\169";local emoji="\240\159\155\161"
+    check(P.Message(string.rep(accent,49))==string.rep(accent,48),"Accented characters are limited by character count without splitting UTF-8")
+    local unicode,count=P.Message(string.rep(emoji,49))
+    local unicodePacket=P.EncodeMessage({id=string.rep("x",40),message=unicode})
+    check(count==48 and #unicode==192 and #unicodePacket<=250 and P.Parse(unicodePacket,caller.s.time).message==unicode,"Maximum-width Unicode plus maximum ID stays within the addon-message limit")
+    check(P.Message("  Hold\n the| bridge!  ")=="Hold the bridge!","Messages normalize whitespace and remove WoW markup/payload separators")
+    check(P.Message({secret=true})=="" and P.Message("\255x\237\160\128")=="x","Restricted values and invalid Unicode cannot enter a message")
+    for _,bad in ipairs({"1|M|id|", "1|M|id|"..string.rep("a",49),"1|M|id|a|b","1|M|id|\255","1|M|id|hi\nthere","1|M|id| leading"}) do
+        check(not P.Parse(bad,caller.s.time),"Malformed, overlong or noncanonical note is rejected")
+    end
+    caller.B.RequestLight();u.messageEdit:SetText(string.rep(accent,50))
+    check(u.messageEdit:GetText()==string.rep(accent,48) and u.messageCount:GetText()=="48 / 48","Composer enforces and displays the Unicode character limit")
+    local bounded=P.NewSession();local members={}
+    for i=1,90 do
+        local sender="Guildmate"..i;members[P.Identity(sender)]=true
+        P.Receive(bounded,"1|M|id|Help",sender,"GUILD",members,caller.s.time)
+    end
+    local n=0;for _ in pairs(bounded.pending) do n=n+1 end
+    check(n==80,"Pending note storage is bounded across a large guild")
+end
+
 local perf=os.clock()
 local allKnown={};for id in pairs(data.nodes) do allKnown[id]=true end
 for _=1,50 do R.Plan(start,{c=1,x=6400,y=700},allKnown,"A",14) end
@@ -442,7 +552,7 @@ preview.B.preview.route=preview.B.Routing.Plan({c=0,x=-8900,y=600},preview.B.pre
 preview.B.route=preview.B.preview.route;preview.B.UI.Alert(preview.B.preview,true);preview.B.UI.Refresh()
 -- Separate visual proposal only: no addon broadcasts or installed theme edits.
 local sample={name="Jackdark Featherfall",owner="jackdark featherfall",id="design-preview",sent=preview.B.Client.Now()-43,
-    expires=preview.B.Client.Now()+257,map=1446,px=.47,py=.50,reason="aid",
+    expires=preview.B.Client.Now()+257,map=1446,px=.47,py=.50,reason="aid",message="Three Horde at the cave. Need a healer!",
     point={c=1,x=-7224,y=-3734,n="Jackdark Featherfall's beacon"},
     responders={one="Blackbeard Soulless",two="Whitebeard Tinkerton"}}
 preview.B.preview=nil;preview.B.session.beacons={[sample.owner]=sample};preview.B.selected=sample.owner
@@ -492,7 +602,7 @@ local function snapshot(c,target,path)
     for _,o in ipairs(c.objects) do if inside(o) and visible(o) then
         local x,y,w,h=bounds(o);local item={id=o.id,kind=o.kind,x=x-ox,y=y-oy,width=w,height=h,
             frameLevel=o.frameLevel,layer=o.layer,text=o.text,fontSize=o.fontSize,color=o.color,align=o.align,
-            wrap=o.wrap,file=o.file,coords=o.coords,solid=o.solid,alpha=o.alpha,vertexColor=o.vertexColor,backdrop=o.backdrop,
+            wrap=o.wrap,nonSpaceWrap=o.nonSpaceWrap,file=o.file,coords=o.coords,solid=o.solid,alpha=o.alpha,vertexColor=o.vertexColor,backdrop=o.backdrop,
             backdropColor=o.backdropColor,border=o.border}
         local ancestor=o
         while ancestor do
@@ -513,5 +623,9 @@ if arg[2] then
     preview.B.UI.options=true;preview.B.UI.Refresh()
     for _,o in ipairs(preview.objects) do o.box=nil end
     snapshot(preview,preview.B.UI.frame,arg[2].."-options.json")
+    preview.B.db.messages={"Three Horde at the cave. Need a healer!","Escort needed to the flight master.","Rally here. We ride together!"}
+    preview.B.UI.Compose();preview.B.UI.templates[1].use.scripts.OnClick()
+    for _,o in ipairs(preview.objects) do o.box=nil end
+    snapshot(preview,preview.B.UI.composer,arg[2].."-composer.json")
 end
 print("Light the Beacons: "..total.." checks passed (protocol, routing, two clients, death detection, UI).")

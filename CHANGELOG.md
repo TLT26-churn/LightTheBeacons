@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.2.0 — A reason to ride
+
+- Add an Alliance-themed message window for manual calls, the key binding and
+  death prompts. Send an optional message of up to 48 characters with your beacon.
+- Save, reuse, replace or clear up to three quick-message templates per character.
+  Choosing or saving a template does not send a call.
+- Show the caller's message in incoming alerts, caller details and map-pin tooltips.
+- Preserve templates and the active call's message across reloads. Late-joining
+  guildmates receive the message when querying active beacons.
+- Keep automatic PvP alerts immediate and free of stale drafts. Handle delayed,
+  duplicate and cancelled messages without extra horns or resurrected calls.
+- Preserve beacon delivery to older addon versions; update to 1.2.0 to display
+  custom messages. All traffic remains on the hidden guild addon channel.
+- Validate 177 simulated-client checks and one portable Windows/Linux ZIP.
+  Live guild message delivery still needs in-game confirmation.
+
 ## 1.1.0 — The Alliance answers
 
 - Ship the approved Alliance design: navy and gold, lion crest, grouped caller

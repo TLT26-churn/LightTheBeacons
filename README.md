@@ -31,11 +31,22 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 - Celebrates your first responder with a gold lion flare and an Alliance fanfare. More allies update the count.
 - Compares ground travel, flight-master-confirmed flights, boats and zeppelins for each responder.
 - Supports private responses, extinguishing calls and five-minute beacon expiry.
+- Lets callers add a short message and save three quick templates per character.
+  Messages appear on allies' alerts, beacon cards and map-pin tooltips.
 - Offers optional automatic PvP death alerts when the client exposes readable
   evidence of a hostile player’s killing blow. Automatic alerts default to off;
   a manual death prompt is available when attribution is restricted.
 
-**1.1.0:** the Alliance design is now included, with a native WoW horn, a first-responder
+**1.2.0:** choose **Light My Beacon** or `/ltb light`, type an optional message
+(up to 48 characters), or select one of your three saved messages. Click **Save
+current** to store a template, then **Light the Beacons** to send the call.
+Automatic PvP alerts remain immediate and do not reuse drafts or templates.
+Guildmates need 1.2.0 to see the custom text; earlier versions still receive the
+beacon and route normally.
+
+![Message window — rendered preview with sample templates](docs/beacon-messages.png)
+
+**1.1.0:** the Alliance design includes a native WoW horn, a first-responder
 celebration, verified flight discovery, and automatic riding detection.
 
 ![Alliance window — rendered preview with sample data](docs/alliance-window.png)
@@ -67,7 +78,7 @@ python3 tools/package_light_beacons.py
 
 The packager validates Lua syntax, media hashes, bindings, archive paths and an
 extracted copy with simulated clients, then creates one portable ZIP. The tests
-cover private delivery, malformed messages, cooldowns, discovery isolation,
+cover private delivery, templates, Unicode messages, reordered packets, malformed messages, cooldowns, discovery isolation,
 routes, death attribution, reload/login startup and UI construction.
 
 Optional `tools/build_light_beacons_media.py` restores missing artwork from pinned sources. The preview renderer

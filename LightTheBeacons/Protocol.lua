@@ -2,6 +2,7 @@ local _, B = ...
 B.Protocol = {}
 local P = B.Protocol
 P.prefix, P.ttl, P.cooldown = "LTB1", 300, 60
+P.messageLimit = 48 -- Even 48 four-byte UTF-8 characters fit in one addon packet.
 
 function P.Plain(v)
     return not (issecretvalue and issecretvalue(v))
@@ -21,11 +22,37 @@ function P.Identity(name)
     if not n then n, realm = name, (GetNormalizedRealmName and GetNormalizedRealmName() or "") end
     return (n .. "-" .. realm:gsub("%s", "")):lower()
 end
+-- Plain, single-line text. Count complete UTF-8 characters, never split one.
+function P.Message(value, editing)
+    if not P.Plain(value) or type(value)~="string" then return "",0 end
+    value=value:gsub("[|%c]"," "):gsub("\226\128\168"," "):gsub("\226\128\169"," ")
+    local out,i,count={},1,0
+    while i<=#value and count<P.messageLimit do
+        local b=value:byte(i)
+        local size=b<128 and 1 or b>=194 and b<=223 and 2 or b>=224 and b<=239 and 3 or b>=240 and b<=244 and 4 or 0
+        local valid=size>0 and i+size-1<=#value
+        for j=1,size-1 do local c=value:byte(i+j);if not c or c<128 or c>191 then valid=false end end
+        local second=value:byte(i+1) or 0
+        if (b==224 and second<160) or (b==237 and second>159) or (b==240 and second<144) or (b==244 and second>143) then valid=false end
+        if valid then out[#out+1]=value:sub(i,i+size-1);count=count+1;i=i+size else i=i+1 end
+    end
+    local result=table.concat(out)
+    if not editing then
+        result=result:gsub("%s+"," "):match("^%s*(.-)%s*$")
+        count=0;for _ in result:gmatch("[\1-\127\194-\244]") do count=count+1 end
+    end
+    return result,count
+end
 local function idOK(id)
     return P.Text(id, 40) and id:match("^[%w%.%-]+$") ~= nil
 end
 function P.Encode(b)
     return string.format("1|B|%s|%d|%d|%.5f|%.5f|%s", b.id, b.sent, b.map, b.px, b.py, b.reason)
+end
+-- A separate optional packet preserves beacon delivery to pre-message clients.
+function P.EncodeMessage(b)
+    local message=P.Message(b.message)
+    if message~="" then return "1|M|"..b.id.."|"..message end
 end
 -- Never evaluate received Lua or accept a sender identity from a payload.
 function P.Parse(msg, now)
@@ -36,6 +63,9 @@ function P.Parse(msg, now)
     if f[2] == "Q" and #f == 2 then return {kind="Q"} end
     if not idOK(f[3]) then return end
     if f[2] == "C" and #f == 3 then return {kind="C", id=f[3]} end
+    if f[2] == "M" and #f == 4 and P.Text(f[4],P.messageLimit*4) and f[4]==P.Message(f[4]) then
+        return {kind="M",id=f[3],message=f[4]}
+    end
     if f[2] == "R" and #f == 4 and P.Text(f[4]) then
         return {kind="R", id=f[3], owner=f[4]}
     end
@@ -50,10 +80,11 @@ function P.Parse(msg, now)
 end
 
 function P.NewSession(now)
-    return {beacons={}, dead={}, heard={}, lastNew={}, lastQuery={}, newest={}, budget={}, now=now or 0}
+    return {beacons={}, pending={}, dead={}, heard={}, lastNew={}, lastQuery={}, newest={}, budget={}, now=now or 0}
 end
 function P.Prune(s, now)
     for key,b in pairs(s.beacons) do if b.expires <= now then s.beacons[key] = nil end end
+    for key,b in pairs(s.pending) do if b.expires <= now then s.pending[key] = nil end end
     for key,t in pairs(s.dead) do if t <= now then s.dead[key] = nil end end
     for key,t in pairs(s.heard) do if t+P.ttl*2 <= now then s.heard[key] = nil end end
     for key,t in pairs(s.lastNew) do if t+P.ttl*2 <= now then s.lastNew[key] = nil end end
@@ -91,6 +122,7 @@ function P.Receive(s, msg, sender, channel, members, now)
         -- A sender can only extinguish its own beacon, including reordered packets.
         local count=0;for _ in pairs(s.dead) do count=count+1 end
         if count<512 then s.dead[token] = now+P.ttl end
+        if s.pending[key] and s.pending[key].id==b.id then s.pending[key]=nil end
         if s.beacons[key] and s.beacons[key].id == b.id then
             local old = s.beacons[key]; s.beacons[key] = nil
             return "cancel", old
@@ -99,6 +131,19 @@ function P.Receive(s, msg, sender, channel, members, now)
     end
     if s.dead[token] then return end
     local old = s.beacons[key]
+    if b.kind=="M" then
+        if old and old.id==b.id then
+            if old.message then return end
+            old.message=b.message
+            return "message",old
+        end
+        -- At most one short-lived pending message per guildmate, 80 total.
+        local count=0;for _ in pairs(s.pending) do count=count+1 end
+        if s.pending[key] or count<80 then
+            s.pending[key]={id=b.id,message=b.message,expires=now+15}
+        end
+        return
+    end
     if old and (old.id == b.id or old.sent > b.sent) then return end
     if s.newest[key] and b.sent<=s.newest[key] then return end
     if s.lastNew[key] and now-s.lastNew[key] < P.cooldown then return end
@@ -107,6 +152,8 @@ function P.Receive(s, msg, sender, channel, members, now)
     s.lastNew[key] = now
     s.newest[key] = b.sent
     b.owner, b.name, b.responders = key, sender, {}
+    local pending=s.pending[key]
+    if pending and pending.id==b.id then b.message=pending.message;s.pending[key]=nil end
     local sound = not s.heard[token]
     s.heard[token] = now
     s.beacons[key] = b

@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.1.0"
+B.version="1.2.0"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -74,13 +74,17 @@ function B.Receive(msg,sender,channel)
     local event,b,sound=P.Receive(B.session,msg,sender,channel,B.members,C.Now())
     if event=="query" then
         if B.own and B.own.expires>C.Now() and (not B.lastReply or GetTime()-B.lastReply>10) then
-            B.lastReply=GetTime();C.Send(P.Encode(B.own))
+            B.lastReply=GetTime()
+            local message=P.EncodeMessage(B.own);if message then C.Send(message) end
+            C.Send(P.Encode(B.own))
         end
     elseif event=="beacon" then
         if b.owner==B.me then B.own=b;B.db.active=b end
         if not B.Selected() then B.selected=b.owner;B.Replan() end
         if sound then B.Sound();B.UI.Alert(b) end
         B.UI.Refresh()
+    elseif event=="message" then
+        B.UI.UpdateAlertMessage(b);B.UI.Refresh()
     elseif event=="cancel" then
         if B.selected==b.owner then B.selected=nil;B.navigating=false;B.route=nil end
         if B.UI.alertBeacon and B.UI.alertBeacon.owner==b.owner then B.UI.banner:Hide() end
@@ -96,7 +100,16 @@ function B.Receive(msg,sender,channel)
         B.UI.Refresh()
     end
 end
-function B.Light(reason)
+function B.RequestLight(reason)
+    if B.db then B.UI.Compose(reason) end
+end
+function B.SaveTemplate(slot,message)
+    if not B.db or not P.Number(slot,1,3) or slot%1~=0 then return false end
+    local clean=P.Message(message)
+    B.db.messages[slot]=clean~="" and clean or nil
+    return true
+end
+function B.Light(reason,message)
     if not B.db then return end
     if not C.IsOutdoor() then B.Print("Beacons are for the open world. Leave the instance first.");return false end
     if not B.me then B.Print("Your character is still loading.");return false end
@@ -110,14 +123,24 @@ function B.Light(reason)
     B.sequence=(B.sequence or 0)+1
     local b={id=now.."."..B.nonce.."."..B.sequence,sent=now,expires=now+P.ttl,
         map=pos.map,px=pos.px,py=pos.py,reason=reason or (dead and "fallen" or "aid")}
+    b.message=P.Message(message)
+    if b.message=="" then b.message=nil end
+    local note=P.EncodeMessage(b)
+    -- Send the optional note first so the receiving toast can include it.
+    if note then
+        local ok,why=C.Send(note)
+        if not ok then B.Print(why);return false end
+    end
     local packet=P.Encode(b)
     local ok,why=C.Send(packet)
     if not ok then B.Print(why);return false end
     B.preview=nil;B.db.lastSent=now
     B.members[B.me]=true
+    if note then B.Receive(note,B.name,"GUILD") end
     B.Receive(packet,B.name,"GUILD")
     B.selected=B.me;B.Replan();B.UI.Refresh()
     if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
+    if B.UI.composer then B.UI.composer:Hide() end
     return true
 end
 function B.Extinguish()
@@ -191,7 +214,7 @@ function B.Preview()
     local start={c=0,x=-8900,y=600,n="Your position"}
     local goal={c=0,x=-9510,y=-2640,n="Aldric's beacon"}
     B.preview={name="Aldric",owner="preview",id="preview",sent=C.Now()-12,expires=C.Now()+288,
-        map=1433,px=.34,py=.52,reason="pvp",point=goal,responders={other="Elowen"}}
+        map=1433,px=.34,py=.52,reason="pvp",point=goal,responders={other="Elowen"},message="Horde at the crossroads. Rally to me!"}
     B.preview.route=R.Plan(start,goal,{[2]=true,[4]=true,[5]=true,[12]=true},"A",B.TravelSpeed(),data)
     B.route=B.preview.route;B.routeIndex=1;B.navigating=false
     B.UI.frame:Show();B.UI.Alert(B.preview,true);B.UI.Refresh()
@@ -205,6 +228,7 @@ function B.RestoreOwn()
         local parsed=P.Parse(P.Encode(active),C.Now())
         if parsed and B.me then
             parsed.owner=B.me;parsed.name=B.name;parsed.responders={};B.own=parsed
+            local message=P.Message(active.message);if message~="" then parsed.message=message end
             if type(active.responders)=="table" then for key,name in pairs(active.responders) do
                 if P.Identity(name)==key and key~=B.me and B.members[key] then parsed.responders[key]=name end
             end end
@@ -234,6 +258,9 @@ function B.Initialize()
     if B.db then return end
     LightTheBeaconsDB=type(LightTheBeaconsDB)=="table" and LightTheBeaconsDB or {}
     B.db=LightTheBeaconsDB
+    local savedMessages=type(B.db.messages)=="table" and B.db.messages or {}
+    B.db.messages={}
+    for slot=1,3 do B.SaveTemplate(slot,savedMessages[slot]) end
     for _,key in ipairs({"known","times","nodes","links"}) do if type(B.db[key])~="table" then B.db[key]={} end end
     if B.db.flightDiscoveryVersion~=2 then
         -- Versions 1.0.0/1.0.1 trusted Forever's unreliable world-map discovery
@@ -333,7 +360,7 @@ end)
 SLASH_LIGHTTHEBEACONS1="/ltb";SLASH_LIGHTTHEBEACONS2="/beacons"
 SlashCmdList.LIGHTTHEBEACONS=function(input)
     local command=(input or ""):lower():match("^%s*(%S*)")
-    if command=="light" then B.Light()
+    if command=="light" then B.RequestLight()
     elseif command=="clear" then B.Extinguish()
     elseif command=="preview" then B.Preview()
     elseif command=="horn" then B.Sound(true)

@@ -35,7 +35,7 @@ is highlighted. The footer credits **Whitebeard Tinkerton - US PVP**.
 ## Use
 
 - `/ltb` or the torch beside the minimap: open the panel.
-- `/ltb light`: light a beacon at your position (or your fallen body).
+- `/ltb light`: compose a call at your position (or your fallen body).
 - `/ltb clear`: extinguish your beacon.
 - `/ltb preview`: show a local sample alert and route. Nothing is transmitted.
 - `/ltb horn`: test the native Horn of Cenarius / Dwarf Horn without sending a beacon.
@@ -46,11 +46,25 @@ is highlighted. The footer credits **Whitebeard Tinkerton - US PVP**.
 
 Bindings are available under **Light the Beacons** in the game's key bindings.
 
+Choose **Light My Beacon**, `/ltb light`, or the call key binding to open the
+message window. Add an optional message of up to **48 characters**, then click
+**Light the Beacons** to send it. Leaving the field blank still sends a normal
+call. Enter finishes editing; it does not send. Cancel or Escape closes the draft.
+
+The same window holds **three quick-message slots**, saved per character. Type a
+message and choose **Save current** beside a slot. Click a saved message to use
+it, edit and save again to replace it, or choose **Clear** to remove it. Templates
+are private until you use one in a call. You can also manage them through
+**Options → Quick messages**. Opening a new call starts with an empty draft.
+
 An incoming call shows **“The beacons are lit! <Name> calls for aid!”** in a
 compact WoW-style banner. Left-click the banner to answer and start guidance;
 right-click to dismiss. Answering acknowledges your response to other addon
 users in your guild. The main panel also has **Answer the Call** and **Show Map**.
 Use its arrows to switch between simultaneous calls. Scroll longer route lists.
+The caller's optional message appears in the alert, caller card and map-pin
+tooltip. Both players need **1.2.0 or later** to exchange custom text. Older
+versions still receive the beacon, horn and route without the extra message.
 
 The guide displays the next travel step and a direction arrow. World-map torch
 pins identify active beacons. Waypoints change only after you choose to answer
@@ -74,8 +88,8 @@ of your guild running the addon display the alert. Non-guild senders and packets
 received on other channels are ignored. Your identity comes from the game's
 sender field, never from an asserted name inside a packet.
 
-Messages contain a beacon ID, timestamp, map position, reason, and optional
-response/cancellation. They contain no flight-discovery list: each responder
+Messages contain a beacon ID, timestamp, map position, reason, optional caller
+text, and response/cancellation. They contain no flight-discovery list: each responder
 plans their own route locally. The game may restrict or throttle addon messages;
 a failed send is reported locally and is never displayed as a successful call.
 
@@ -129,13 +143,16 @@ and pet kills can require the manual prompt. The addon never reads secure or
 internal combat APIs to work around those restrictions.
 
 The enabled-by-default death prompt provides a fallback: **Call for aid?**
-Nothing is sent from that prompt until you click. Battlegrounds, arenas and
+Its button opens the message window; nothing is sent until you choose **Light
+the Beacons** there. Automatic calls skip that window and never attach a draft
+or saved template. Battlegrounds, arenas and
 instances do not create beacons or automatic prompts.
 
 ## Saves and verification
 
 `LightTheBeaconsDB` is saved **per character**. It contains options, discovered
-flights, learned connections/times and your own unexpired beacon. Remote beacons
+flights, learned connections/times, three message templates and your own unexpired
+beacon including its message. Remote beacons
 are held in memory only. Reloading preserves your ability to extinguish your
 own active beacon. Leaving/changing guild clears active guild data. Installing
 or updating the addon does not modify the game's `WTF` directory or other saves.

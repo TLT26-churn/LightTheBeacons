@@ -106,7 +106,7 @@ local function stepRow(i)
 end
 function U.Create()
     if U.frame then return end
-    local f=panel(UIParent,"LightTheBeaconsWindow",620,572);U.frame=f
+    local f=panel(UIParent,"LightTheBeaconsWindow",620,612);U.frame=f
     f:SetPoint("CENTER");f:SetFrameStrata("DIALOG");draggable(f)
     UISpecialFrames[#UISpecialFrames+1]="LightTheBeaconsWindow"
     fill(f,19,18,582,83,.035,.11,.28,.98)
@@ -131,53 +131,54 @@ function U.Create()
     U.count=text(f,368,115,228,17,11,pale,"RIGHT")
     U.main=CreateFrame("Frame",nil,f);U.main:SetAllPoints()
     -- Dispatch card: why, who, then the four facts a responder needs at a glance.
-    fill(U.main,25,148,570,52,.045,.125,.30,.97)
-    fill(U.main,25,200,570,44,.03,.085,.205,.97)
+    fill(U.main,25,148,570,92,.045,.125,.30,.97)
+    fill(U.main,25,240,570,44,.03,.085,.205,.97)
     fill(U.main,25,148,570,1,.85,.66,.29,.55,"BORDER")
-    fill(U.main,40,200,545,1,.68,.48,.22,.35,"BORDER")
-    fill(U.main,25,243,570,1,.85,.66,.29,.55,"BORDER")
-    fill(U.main,25,148,3,96,.98,.77,.36,1,"BORDER")
+    fill(U.main,40,240,545,1,.68,.48,.22,.35,"BORDER")
+    fill(U.main,25,283,570,1,.85,.66,.29,.55,"BORDER")
+    fill(U.main,25,148,3,136,.98,.77,.36,1,"BORDER")
     U.reason=text(U.main,42,157,330,13,10,gold);U.reason:SetWordWrap(false)
     U.destination=text(U.main,41,170,545,26,20,gold);U.destination:SetWordWrap(false)
+    U.callMessage=text(U.main,42,204,538,30,12,pale);U.callMessage:SetNonSpaceWrap(true)
     U.position=text(U.main,440,176,74,14,10,muted,"RIGHT")
     U.prev=button(U.main,"<",521,166,31,function() U.Cycle(-1) end)
     U.nextCall=button(U.main,">",557,166,31,function() U.Cycle(1) end)
     U.facts=CreateFrame("Frame",nil,U.main);U.facts:SetAllPoints()
     local function fact(label,x,w,align)
-        if x>42 then fill(U.facts,x-10,207,1,30,.68,.48,.22,.3,"BORDER") end
-        text(U.facts,x,208,w,11,9,brass,align):SetText(label)
-        local value=text(U.facts,x,220,w,18,13,pale,align);value:SetWordWrap(false);return value
+        if x>42 then fill(U.facts,x-10,247,1,30,.68,.48,.22,.3,"BORDER") end
+        text(U.facts,x,248,w,11,9,brass,align):SetText(label)
+        local value=text(U.facts,x,260,w,18,13,pale,align);value:SetWordWrap(false);return value
     end
     U.zone=fact("ZONE",42,160);U.coords=fact("COORDINATES",222,86);U.age=fact("CALLED",328,92)
     U.eta=fact("EST. TRAVEL",440,146,"RIGHT")
-    U.idle=text(U.main,42,217,540,18,12,pale);U.idle:SetText("Light a beacon when you need allies at your side.")
+    U.idle=text(U.main,42,257,540,18,12,pale);U.idle:SetText("Light a beacon when you need allies at your side.")
     -- Itinerary: numbered legs with their times in one right-hand column.
-    text(U.main,40,254,200,14,11,gold):SetText("YOUR ROUTE")
-    U.routeMeta=text(U.main,250,255,335,14,10,muted,"RIGHT");U.routeMeta:SetWordWrap(false)
-    fill(U.main,40,271,545,1,.68,.48,.22,.45)
+    text(U.main,40,294,200,14,11,gold):SetText("YOUR ROUTE")
+    U.routeMeta=text(U.main,250,295,335,14,10,muted,"RIGHT");U.routeMeta:SetWordWrap(false)
+    fill(U.main,40,311,545,1,.68,.48,.22,.45)
     U.routeScroll=CreateFrame("ScrollFrame",nil,U.main)
-    U.routeScroll:SetPoint("TOPLEFT",35,-277);U.routeScroll:SetSize(rowWidth,routeHeight);U.routeScroll:EnableMouseWheel(true)
+    U.routeScroll:SetPoint("TOPLEFT",35,-317);U.routeScroll:SetSize(rowWidth,routeHeight);U.routeScroll:EnableMouseWheel(true)
     U.routeChild=CreateFrame("Frame",nil,U.routeScroll);U.routeChild:SetSize(rowWidth,routeHeight);U.routeScroll:SetScrollChild(U.routeChild)
     U.routeScroll:SetScript("OnMouseWheel",function(self,delta)
         local max=math.max(0,U.routeChild:GetHeight()-self:GetHeight())
         self:SetVerticalScroll(math.max(0,math.min(max,(self:GetVerticalScroll() or 0)-delta*rowPitch)))
     end)
     U.stepRows={}
-    texture(U.main,"AllianceCrest",410,279,158,196):SetAlpha(.065)
-    U.empty=text(U.main,70,304,480,76,13,pale,"CENTER")
-    U.routeNote=text(U.main,40,413,545,14,10,muted);U.routeNote:SetWordWrap(false)
-    fill(U.main,35,435,550,1,.68,.48,.22,.35)
-    U.responders=text(U.main,35,443,550,20,11,pale)
-    U.answer=button(U.main,"Answer the Call",26,478,181,function() B.Answer() end)
-    U.map=button(U.main,"Show Map",215,478,117,function()
+    texture(U.main,"AllianceCrest",410,319,158,196):SetAlpha(.065)
+    U.empty=text(U.main,70,344,480,76,13,pale,"CENTER")
+    U.routeNote=text(U.main,40,453,545,14,10,muted);U.routeNote:SetWordWrap(false)
+    fill(U.main,35,475,550,1,.68,.48,.22,.35)
+    U.responders=text(U.main,35,483,550,20,11,pale)
+    U.answer=button(U.main,"Answer the Call",26,518,181,function() B.Answer() end)
+    U.map=button(U.main,"Show Map",215,518,117,function()
         local p=B.Destination(B.Selected());if p and not B.preview then C.OpenMap(p) end
     end)
-    U.light=button(f,"Light My Beacon",416,478,179,function()
-        if B.own and B.own.expires>C.Now() then B.Extinguish() else B.Light() end
+    U.light=button(f,"Light My Beacon",416,518,179,function()
+        if B.own and B.own.expires>C.Now() then B.Extinguish() else B.RequestLight() end
     end)
-    U.status=text(f,30,517,560,17,10,pale,"CENTER")
-    fill(f,33,541,554,1,.57,.45,.24,.25)
-    text(f,32,548,556,13,9,{.56,.63,.73},"CENTER"):SetText("Made by Whitebeard Tinkerton - US PVP")
+    U.status=text(f,30,557,560,17,10,pale,"CENTER")
+    fill(f,33,581,554,1,.57,.45,.24,.25)
+    text(f,32,588,556,13,9,{.56,.63,.73},"CENTER"):SetText("Made by Whitebeard Tinkerton - US PVP")
     U.optionsPanel=CreateFrame("Frame",nil,f);U.optionsPanel:SetAllPoints();U.optionsPanel:Hide()
     local op=U.optionsPanel
     local function check(label,description,y,key)
@@ -197,19 +198,68 @@ function U.Create()
     button(op,"Refresh flights",386,354,193,function() C.RefreshFlights(true) end)
     button(op,"Preview the rally",34,391,207,function() U.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true) end)
     text(op,36,432,546,34,11,pale):SetText("Only guildmates with the addon receive your call. Beacons last 5 minutes; calls have a 60-second cooldown.")
+    button(op,"Quick messages",34,478,207,function() U.Compose() end)
+    -- Compose locally; choosing or saving a template never broadcasts it.
+    local composer=panel(UIParent,"LightTheBeaconsComposer",620,418);U.composer=composer
+    composer:SetPoint("CENTER");composer:SetFrameStrata("FULLSCREEN_DIALOG");draggable(composer)
+    UISpecialFrames[#UISpecialFrames+1]="LightTheBeaconsComposer"
+    texture(composer,"AllianceCrest",25,17,58,70):SetTexCoord(.175,.825,.09,.91)
+    text(composer,99,30,448,28,22,gold):SetText("Rally your allies")
+    text(composer,101,63,450,16,11,pale):SetText("Give your guildmates a reason to ride.")
+    closeButton(composer,565,23,function() composer:Hide() end)
+    text(composer,30,101,400,16,12,gold):SetText("YOUR MESSAGE  (optional)")
+    U.messageCount=text(composer,500,103,88,14,10,muted,"RIGHT")
+    local field=CreateFrame("Frame",nil,composer,"BackdropTemplate")
+    field:SetPoint("TOPLEFT",30,-123);field:SetSize(560,38)
+    field:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",tile=true,tileSize=32,edgeSize=10,insets={left=3,right=3,top=3,bottom=3}})
+    field:SetBackdropColor(.035,.09,.21,1);field:SetBackdropBorderColor(.80,.65,.38,1)
+    local edit=CreateFrame("EditBox",nil,field);U.messageEdit=edit
+    edit:SetPoint("TOPLEFT",10,-8);edit:SetSize(540,22);edit:SetFont("Fonts\\FRIZQT__.TTF",13,"")
+    edit:SetTextColor(unpack(pale));edit:SetAutoFocus(false);edit:SetMultiLine(false)
+    edit:SetMaxLetters(P.messageLimit);edit:SetMaxBytes(P.messageLimit*4)
+    edit:SetScript("OnTextChanged",function(self)
+        local clean,count=P.Message(self:GetText(),true)
+        if clean~=self:GetText() then self:SetText(clean) end
+        U.messageCount:SetText(count.." / "..P.messageLimit)
+    end)
+    edit:SetScript("OnEnterPressed",function(self) self:ClearFocus() end)
+    edit:SetScript("OnEscapePressed",function() composer:Hide() end)
+    composer:SetScript("OnHide",function() edit:ClearFocus() end)
+    text(composer,32,169,556,15,10,muted):SetText("Shown on your allies' alert and beacon card. Leave blank to just sound the horn.")
+    text(composer,30,198,560,16,11,gold):SetText("QUICK MESSAGES  -  Saved for this character")
+    U.templates={}
+    for i=1,3 do
+        local slot=i;local y=222+(i-1)*38
+        text(composer,30,y+8,18,16,12,gold):SetText(tostring(slot))
+        local use=button(composer,"Empty slot",52,y,344,function()
+            edit:SetText(B.db.messages[slot] or "");edit:SetFocus();edit:SetCursorPosition(#edit:GetText())
+        end)
+        use.label:SetJustifyH("LEFT");use.label:SetWordWrap(false)
+        local save=button(composer,"Save current",406,y,100,function()
+            B.SaveTemplate(slot,edit:GetText());U.RefreshTemplates()
+        end)
+        tip(save,"Save quick message "..slot,"Save the text above into this slot. To change a message, select it, edit the text and save again.")
+        local clear=button(composer,"Clear",516,y,72,function() B.SaveTemplate(slot,"");U.RefreshTemplates() end)
+        U.templates[slot]={use=use,save=save,clear=clear}
+    end
+    text(composer,32,342,556,15,10,muted):SetText("Only guildmates using the addon receive your call.")
+    U.composeCancel=button(composer,"Cancel",276,371,102,function() composer:Hide() end)
+    U.composeSend=button(composer,"Light the Beacons",390,371,198,function() B.Light(U.composeReason,edit:GetText()) end)
+    composer:Hide()
     -- A compact click-to-answer toast, with no oversized action-button row.
     local a=CreateFrame("Button","LightTheBeaconsAlert",UIParent,"BackdropTemplate");U.banner=a
     a:SetSize(520,118)
     a:SetBackdrop({bgFile=media.."UI-DialogBox-Background.tga",edgeFile=media.."UI-DialogBox-Border.tga",
         tile=true,tileSize=32,edgeSize=24,insets={left=10,right=10,top=10,bottom=10}})
     a:SetBackdropColor(.12,.25,.55,1);a:SetBackdropBorderColor(.95,.78,.43,1)
-    fill(a,11,11,498,96,.035,.11,.27,.97)
+    U.alertBack=fill(a,11,11,498,96,.035,.11,.27,.97)
     a:SetPoint("TOP",UIParent,"TOP",0,-125);a:SetFrameStrata("DIALOG")
     U.flame=texture(a,"AllianceCrest",20,24,53,66);U.flame:SetTexCoord(.175,.825,.09,.91)
     U.alertTitle=text(a,81,20,401,26,20,gold);U.alertTitle:SetText("The beacons are lit!")
     U.alertName=text(a,82,49,408,20,14,pale)
     U.alertZone=text(a,82,73,408,16,11,gold)
-    text(a,82,94,408,14,10,pale):SetText("Click to answer the call  -  Right-click to dismiss")
+    U.alertMessage=text(a,82,96,408,32,12,pale);U.alertMessage:SetNonSpaceWrap(true)
+    U.alertHint=text(a,82,94,408,14,10,pale);U.alertHint:SetText("Click to answer the call  -  Right-click to dismiss")
     a:RegisterForClicks("LeftButtonUp","RightButtonUp")
     a:SetScript("OnClick",function(_,mouse)
         if mouse=="RightButton" then a:Hide();return end
@@ -229,7 +279,7 @@ function U.Create()
     texture(d,"Torch",23,23,34,34):SetTexCoord(.08,.92,.08,.92)
     text(d,77,21,310,25,18,gold):SetText("Call for aid?")
     U.deathText=text(d,77,49,310,32,12,pale)
-    button(d,"Light the Beacons",74,87,183,function() B.Light(U.deathConfirmed and "pvp" or "fallen") end)
+    U.deathCall=button(d,"Light the Beacons",74,87,183,function() B.RequestLight(U.deathConfirmed and "pvp" or "fallen");d:Hide() end)
     button(d,"Dismiss",266,87,119,function() d:Hide() end);d:Hide()
     local h=panel(UIParent,"LightTheBeaconsGuide",350,94);U.hud=h
     h:SetPoint("TOP",UIParent,"TOP",0,-265);h:SetFrameStrata("MEDIUM");draggable(h)
@@ -284,11 +334,35 @@ function U.Toggle(options)
     if U.frame:IsShown() and not B.navigating then B.Replan() end
     U.Refresh()
 end
+function U.RefreshTemplates()
+    for slot,row in ipairs(U.templates) do
+        local message=B.db.messages[slot]
+        row.use.label:SetText(message or "Empty slot")
+        row.use:SetEnabled(message~=nil);row.clear:SetEnabled(message~=nil)
+        tip(row.use,"Quick message "..slot,message or "Type a message above, then choose Save current.")
+    end
+end
+function U.Compose(reason)
+    if not U.composer then return end
+    U.composeReason=reason
+    if not U.composer:IsShown() then U.messageEdit:SetText("") end
+    U.RefreshTemplates();U.composer:Show();U.messageEdit:SetFocus()
+end
+function U.UpdateAlertMessage(b)
+    if U.alertBeacon~=b then return end
+    local message=b.message and b.message~="" and b.message
+    U.alertMessage:SetText(message and ('"'..message..'"') or "")
+    U.alertMessage:SetShown(message~=nil)
+    U.banner:SetHeight(message and 158 or 118)
+    U.alertBack:SetHeight(message and 136 or 96)
+    U.alertHint:ClearAllPoints();U.alertHint:SetPoint("TOPLEFT",82,message and -134 or -94)
+end
 function U.Alert(b,preview)
     if not U.banner then return end
     U.alertBeacon=b
     U.alertName:SetText(b.name.." calls for aid!")
     U.alertZone:SetText((preview and "PREVIEW - " or "")..C.Zone(b.map).."  |  "..(reasons[b.reason] or "Calls for aid"))
+    U.UpdateAlertMessage(b)
     U.banner.elapsed=0;U.banner:Show()
 end
 function U.PromptDeath(confirmed)
@@ -321,6 +395,9 @@ function U.Refresh()
     U.reason:SetText(selected and (reasons[selected.reason] or "Calls for aid"):upper() or "STANDING BY")
     U.destination:SetText(selected and selected.name or "Your guild's watch")
     U.destination:SetWidth(multi and 395 or 545)
+    local callMessage=selected and selected.message
+    U.callMessage:SetText(callMessage and ('"'..callMessage..'"') or selected and "No message attached." or "")
+    U.callMessage:SetTextColor(unpack(callMessage and pale or muted))
     U.facts:SetShown(selected~=nil);U.idle:SetShown(selected==nil)
     if selected then
         U.zone:SetText(C.Zone(selected.map))
@@ -386,6 +463,7 @@ function U.MapPins()
                 pin:SetScript("OnEnter",function(self)
                     if not GameTooltip or not self.beacon then return end
                     GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:AddLine(self.beacon.name.." calls for aid!",1,.8,.3)
+                    if self.beacon.message then GameTooltip:AddLine(self.beacon.message,.86,.90,.97,true) end
                     GameTooltip:AddLine("Click to view the route.",1,1,1);GameTooltip:Show()
                 end)
                 pin:SetScript("OnLeave",function() if GameTooltip then GameTooltip:Hide() end end)
