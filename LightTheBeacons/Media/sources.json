@@ -1,0 +1,70 @@
+{
+  "copyright": "Blizzard Entertainment. Original UI textures, unchanged pixels.",
+  "files": [
+    {
+      "file": "UI-DialogBox-Background.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/DialogFrame/UI-DialogBox-Background.PNG",
+      "sha256": "e40a4c1ea82ab3002fc00d8cc2784319df17914e419855f770f0ccf6ce835894"
+    },
+    {
+      "file": "UI-DialogBox-Border.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/DialogFrame/UI-DialogBox-Border.PNG",
+      "sha256": "0034de6acc2de356cacd32848fa4a00c30ba99c7deb2b4f049918ca684fe35a5"
+    },
+    {
+      "file": "UI-Panel-Button-Up.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Up.PNG",
+      "sha256": "0656d9e3030fd946141d7dfc741fe8390dc7b50656dc0db9d82eb3f4630f91aa"
+    },
+    {
+      "file": "UI-Panel-Button-Down.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Down.PNG",
+      "sha256": "f1bf20c711453def388128e2d4f3aa06936b2bcb8f8390e94ba25f53e57f6108"
+    },
+    {
+      "file": "UI-Panel-Button-Disabled.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Disabled.PNG",
+      "sha256": "e4c301d79a26d512bc67032fe956163df849e6df18b4d4df06f14cccfed6175f"
+    },
+    {
+      "file": "UI-Panel-Button-Highlight.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-Button-Highlight.PNG",
+      "sha256": "f5f855e7d3f041416ea5e283b1feb7374f3492530f4fee51b03f662356d8619d"
+    },
+    {
+      "file": "UI-CheckBox-Up.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-CheckBox-Up.PNG",
+      "sha256": "5f2511f7e6df696f1d7feff0d280dbde71630bbb763d171c3ca2917ad1b35611"
+    },
+    {
+      "file": "UI-CheckBox-Check.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-CheckBox-Check.PNG",
+      "sha256": "ccef2c68d0973ebaf31b7f5d91acad6edd4cef1ada0bfcda46dfe24eeb6a8f7f"
+    },
+    {
+      "file": "UI-Panel-MinimizeButton-Up.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-MinimizeButton-Up.PNG",
+      "sha256": "24e7dad79588248e189b9a8facc0d21e5f6e11027ff32e12df30e66782ba9499"
+    },
+    {
+      "file": "UI-Panel-MinimizeButton-Down.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-MinimizeButton-Down.PNG",
+      "sha256": "5675ccea7a2c26e6c0fa198ce676a8442a6443fad27e48ca986482a45a16a495"
+    },
+    {
+      "file": "UI-Panel-MinimizeButton-Highlight.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Buttons/UI-Panel-MinimizeButton-Highlight.PNG",
+      "sha256": "4ab6f14ab155b1feda362b8707d4eea6ec14b015b85989d35c832a5f36971a99"
+    },
+    {
+      "file": "Torch.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/ICONS/INV_Torch_Lit.PNG",
+      "sha256": "976a0894aef547330ba34879231c73105c5522c1804d565a9cc7554699b839ae"
+    },
+    {
+      "file": "Arrow.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/MINIMAP/MinimapArrow.PNG",
+      "sha256": "c5ebf879021ea651eb0ed15d28637ce41866746d039aa11f775ad6671314f9ff"
+    }
+  ]
+}

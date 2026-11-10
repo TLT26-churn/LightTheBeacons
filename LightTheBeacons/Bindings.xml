@@ -1,0 +1,4 @@
+<Bindings>
+  <Binding name="LTB_TOGGLE" header="LIGHT_THE_BEACONS">LightTheBeacons.UI.Toggle()</Binding>
+  <Binding name="LTB_LIGHT">LightTheBeacons.Light()</Binding>
+</Bindings>

@@ -1,0 +1,286 @@
+local addon, B = ...
+_G.LightTheBeacons=B
+local C,P,R=B.Client,B.Protocol,B.Routing
+B.version="1.0.1"
+BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
+BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
+BINDING_NAME_LTB_LIGHT="Light my beacon"
+function B.Print(message)
+    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffc55cLight the Beacons:|r "..message) end
+end
+function B.Sound(test)
+    if not test and (not B.db.sound or (B.lastHorn and GetTime()-B.lastHorn<5)) then return end
+    B.lastHorn=GetTime()
+    if PlaySoundFile then PlaySoundFile("Interface\\AddOns\\LightTheBeacons\\Media\\WarHorn.ogg","Master") end
+end
+function B.List()
+    local list={}
+    for _,beacon in pairs(B.session and B.session.beacons or {}) do list[#list+1]=beacon end
+    table.sort(list,function(a,b) if a.sent==b.sent then return a.name<b.name end;return a.sent>b.sent end)
+    return list
+end
+function B.Selected()
+    if B.preview then return B.preview end
+    return B.selected and B.session and B.session.beacons[B.selected]
+end
+function B.Destination(b)
+    if not b then return end
+    local p=b.point or C.World(b.map,b.px,b.py)
+    if p then p.n=b.name.."'s beacon" end
+    return p
+end
+function B.Select(b)
+    if not b then return end
+    B.preview=nil;B.selected=b.owner;B.navigating=false;B.routeIndex=1
+    B.Replan();B.UI.Refresh()
+end
+function B.Replan()
+    if B.preview then B.route=B.preview.route;return end
+    if UnitOnTaxi and UnitOnTaxi("player") then
+        B.route={steps={},unavailable=true,pendingFlight=true,reason="Your route will update when you land."}
+        B.waitingLanding=true;return
+    end
+    B.waitingLanding=nil
+    local beacon=B.Selected();local start=C.Position();local goal=B.Destination(beacon)
+    B.route=nil
+    if start and goal then B.route=R.Plan(start,goal,B.db.known,C.Faction(),B.db.pace,nil,B.db.times) end
+    B.routeIndex=1;B.transportReady=nil
+end
+function B.Receive(msg,sender,channel)
+    if not B.session then return end
+    local event,b,sound=P.Receive(B.session,msg,sender,channel,B.members,C.Now())
+    if event=="query" then
+        if B.own and B.own.expires>C.Now() and (not B.lastReply or GetTime()-B.lastReply>10) then
+            B.lastReply=GetTime();C.Send(P.Encode(B.own))
+        end
+    elseif event=="beacon" then
+        if b.owner==B.me then B.own=b;B.db.active=b end
+        if not B.Selected() then B.selected=b.owner;B.Replan() end
+        if sound then B.Sound();B.UI.Alert(b) end
+        B.UI.Refresh()
+    elseif event=="cancel" then
+        if B.selected==b.owner then B.selected=nil;B.navigating=false;B.route=nil end
+        if B.UI.alertBeacon and B.UI.alertBeacon.owner==b.owner then B.UI.banner:Hide() end
+        B.UI.Refresh()
+    elseif event=="response" then B.UI.Refresh() end
+end
+function B.Light(reason)
+    if not B.db then return end
+    if not C.IsOutdoor() then B.Print("Beacons are for the open world. Leave the instance first.");return false end
+    if not B.me then B.Print("Your character is still loading.");return false end
+    local now=C.Now()
+    if B.db.lastSent and now-B.db.lastSent<P.cooldown then
+        B.Print("Your horn is resting. Try again in "..math.max(1,P.cooldown-(now-B.db.lastSent)).." seconds.");return false
+    end
+    local dead=(UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) or false
+    local pos=dead and C.Corpse() or C.Position()
+    if not pos then B.Print(dead and "Your corpse location is unavailable. Try again after returning to your body." or "Your location is unavailable here.");return false end
+    B.sequence=(B.sequence or 0)+1
+    local b={id=now.."."..B.nonce.."."..B.sequence,sent=now,expires=now+P.ttl,
+        map=pos.map,px=pos.px,py=pos.py,reason=reason or (dead and "fallen" or "aid")}
+    local packet=P.Encode(b)
+    local ok,why=C.Send(packet)
+    if not ok then B.Print(why);return false end
+    B.preview=nil;B.db.lastSent=now
+    B.members[B.me]=true
+    B.Receive(packet,B.name,"GUILD")
+    B.selected=B.me;B.Replan();B.UI.Refresh()
+    if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
+    return true
+end
+function B.Extinguish()
+    if not B.own or B.own.expires<=C.Now() then return end
+    local ok,why=C.Send("1|C|"..B.own.id)
+    if not ok then B.Print(why);return end
+    B.Receive("1|C|"..B.own.id,B.name,"GUILD")
+    B.own=nil;B.db.active=nil;B.UI.Refresh()
+end
+function B.Answer()
+    local b=B.Selected()
+    if not b then return end
+    if B.preview then B.Print("This is a local preview. No call has been sent.");return end
+    if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then
+        B.Print("Return to life before following a rescue route. You can still view the beacon on your map.");return
+    end
+    if b.owner~=B.me and not (b.responders and b.responders[B.me]) then
+        local msg="1|R|"..b.id.."|"..b.owner
+        if #msg>250 then return end
+        local ok,why=C.Send(msg);if not ok then B.Print(why);return end
+        B.Receive(msg,B.name,"GUILD")
+    end
+    B.Replan();B.navigating=true;B.routeIndex=1
+    B.SetNextWaypoint();B.UI.Refresh()
+end
+function B.NextTarget()
+    local step=B.route and B.route.steps and B.route.steps[B.routeIndex or 1]
+    if not step then return end
+    local pos=C.Position()
+    if step.kind=="flight" and not (UnitOnTaxi and UnitOnTaxi("player")) then return step.from,step end
+    if step.kind=="boat" or step.kind=="zeppelin" then
+        if R.Distance(pos,step.from)<=100 then B.transportReady=B.routeIndex end
+        if B.transportReady~=B.routeIndex and pos and pos.c==step.from.c then return step.from,step end
+    end
+    return step.to,step
+end
+function B.SetNextWaypoint()
+    local p=B.NextTarget();if p then C.Waypoint(p) end
+end
+function B.TickRoute()
+    if B.waitingLanding and not (UnitOnTaxi and UnitOnTaxi("player")) then
+        B.Replan();if B.navigating then B.SetNextWaypoint() end
+    end
+    if not B.navigating or not B.route or B.route.unavailable then return end
+    local step=B.route.steps[B.routeIndex or 1]
+    if not step then return end
+    if UnitOnTaxi and UnitOnTaxi("player") then return end
+    if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then return end
+    local distance=R.Distance(C.Position(),step.to)
+    if distance<(step.kind=="ground" and 65 or 140) then
+        B.routeIndex=B.routeIndex+1;B.SetNextWaypoint();B.UI.Refresh()
+    end
+end
+function B.Death()
+    if not C.IsOutdoor() then return end
+    B.deathPoint=C.Position() or B.lastLivingPoint
+    B.deathSerial=(B.deathSerial or 0)+1;local serial=B.deathSerial
+    local function decide()
+        if serial~=B.deathSerial or not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then return end
+        local confirmed=C.ConfirmedDeath();B.lastDeathConfirmed=confirmed
+        if B.db.auto and confirmed then
+            if B.Light("pvp") then return end
+        end
+        if B.db.prompt and IsInGuild and IsInGuild() then B.UI.PromptDeath(confirmed) end
+    end
+    if C_Timer then C_Timer.After(.6,decide) else decide() end
+end
+function B.Preview()
+    local data=B.TravelData
+    local start={c=0,x=-8900,y=600,n="Your position"}
+    local goal={c=0,x=-9510,y=-2640,n="Aldric's beacon"}
+    B.preview={name="Aldric",owner="preview",id="preview",sent=C.Now()-12,expires=C.Now()+288,
+        map=1433,px=.34,py=.52,reason="pvp",point=goal,responders={other="Elowen"}}
+    B.preview.route=R.Plan(start,goal,{[2]=true,[4]=true,[5]=true,[12]=true},"A",7,data)
+    B.route=B.preview.route;B.routeIndex=1;B.navigating=false
+    B.UI.frame:Show();B.UI.Alert(B.preview,true);B.UI.Refresh()
+end
+function B.RestoreOwn()
+    if B.own or not B.me or not B.guild or B.guild=="" or B.db.guild~=B.guild then return end
+    local active=B.db.active
+    if type(active)=="table" and P.Text(active.id,40) and P.Number(active.sent,C.Now()-P.ttl,C.Now())
+        and P.Number(active.map,1,100000) and P.Number(active.px,0,1) and P.Number(active.py,0,1)
+        and (active.reason=="aid" or active.reason=="pvp" or active.reason=="fallen") then
+        local parsed=P.Parse(P.Encode(active),C.Now())
+        if parsed and B.me then
+            parsed.owner=B.me;parsed.name=B.name;parsed.responders={};B.own=parsed
+            B.session.beacons[B.me]=parsed;B.session.heard[B.me..":"..parsed.id]=C.Now()
+        end
+    end
+end
+function B.GuildChanged()
+    B.me,B.name=C.Me()
+    local inGuild=IsInGuild and IsInGuild()
+    local guild=inGuild and (C_Club and C.Call(C_Club.GetGuildClubId) or C.Call(GetGuildInfo,"player")) or ""
+    if not P.Plain(guild) then guild=nil end
+    if not guild and IsInGuild and IsInGuild() then B.members=C.Members();return end
+    guild=tostring(guild or "")
+    if B.guild and B.guild~=guild then
+        B.session=P.NewSession();B.selected=nil;B.navigating=false;B.own=nil;B.db.active=nil;B.route=nil
+        if B.UI.banner then B.UI.banner:Hide() end
+    end
+    B.guild=guild;B.members=C.Members()
+    if B.db.guild~=guild then B.db.active=nil;B.db.guild=guild end
+    B.RestoreOwn()
+end
+function B.Initialize()
+    if B.db then return end
+    LightTheBeaconsDB=type(LightTheBeaconsDB)=="table" and LightTheBeaconsDB or {}
+    B.db=LightTheBeaconsDB
+    for _,key in ipairs({"known","times","nodes","links"}) do if type(B.db[key])~="table" then B.db[key]={} end end
+    for id,n in pairs(B.db.nodes) do
+        if P.Number(id,1,100000) and type(n)=="table" and P.Text(n.n) and P.Number(n.c,0,100000)
+            and P.Number(n.x,-100000,100000) and P.Number(n.y,-100000,100000) and (n.f=="A" or n.f=="H" or n.f=="AH") then
+            B.TravelData.nodes[id]=n
+        end
+    end
+    for from,row in pairs(B.db.links) do
+        if B.TravelData.nodes[from] and type(row)=="table" then for to,seconds in pairs(row) do
+            if B.TravelData.nodes[to] and P.Number(seconds,1,3600) then
+                B.TravelData.flights[from]=B.TravelData.flights[from] or {};B.TravelData.flights[from][to]=seconds
+            end
+        end end
+    end
+    for key,value in pairs({sound=true,auto=false,prompt=true,pace=7}) do
+        if type(B.db[key])~=type(value) then B.db[key]=value end
+    end
+    if B.db.pace~=7 and B.db.pace~=11.2 and B.db.pace~=14 then B.db.pace=7 end
+    if not P.Number(B.db.lastSent,0,C.Now()) then B.db.lastSent=nil end
+    B.session=P.NewSession();B.nonce=math.random(100000,999999)
+    B.lastLivingRecap=C.RecapKey()
+    B.me,B.name=C.Me();B.GuildChanged()
+    if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
+        C.Call(C_ChatInfo.RegisterAddonMessagePrefix,P.prefix)
+    end
+    B.UI.Create()
+    C.RefreshFlights()
+    if hooksecurefunc and TakeTaxiNode then hooksecurefunc("TakeTaxiNode",C.TaxiTaken) end
+    if C_Timer then
+        C_Timer.After(4,function() B.members=C.Members();if IsInGuild and IsInGuild() then C.Send("1|Q") end end)
+    end
+    B.UI.Refresh()
+end
+local frame=CreateFrame("Frame")
+for _,event in ipairs({"PLAYER_LOGIN","ADDON_LOADED","CHAT_MSG_ADDON","GUILD_ROSTER_UPDATE","PLAYER_GUILD_UPDATE",
+    "CLUB_MEMBER_UPDATED","CLUB_MEMBER_ADDED","CLUB_MEMBER_REMOVED","PLAYER_ENTERING_WORLD","TAXIMAP_OPENED",
+    "TAXI_NODE_STATUS_CHANGED","PLAYER_DEAD","PLAYER_UNGHOST","PLAYER_ALIVE","PLAYER_REGEN_ENABLED","ZONE_CHANGED_NEW_AREA"}) do frame:RegisterEvent(event) end
+-- Restricted combat-log registration is optional; failure never blocks loading.
+if type(CombatLogGetCurrentEventInfo)=="function" or (C_CombatLog and type(C_CombatLog.GetCurrentEventInfo)=="function") then
+    pcall(frame.RegisterEvent,frame,"COMBAT_LOG_EVENT_UNFILTERED")
+end
+frame:SetScript("OnEvent",function(_,event,...)
+    if event=="ADDON_LOADED" then if ...==addon and IsLoggedIn and IsLoggedIn() then B.Initialize() end;return end
+    if event=="PLAYER_LOGIN" then B.Initialize();return end
+    if not B.db then return end
+    if event=="CHAT_MSG_ADDON" then
+        local prefix,msg,channel,sender=...
+        if P.Plain(prefix) and prefix==P.prefix and P.Plain(channel) and channel=="GUILD" then B.Receive(msg,sender,channel) end
+    elseif event=="COMBAT_LOG_EVENT_UNFILTERED" then C.ReadCombatEvent()
+    elseif event=="PLAYER_DEAD" then B.Death()
+    elseif event=="TAXIMAP_OPENED" then C.TaxiOpened()
+    elseif event=="TAXI_NODE_STATUS_CHANGED" then C.RefreshFlights()
+    elseif event=="PLAYER_ENTERING_WORLD" then C.RefreshFlights();B.GuildChanged()
+    elseif event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE" then
+        if not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then
+            B.deathPoint=nil;B.killingBlow=nil;B.deathSerial=(B.deathSerial or 0)+1
+            if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
+        end
+    elseif event=="ZONE_CHANGED_NEW_AREA" then if not B.navigating then B.Replan() end
+    elseif event~="PLAYER_REGEN_ENABLED" then B.GuildChanged() end
+end)
+local elapsed=0
+frame:SetScript("OnUpdate",function(_,delta)
+    if not B.db then return end
+    elapsed=elapsed+delta;if elapsed<1 then return end;elapsed=0
+    local now=C.Now();P.Prune(B.session,now)
+    if B.own and B.own.expires<=now then B.own=nil;B.db.active=nil end
+    if B.selected and not B.Selected() then B.selected=nil;B.route=nil;B.navigating=false end
+    if not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then
+        B.lastLivingPoint=C.Position()
+        B.lastLivingRecap=C.RecapKey()
+    end
+    C.ObserveFlight();B.TickRoute();B.UI.Tick()
+end)
+SLASH_LIGHTTHEBEACONS1="/ltb";SLASH_LIGHTTHEBEACONS2="/beacons"
+SlashCmdList.LIGHTTHEBEACONS=function(input)
+    local command=(input or ""):lower():match("^%s*(%S*)")
+    if command=="light" then B.Light()
+    elseif command=="clear" then B.Extinguish()
+    elseif command=="preview" then B.Preview()
+    elseif command=="horn" then B.Sound(true)
+    elseif command=="scan" then C.RefreshFlights();B.Print("Refreshing your discovered flight points.")
+    elseif command=="options" then B.UI.Toggle(true)
+    elseif command=="status" then
+        B.Print(C.KnownCount().." discovered flights. Automatic PvP: "..(B.db.auto and "on, confirmed kills only" or "off")..".")
+        B.Print("Public combat reader: "..((CombatLogGetCurrentEventInfo or (C_CombatLog and C_CombatLog.GetCurrentEventInfo)) and "available" or "unavailable; using readable death recaps when supplied")..".")
+    else B.UI.Toggle() end
+end
+B.eventFrame=frame
