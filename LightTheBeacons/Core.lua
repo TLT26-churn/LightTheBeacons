@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.0.1"
+B.version="1.0.2"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -196,6 +196,12 @@ function B.Initialize()
     LightTheBeaconsDB=type(LightTheBeaconsDB)=="table" and LightTheBeaconsDB or {}
     B.db=LightTheBeaconsDB
     for _,key in ipairs({"known","times","nodes","links"}) do if type(B.db[key])~="table" then B.db[key]={} end end
+    if B.db.flightDiscoveryVersion~=2 then
+        -- Versions 1.0.0/1.0.1 trusted Forever's unreliable world-map discovery
+        -- flags and map-relative coordinates. Retain options, calls and timings.
+        B.db.known={};B.db.nodes={};B.db.flightMasterScanned=nil
+        B.db.flightDiscoveryVersion=2
+    end
     for id,n in pairs(B.db.nodes) do
         if P.Number(id,1,100000) and type(n)=="table" and P.Text(n.n) and P.Number(n.c,0,100000)
             and P.Number(n.x,-100000,100000) and P.Number(n.y,-100000,100000) and (n.f=="A" or n.f=="H" or n.f=="AH") then
@@ -230,7 +236,7 @@ function B.Initialize()
 end
 local frame=CreateFrame("Frame")
 for _,event in ipairs({"PLAYER_LOGIN","ADDON_LOADED","CHAT_MSG_ADDON","GUILD_ROSTER_UPDATE","PLAYER_GUILD_UPDATE",
-    "CLUB_MEMBER_UPDATED","CLUB_MEMBER_ADDED","CLUB_MEMBER_REMOVED","PLAYER_ENTERING_WORLD","TAXIMAP_OPENED",
+    "CLUB_MEMBER_UPDATED","CLUB_MEMBER_ADDED","CLUB_MEMBER_REMOVED","PLAYER_ENTERING_WORLD","TAXIMAP_OPENED","TAXIMAP_CLOSED",
     "TAXI_NODE_STATUS_CHANGED","PLAYER_DEAD","PLAYER_UNGHOST","PLAYER_ALIVE","PLAYER_REGEN_ENABLED","ZONE_CHANGED_NEW_AREA"}) do frame:RegisterEvent(event) end
 -- Restricted combat-log registration is optional; failure never blocks loading.
 if type(CombatLogGetCurrentEventInfo)=="function" or (C_CombatLog and type(C_CombatLog.GetCurrentEventInfo)=="function") then
@@ -246,6 +252,7 @@ frame:SetScript("OnEvent",function(_,event,...)
     elseif event=="COMBAT_LOG_EVENT_UNFILTERED" then C.ReadCombatEvent()
     elseif event=="PLAYER_DEAD" then B.Death()
     elseif event=="TAXIMAP_OPENED" then C.TaxiOpened()
+    elseif event=="TAXIMAP_CLOSED" then C.TaxiClosed()
     elseif event=="TAXI_NODE_STATUS_CHANGED" then C.RefreshFlights()
     elseif event=="PLAYER_ENTERING_WORLD" then C.RefreshFlights();B.GuildChanged()
     elseif event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE" then
@@ -276,10 +283,11 @@ SlashCmdList.LIGHTTHEBEACONS=function(input)
     elseif command=="clear" then B.Extinguish()
     elseif command=="preview" then B.Preview()
     elseif command=="horn" then B.Sound(true)
-    elseif command=="scan" then C.RefreshFlights();B.Print("Refreshing your discovered flight points.")
+    elseif command=="scan" then C.RefreshFlights(true)
     elseif command=="options" then B.UI.Toggle(true)
     elseif command=="status" then
-        B.Print(C.KnownCount().." discovered flights. Automatic PvP: "..(B.db.auto and "on, confirmed kills only" or "off")..".")
+        B.Print(C.KnownCount().." confirmed flight points. Automatic PvP: "..(B.db.auto and "on, confirmed kills only" or "off")..".")
+        if not B.db.flightMasterScanned then B.Print("Open a flight master's map to confirm your discovered flight points.") end
         B.Print("Public combat reader: "..((CombatLogGetCurrentEventInfo or (C_CombatLog and C_CombatLog.GetCurrentEventInfo)) and "available" or "unavailable; using readable death recaps when supplied")..".")
     else B.UI.Toggle() end
 end

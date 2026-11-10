@@ -6,10 +6,10 @@ local function check(v,message) total=total+1;assert(v,message or ("check "..tot
 -- RegisterEvent raises on obsolete names in the real client.
 local validEvents={}
 for name in ("PLAYER_LOGIN ADDON_LOADED CHAT_MSG_ADDON GUILD_ROSTER_UPDATE PLAYER_GUILD_UPDATE "..
-    "CLUB_MEMBER_UPDATED CLUB_MEMBER_ADDED CLUB_MEMBER_REMOVED PLAYER_ENTERING_WORLD TAXIMAP_OPENED "..
+    "CLUB_MEMBER_UPDATED CLUB_MEMBER_ADDED CLUB_MEMBER_REMOVED PLAYER_ENTERING_WORLD TAXIMAP_OPENED TAXIMAP_CLOSED "..
     "TAXI_NODE_STATUS_CHANGED PLAYER_DEAD PLAYER_UNGHOST PLAYER_ALIVE PLAYER_REGEN_ENABLED "..
     "ZONE_CHANGED_NEW_AREA COMBAT_LOG_EVENT_UNFILTERED"):gmatch("%S+") do validEvents[name]=true end
-local function client(first,surname,saved,startTime,coldLogin)
+local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     local env=setmetatable({}, {__index=_G});env._G=env
     env.LightTheBeaconsDB=saved
     local B,objects,frames={},{},{}
@@ -124,8 +124,10 @@ local function client(first,surname,saved,startTime,coldLogin)
     env.Enum={FlightPathState={Current=0,Reachable=1,Unreachable=2},FlightPathFaction={Neutral=0,Horde=1,Alliance=2},SendAddonMessageResult={Success=0}}
     env.C_TaxiMap={GetTaxiNodesForMap=function(map)
         local a={};for id,known in pairs(state.known) do a[#a+1]={nodeID=id,isUndiscovered=not known,name=id==2 and "Stormwind, Elwynn" or "Lakeshire, Redridge",faction=2} end
+        -- Forever can return false here even for a destination never discovered.
+        a[#a+1]={nodeID=39,isUndiscovered=false,name="Gadgetzan, Tanaris",faction=2}
         return a
-    end,GetAllTaxiNodes=function() return {{nodeID=2,slotIndex=1,state=0},{nodeID=5,slotIndex=2,state=1}} end}
+    end,GetAllTaxiNodes=function() return state.taxiNodes or {{nodeID=2,slotIndex=1,state=0},{nodeID=5,slotIndex=2,state=1},{nodeID=39,slotIndex=3,state=2}} end}
     env.GetTaxiMapID=function() return 1415 end
     env.hooksecurefunc=function(name,fn) state.hook=fn end;env.TakeTaxiNode=function() end
     env.issecretvalue=function(v) return type(v)=="table" and rawget(v,"secret")==true end
@@ -149,8 +151,26 @@ local function client(first,surname,saved,startTime,coldLogin)
         end
     end
     advance(5);state.sent={};state.sounds={}
+    if not skipTaxi then
+        B.eventFrame.scripts.OnEvent(B.eventFrame,"TAXIMAP_OPENED",0)
+        B.eventFrame.scripts.OnEvent(B.eventFrame,"TAXIMAP_CLOSED")
+    end
     return {B=B,env=env,s=state,objects=objects,advance=advance}
 end
+local unvisited=client("Aldric","Stoneward",nil,nil,nil,true)
+check(not unvisited.B.db.known[39],"World-map false discovery flag must not unlock Gadgetzan")
+check(unvisited.B.Client.KnownCount()==0,"New install waits for a flight-master confirmation")
+unvisited.B.Client.RefreshFlights()
+check(unvisited.B.Client.KnownCount()==0,"Refresh away from a flight master cannot trust cached taxi data")
+unvisited.B.eventFrame.scripts.OnEvent(unvisited.B.eventFrame,"TAXIMAP_OPENED",0)
+check(unvisited.B.db.known[2] and unvisited.B.db.known[5] and not unvisited.B.db.known[39],"Flight master confirms only current and reachable nodes")
+unvisited.B.eventFrame.scripts.OnEvent(unvisited.B.eventFrame,"TAXIMAP_CLOSED")
+unvisited.s.taxiNodes={{nodeID=2,slotIndex=1,state=0},{nodeID=39,slotIndex=3,state=1}}
+unvisited.B.Client.RefreshFlights()
+check(not unvisited.B.db.known[39],"Closed flight map cannot confirm a cached reachable node")
+local polluted=client("Aldric","Stoneward",{known={[2]=true,[39]=true,[40]=true},nodes={[9999]={n="Wrong map coordinate",c=1,x=1,y=2,f="A"}},sound=false,pace=14,times={["2:5"]=100}},nil,nil,true)
+check(polluted.B.Client.KnownCount()==0 and not polluted.B.TravelData.nodes[9999],"Upgrade clears unverified discovery and map-position caches")
+check(polluted.B.db.sound==false and polluted.B.db.pace==14 and polluted.B.db.times["2:5"]==100,"Upgrade preserves settings and flight timings")
 local a=client("Aldric","Stoneward")
 local b=client("Elowen","Dawnwatch")
 check(a.env.SLASH_LIGHTTHEBEACONS1=="/ltb","Slash command registered after addon loading")
@@ -261,18 +281,54 @@ check(not recap.B.killingBlow,"Unreadable damage invalidates automatic evidence"
 check(P.Parse(P.Encode({id="boundary",sent=b.s.time-P.ttl,map=1433,px=.5,py=.5,reason="aid"}),b.s.time)==nil,"Exact expiry boundary rejected")
 -- Known nodes learned from the taxi map are independent of the bundled graph.
 local discovered=client("Aldric","Stoneward")
-discovered.env.C_TaxiMap.GetTaxiNodesForMap=function() return {{nodeID=9999,isUndiscovered=false,name="New Forever Landing",faction=2,position={x=.4,y=.4}}} end
-discovered.B.Client.ScanMap(1429)
-check(discovered.B.db.known[9999] and discovered.B.TravelData.nodes[9999],"New client flight point can be learned")
-discovered.env.C_TaxiMap.GetAllTaxiNodes=function() return {{nodeID=2,slotIndex=1,state=0},{nodeID=9999,slotIndex=2,state=1}} end
+discovered.env.C_TaxiMap.GetAllTaxiNodes=function() return {{nodeID=2,slotIndex=1,state=0},
+    {nodeID=9999,slotIndex=2,state=1,name="New Forever Landing",position={x=.4,y=.4}}} end
 discovered.env.GetNumRoutes=function(slot) return slot==2 and 1 or 0 end
 discovered.env.TaxiGetNodeSlot=function(_,_,source) return source and 1 or 2 end
 discovered.B.Client.TaxiOpened()
+check(discovered.B.db.known[9999] and discovered.B.TravelData.nodes[9999],"New flight point learned at the flight master")
+local observed=discovered.B.Client.World(1415,.4,.4)
+check(discovered.B.TravelData.nodes[9999].x==observed.x and discovered.B.TravelData.nodes[9999].y==observed.y,"New node position uses the actual taxi map")
 check(discovered.B.TravelData.flights[2][9999]~=nil,"New directed connection learned from actual taxi map")
 local savedTime=discovered.B.db.times['2:9999']
+discovered.B.Client.TaxiClosed()
 discovered.B.Client.TaxiTaken(2);discovered.s.taxi=true;discovered.B.Client.ObserveFlight()
+check(discovered.B.Client.flight and discovered.B.Client.flight.seen,"Synchronous flight-map close preserves takeoff timing")
 discovered.advance(50);discovered.s.taxi=false;discovered.B.Client.ObserveFlight()
 check(discovered.B.db.times['2:9999']==savedTime,"Early landing never corrupts destination flight time")
+-- Reproduce the screenshot: world-map data claims Gadgetzan is known, while
+-- the actual flight-master map confirms only Ratchet and Theramore.
+local gadget=client("Aldric","Stoneward",nil,nil,nil,true)
+gadget.s.taxiNodes={{nodeID=80,slotIndex=1,state=0},{nodeID=32,slotIndex=2,state=1},{nodeID=39,slotIndex=3,state=2}}
+gadget.B.Client.TaxiOpened()
+local route=gadget.B.Routing.Plan(data.nodes[80],{c=1,x=-7224,y=-3734,n="Tanaris beacon"},gadget.B.db.known,"A",7)
+for _,step in ipairs(route.steps) do
+    check(step.kind~="flight" or step.toID~=39,"Never fly to undiscovered Gadgetzan")
+end
+check(not gadget.B.db.known[39],"Unreachable Gadgetzan stays unconfirmed")
+gadget.s.taxiNodes[3].state=1
+gadget.B.Client.TaxiOpened()
+check(gadget.B.db.known[39],"Gadgetzan unlocks when the flight master confirms it")
+local persisted=client("Aldric","Stoneward",gadget.B.db,nil,nil,true)
+check(persisted.B.db.known[39],"Confirmed Gadgetzan survives reload without another flight-master visit")
+local partial=client("Aldric","Stoneward",nil,nil,nil,true)
+partial.s.taxiNodes={{nodeID=39,slotIndex=3,state=1}}
+check(not partial.B.Client.TaxiOpened() and not partial.B.db.known[39],"A partial list without a current flight master proves nothing")
+partial.s.taxiNodes={{nodeID=2,slotIndex=1,state=0},{nodeID=39,slotIndex=3,state=1,isMapLayerTransition=true}}
+partial.B.Client.TaxiOpened()
+check(not partial.B.db.known[39],"Map transition pins are not flight destinations")
+partial.s.taxiNodes[2].isMapLayerTransition=false
+partial.env.TaxiNodeGetType=function(slot) return slot==1 and "CURRENT" or "NONE" end
+partial.B.Client.TaxiOpened()
+check(not partial.B.db.known[39],"An explicit unavailable slot cannot confirm discovery")
+partial.env.TaxiNodeGetType=nil;partial.s.taxiNodes[2].state={secret=true}
+partial.B.Client.TaxiOpened()
+check(not partial.B.db.known[39],"Secret flight-state data cannot confirm discovery")
+local active=client("Elowen","Dawnwatch",nil,nil,nil,true)
+active.B.Receive(packet,a.B.name,"GUILD");active.B.Answer()
+local beforeRoute=active.B.route
+active.B.Client.TaxiOpened()
+check(active.B.route~=beforeRoute and active.B.navigating,"Flight-master discovery replans an active rescue route")
 -- Hostile transport rows and directed edges cannot become free cross-map walks.
 local horde=R.Plan({c=0,x=-12464,y=232},{c=1,x=1361,y=-4631},{},"H",7)
 local zeppelin=false;for _,step in ipairs(horde.steps) do if step.kind=="zeppelin" then zeppelin=true end end

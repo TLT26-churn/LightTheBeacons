@@ -148,7 +148,7 @@ function U.Create()
         if not B.navigating then B.Replan() end;U.Refresh()
     end)
     button(op,"Test horn",251,354,125,function() B.Sound(true) end)
-    button(op,"Refresh flights",386,354,193,function() C.RefreshFlights() end)
+    button(op,"Refresh flights",386,354,193,function() C.RefreshFlights(true) end)
     text(op,36,399,546,39,11,pale):SetText("Only guildmates with the addon receive your call. Beacons burn for 5 minutes, with a 60-second cooldown between calls.")
     -- A compact click-to-answer toast, with no oversized action-button row.
     local a=CreateFrame("Button","LightTheBeaconsAlert",UIParent,"BackdropTemplate");U.banner=a
@@ -236,7 +236,9 @@ function U.Refresh()
     U.sound:SetChecked(B.db.sound);U.auto:SetChecked(B.db.auto);U.prompt:SetChecked(B.db.prompt)
     U.light.label:SetText(B.own and B.own.expires>C.Now() and "Extinguish My Beacon" or "Light My Beacon")
     U.light:SetEnabled(IsInGuild and IsInGuild() and true or false)
-    U.status:SetText((IsInGuild and IsInGuild()) and (C.KnownCount().." discovered flight points  -  Alerts stay within your guild's addon users") or "Join a guild to call for aid")
+    U.status:SetText((IsInGuild and IsInGuild()) and (B.db.flightMasterScanned and
+        (C.KnownCount().." confirmed flight points  -  Alerts stay within your guild's addon users") or
+        "Open a flight master's map to confirm your discovered flight points") or "Join a guild to call for aid")
     U.destination:SetText(selected and selected.name or "Your guild's watch")
     U.location:SetText(selected and (C.Zone(selected.map).."  -  "..math.floor(selected.px*100+.5)..", "..math.floor(selected.py*100+.5).."  -  "..(reasons[selected.reason] or "Calls for aid")) or "Light a beacon when you need allies at your side.")
     U.age:SetText(selected and (math.max(0,C.Now()-selected.sent).." sec ago") or "")

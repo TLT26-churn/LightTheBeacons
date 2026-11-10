@@ -19,19 +19,24 @@ _forever_/Interface/AddOns/LightTheBeacons/LightTheBeacons.toc
 
 Enable Light the Beacons in the game’s AddOns list. Restart WoW if a newly
 installed addon is absent; use `/reload` when updating an existing installation.
-Open with **`/ltb`** or the minimap torch. Every participating guildmate needs
-the addon. Keep your SavedVariables when updating.
+Open with **`/ltb`** or the minimap torch. Open a flight master's map to confirm
+your available flight points; repeat on other continents you use. Every
+participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
 
 - Sends alerts only through the hidden guild addon channel. **No guild chat posts.**
 - Shows “The beacons are lit! <Name> calls for aid!” with an original war horn.
 - Provides a WoW-themed window, compact alert, map pins and a direction guide.
-- Compares ground travel, discovered flights, boats and zeppelins for each responder.
+- Compares ground travel, flight-master-confirmed flights, boats and zeppelins for each responder.
 - Supports private responses, extinguishing calls and five-minute beacon expiry.
 - Offers optional automatic PvP death alerts when the client exposes readable
   evidence of a hostile player’s killing blow. Automatic alerts default to off;
   a manual death prompt is available when attribution is restricted.
+
+**1.0.2:** fixes routes to undiscovered flight points such as Gadgetzan. The old
+unreliable discovery cache is reset once; settings and flight timings are kept.
+Visit a flight master after updating to rebuild the confirmed list.
 
 Routes are estimates rather than terrain-aware GPS. The addon does not account
 for hearthstones, teleports or summons, and never moves your character for you.

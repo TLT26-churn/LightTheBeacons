@@ -1,4 +1,4 @@
-# Light the Beacons 1.0.1
+# Light the Beacons 1.0.2
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -16,6 +16,12 @@ newly added addon does not appear, restart the client. The same ZIP works on
 Windows and Linux through Wine/Proton. There are no required addons or external
 programs. Each participating guildmate needs the addon.
 
+**1.0.2 flight discovery fix:** routes now use only flight points confirmed by an
+open flight-master map. This update clears the unreliable discovery/position
+cache from older versions; your settings, beacon and flight times remain. Open
+a flight master on each continent you use to rebuild the confirmed list. Until
+then, routes use ground travel and boats instead of guessing at flight access.
+
 **1.0.1 startup fix:** replaces an obsolete flight-path event that stopped
 `/ltb` from registering. Key bindings load through WoW's dedicated binding
 loader. Existing users can replace the addon folder and `/reload`; keep saves.
@@ -28,7 +34,7 @@ loader. Existing users can replace the addon folder and `/reload`; keep saves.
 - `/ltb preview`: show a local sample alert and route. Nothing is transmitted.
 - `/ltb horn`: hear the original two-note war horn without sending a beacon.
 - `/ltb options`: sound, automatic alerts, death prompts and travel pace.
-- `/ltb scan`: refresh discovered flight points.
+- `/ltb scan`: refresh from an open flight-master map, or explain how to scan.
 - `/ltb status`: show local discovery and automatic-detection diagnostics.
 
 Bindings are available under **Light the Beacons** in the game's key bindings.
@@ -69,8 +75,12 @@ The seed graph contains **66 flight points, 288 directed flight connections and
 10 boat/zeppelin routes** from Forever's client data. The planner compares
 ground travel, available flights and faction-appropriate public transports.
 It excludes undiscovered flight points, including intermediate stops, and uses
-each responder's own discovery data. Visit a flight master after installing to
-refresh discoveries and learn any newer flight connections exposed by the game.
+each responder's own confirmed discovery data. Open a flight master's map after
+installing to record its current/reachable destinations. Repeat on other
+continents you use; confirmations are saved per character. The world-map list
+is never accepted as proof of discovery because Forever can mark unvisited
+points as known. New node positions and connections are also learned from the
+actual flight-master map. Existing rescue routes update after a scan.
 
 Choose **On foot**, **60% mount**, or **100% mount** in Options to match how you
 intend to travel. Flight durations start as estimates and improve when a direct
@@ -135,3 +145,6 @@ The war-horn sound was synthesized for this addon without sampled recordings.
 
 API definitions: [Forever UI source](https://github.com/Gethe/wow-ui-source/tree/forever),
 particularly ChatInfo, TaxiMap, Map, DeathInfo, DeathRecap and CombatLog.
+
+Forever discovery compatibility: the world-map flag limitation is also documented
+in [ForeverPlusPlus API observations](https://github.com/xIGBClutchIx/ForeverPlusPlus/blob/main/docs/forever-api.md).

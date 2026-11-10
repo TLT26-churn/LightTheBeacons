@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.0.2
+
+- Fix routes to unvisited destinations such as Gadgetzan: only an open flight
+  master can confirm current/reachable flight points. Never trust Forever’s
+  world-map `isUndiscovered=false` flag as evidence of discovery.
+- Clear the old unverified discovery and node-position caches once, preserving
+  settings, active calls, learned connections and measured flight times.
+- Learn new node positions from the actual taxi map and replan active routes
+  after a scan. Explain when a flight-master visit is needed.
+- Add regression coverage for false Gadgetzan discovery, migration, closed or
+  partial maps, map-transition pins, restricted states and reload persistence.
+
 ## 1.0.1
 
 - Fix `/ltb` failing to register on Forever by replacing the removed

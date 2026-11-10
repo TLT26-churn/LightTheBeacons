@@ -96,72 +96,70 @@ end
 function C.KnownCount()
     local n=0;for _,v in pairs(B.db.known) do if v==true then n=n+1 end end;return n
 end
-local function remember(map,node,taxi)
-    if not node or not P.Plain(node) or not P.Number(node.nodeID,1,100000) then return end
+-- World-map isUndiscovered flags are not reliable on Forever. Only an open
+-- flight-master map can confirm that this character has a usable flight point.
+local function taxiState(node,states)
+    if type(node)~="table" or not P.Plain(node) or not P.Number(node.nodeID,1,100000)
+        or not P.Number(node.slotIndex,1,10000) or not P.Plain(node.state)
+        or not P.Plain(node.isMapLayerTransition) or node.isMapLayerTransition then return end
+    local kind=node.state==states.Current and "CURRENT" or node.state==states.Reachable and "REACHABLE"
+    if not kind then return end
+    -- When the legacy slot API is present, an explicit disagreement is not
+    -- evidence of discovery. Some Forever builds only expose the modern API.
+    local slotKind=call(TaxiNodeGetType,node.slotIndex)
+    if slotKind~=nil and (not P.Plain(slotKind) or slotKind~=kind) then return end
+    return kind
+end
+local function rememberTaxi(map,node)
     local id=node.nodeID
-    if taxi then
-        local states=Enum and Enum.FlightPathState
-        if states and P.Plain(node.state) and (node.state==states.Current or node.state==states.Reachable) then
-            B.db.known[id]=true
-        end
-    else
-        if not P.Plain(node.isUndiscovered) then return end
-        if node.isUndiscovered==false then B.db.known[id]=true
-        elseif node.isUndiscovered==true then B.db.known[id]=false end
-    end
+    B.db.known[id]=true
     local n=B.TravelData.nodes[id]
-    if not n and not taxi and node.position and P.Plain(node.position) then
+    if not n and node.position and P.Plain(node.position) and P.Text(node.name) then
         local p=C.World(map,node.position.x,node.position.y)
-        local f=node.faction
-        local factions=Enum and Enum.FlightPathFaction
-        if p and factions and P.Plain(f) and (f==factions.Alliance or f==factions.Horde or f==factions.Neutral) and P.Text(node.name) then
-            n={n=node.name,c=p.c,x=p.x,y=p.y,f=f==factions.Alliance and "A" or f==factions.Horde and "H" or "AH"}
+        if p then
+            -- Reachability at this character's flight master proves faction use.
+            -- Use the actual taxi map for positions, never a queried zone map.
+            n={n=node.name,c=p.c,x=p.x,y=p.y,f=C.Faction()}
             B.TravelData.nodes[id]=n;B.db.nodes[id]=n
         end
     end
     if n and P.Text(node.name) then n.n=node.name end
 end
-function C.ScanMap(map)
-    if not C_TaxiMap then return end
-    local nodes=call(C_TaxiMap.GetTaxiNodesForMap,map)
-    if type(nodes)=="table" and P.Plain(nodes) then
-        for _,node in ipairs(nodes) do remember(map,node,false) end
+function C.RefreshFlights(feedback)
+    local refreshed=C.taxiOpen and C.TaxiOpened() or false
+    if feedback then
+        B.Print(refreshed and "Confirmed your flight points from this flight master." or
+            "Open a flight master's map to confirm your discovered flight points.")
     end
+    if B.UI then B.UI.Refresh() end
+    return refreshed
 end
-function C.RefreshFlights()
-    if not B.db or C.scanning or not C_Map then return end
-    local queue,seen={},{}
-    local function add(id) if P.Number(id,1,100000) and not seen[id] and #queue<300 then seen[id]=true;queue[#queue+1]=id end end
-    add(1414);add(1415);add(947)
-    local map=call(C_Map.GetBestMapForUnit,"player")
-    for _=1,12 do
-        if not map or seen[map] then break end
-        add(map);local info=call(C_Map.GetMapInfo,map);map=info and info.parentMapID
-    end
-    for i=1,#queue do
-        local children=call(C_Map.GetMapChildrenInfo,queue[i],nil,true)
-        if type(children)=="table" then for _,info in ipairs(children) do add(info.mapID) end end
-    end
-    C.scanning=true;local i=1
-    local function batch()
-        for _=1,8 do if not queue[i] then break end;C.ScanMap(queue[i]);i=i+1 end
-        if queue[i] and C_Timer then C_Timer.After(.05,batch)
-        else C.scanning=false;if B.UI then B.UI.Refresh() end end
-    end
-    batch()
+function C.TaxiClosed()
+    C.taxiOpen=false
+    -- TakeTaxiNode's post-hook may run after the synchronous close event.
+    -- Keep its last slot snapshot for timing only; RefreshFlights is gated above.
 end
 function C.TaxiOpened()
+    C.taxiOpen=true;C.taxiSlots={};C.taxiCurrent=nil
     local map=call(GetTaxiMapID)
-    if not map or not C_TaxiMap then return end
-    local nodes=call(C_TaxiMap.GetAllTaxiNodes,map)
-    if type(nodes)~="table" then return end
-    C.taxiSlots={};C.taxiCurrent=nil
     local states=Enum and Enum.FlightPathState
-    for _,n in ipairs(nodes) do
-        remember(map,n,true)
-        if P.Number(n.slotIndex,1,10000) then C.taxiSlots[n.slotIndex]=n.nodeID end
-        if states and P.Plain(n.state) and n.state==states.Current then C.taxiCurrent=n.nodeID end
+    if not P.Number(map,1,100000) or not C_TaxiMap or not states then return false end
+    local nodes=call(C_TaxiMap.GetAllTaxiNodes,map)
+    if type(nodes)~="table" or not P.Plain(nodes) then return false end
+    local confirmed={}
+    for _,node in ipairs(nodes) do
+        local kind=taxiState(node,states)
+        if kind then
+            confirmed[#confirmed+1]=node
+            if kind=="CURRENT" then C.taxiCurrent=node.nodeID end
+        end
     end
+    -- Empty, stale or partial lists with no current flight master prove nothing.
+    if not C.taxiCurrent then return false end
+    for _,node in ipairs(confirmed) do
+        rememberTaxi(map,node);C.taxiSlots[node.slotIndex]=node.nodeID
+    end
+    B.db.flightMasterScanned=true
     -- Record actual directed connections exposed by this flight master. This
     -- extends the seed graph when Forever adds new flight points.
     if GetNumRoutes and TaxiGetNodeSlot then
@@ -184,8 +182,11 @@ function C.TaxiOpened()
             end end
         end
     end
-    C.ScanMap(map)
+    if B.Selected() and not B.preview then
+        B.Replan();if B.navigating then B.SetNextWaypoint() end
+    end
     if B.UI then B.UI.Refresh() end
+    return true
 end
 function C.TaxiTaken(slot)
     local from,to=C.taxiCurrent,C.taxiSlots and C.taxiSlots[slot]
