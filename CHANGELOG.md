@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.1.0 — The Alliance answers
+
+- Ship the approved Alliance design: navy and gold, lion crest, grouped caller
+  details, numbered routes with aligned times, current-step highlight and checks.
+- Use WoW's native Horn of Cenarius / Dwarf Horn (10843) for beacon calls and the
+  Alliance capture fanfare (8173) for the caller's first response. Remove the
+  synthesized recording; no external or movie sound files are included.
+- Celebrate the first responder with a glowing lion banner, their name and ally
+  count. Later allies get a shorter visual update; duplicates and reloads do not
+  replay the first-response fanfare. Add `/ltb rally` as a local preview.
+- Include the flight-discovery fixes and automatic no-mount/60%/100% riding
+  detection from 1.0.2–1.0.3, previously installed locally only.
+- Keep guild addon alerts private and include the Whitebeard Tinkerton credit.
+- Validate one Windows/Linux (Wine/Proton) ZIP with 129 simulated-client checks.
+  Live multiplayer delivery and audio playback still need in-game confirmation.
+
 ## 1.0.3
 
 - Automatically plan ground legs using the responding character's trained riding

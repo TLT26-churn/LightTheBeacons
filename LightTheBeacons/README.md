@@ -1,4 +1,4 @@
-# Light the Beacons 1.0.3
+# Light the Beacons 1.1.0
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -26,13 +26,20 @@ then, routes use ground travel and boats instead of guessing at flight access.
 `/ltb` from registering. Key bindings load through WoW's dedicated binding
 loader. Existing users can replace the addon folder and `/reload`; keep saves.
 
+## Alliance design
+
+Stormwind blue, gold trim and an Alliance lion frame the caller's details and a
+numbered itinerary with leg times. Completed steps show checks; the current step
+is highlighted. The footer credits **Whitebeard Tinkerton - US PVP**.
+
 ## Use
 
 - `/ltb` or the torch beside the minimap: open the panel.
 - `/ltb light`: light a beacon at your position (or your fallen body).
 - `/ltb clear`: extinguish your beacon.
 - `/ltb preview`: show a local sample alert and route. Nothing is transmitted.
-- `/ltb horn`: hear the original two-note war horn without sending a beacon.
+- `/ltb horn`: test the native Horn of Cenarius / Dwarf Horn without sending a beacon.
+- `/ltb rally`: preview the response celebration and Alliance fanfare locally.
 - `/ltb options`: sound, automatic alerts, death prompts and travel pace.
 - `/ltb scan`: refresh from an open flight-master map, or explain how to scan.
 - `/ltb status`: show local discovery and automatic-detection diagnostics.
@@ -50,8 +57,11 @@ pins identify active beacons. Waypoints change only after you choose to answer
 or open a beacon on the map. Travel remains under your control.
 
 Beacons expire after five minutes. New calls have a 60-second cooldown.
-Duplicates and acknowledgements never replay the horn. Sound can be muted;
-the horn respects the game's Master volume. Your beacon stays at the incident
+Duplicates and acknowledgements never replay the beacon horn. Your first
+responder triggers a gold lion flare, their name, an ally count and an Alliance
+capture fanfare. Later responders update the count with a shorter visual pulse;
+duplicate replies never replay the celebration, including after reload. Sounds
+can be muted in Options and respect the game's UI sound settings. Your beacon stays at the incident
 location when you release spirit. Use **Extinguish My Beacon** when aid is no
 longer needed.
 
@@ -151,7 +161,11 @@ Copyright (c) 2026 Daniel Costa, under the included MIT license. Its source is
 Blizzard's Forever client DB2 data via wago.tools. Source hash, build and changes
 are recorded in `ThirdParty/TravelData-source.txt`. Original UI artwork belongs
 to Blizzard Entertainment; pinned sources and hashes are in `Media/sources.json`.
-The war-horn sound was synthesized for this addon without sampled recordings.
+Sounds are referenced from the WoW client rather than bundled as recordings:
+[Horn of Cenarius / Dwarf Horn](https://www.wowhead.com/sound=10843/hornofcenarius)
+(sound kit 10843) for a beacon, and
+[Alliance flag-capture fanfare](https://www.wowhead.com/tbc/sound=8173/pvpflagcapturedalliance)
+(sound kit 8173) for the first responder. No external free horn or movie audio is used.
 
 API definitions: [Forever UI source](https://github.com/Gethe/wow-ui-source/tree/forever),
 particularly SkillInfo, SpellBook, ChatInfo, TaxiMap, Map, DeathInfo, DeathRecap and CombatLog.

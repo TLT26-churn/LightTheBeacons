@@ -1,17 +1,21 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.0.3"
+B.version="1.1.0"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
 function B.Print(message)
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffc55cLight the Beacons:|r "..message) end
 end
-function B.Sound(test)
-    if not test and (not B.db.sound or (B.lastHorn and GetTime()-B.lastHorn<5)) then return end
-    B.lastHorn=GetTime()
-    if PlaySoundFile then PlaySoundFile("Interface\\AddOns\\LightTheBeacons\\Media\\WarHorn.ogg","Master") end
+function B.Sound(test,answer)
+    if not test and not B.db.sound then return end
+    local key=answer and "lastAnswerSound" or "lastHorn"
+    if not test and B[key] and GetTime()-B[key]<5 then return end
+    B[key]=GetTime()
+    local success=C.Call(C_Sound and C_Sound.PlaySound or PlaySound,answer and 8173 or 10843)
+    if test and success==false then B.Print("The game could not play that sound. Check your sound settings.") end
+    return success
 end
 function B.List()
     local list={}
@@ -81,7 +85,16 @@ function B.Receive(msg,sender,channel)
         if B.selected==b.owner then B.selected=nil;B.navigating=false;B.route=nil end
         if B.UI.alertBeacon and B.UI.alertBeacon.owner==b.owner then B.UI.banner:Hide() end
         B.UI.Refresh()
-    elseif event=="response" then B.UI.Refresh() end
+    elseif event=="response" then
+        if b.owner==B.me then
+            local count=0;for _ in pairs(b.responders) do count=count+1 end
+            local first=B.db.answeredBeaconID~=b.id
+            B.db.answeredBeaconID=b.id
+            if first then B.Sound(false,true) end
+            B.UI.Answered(sender,count,first,b)
+        end
+        B.UI.Refresh()
+    end
 end
 function B.Light(reason)
     if not B.db then return end
@@ -192,6 +205,11 @@ function B.RestoreOwn()
         local parsed=P.Parse(P.Encode(active),C.Now())
         if parsed and B.me then
             parsed.owner=B.me;parsed.name=B.name;parsed.responders={};B.own=parsed
+            if type(active.responders)=="table" then for key,name in pairs(active.responders) do
+                if P.Identity(name)==key and key~=B.me and B.members[key] then parsed.responders[key]=name end
+            end end
+            if next(parsed.responders) then B.db.answeredBeaconID=parsed.id end
+            B.db.active=parsed
             B.session.beacons[B.me]=parsed;B.session.heard[B.me..":"..parsed.id]=C.Now()
         end
     end
@@ -206,6 +224,7 @@ function B.GuildChanged()
     if B.guild and B.guild~=guild then
         B.session=P.NewSession();B.selected=nil;B.navigating=false;B.own=nil;B.db.active=nil;B.route=nil
         if B.UI.banner then B.UI.banner:Hide() end
+        if B.UI.answerBanner then B.UI.answerBanner:Hide() end
     end
     B.guild=guild;B.members=C.Members()
     if B.db.guild~=guild then B.db.active=nil;B.db.guild=guild end
@@ -318,6 +337,7 @@ SlashCmdList.LIGHTTHEBEACONS=function(input)
     elseif command=="clear" then B.Extinguish()
     elseif command=="preview" then B.Preview()
     elseif command=="horn" then B.Sound(true)
+    elseif command=="rally" then B.UI.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true)
     elseif command=="scan" then C.RefreshFlights(true)
     elseif command=="options" then B.UI.Toggle(true)
     elseif command=="status" then

@@ -47,6 +47,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     function methods:GetText() return self.text end
     function methods:SetFont(path,size) self.fontSize=size;self.font=path end
     function methods:SetTextColor(...) self.color={...} end
+    function methods:SetVertexColor(...) self.vertexColor={...} end
     function methods:SetColorTexture(...) self.solid={...} end
     function methods:SetTexture(v) self.file=v end
     function methods:SetTexCoord(...) self.coords={...} end
@@ -97,7 +98,8 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     env.C_ChatInfo={RegisterAddonMessagePrefix=function() return true end,InChatMessagingLockdown=function() return state.restricted end,
         SendAddonMessage=function(prefix,msg,channel) state.sent[#state.sent+1]={prefix,msg,channel};return state.sendResult end}
     env.SendChatMessage=function() error("Ordinary chat must NEVER be used") end
-    env.PlaySoundFile=function(file,channel) state.sounds[#state.sounds+1]={file,channel} end
+    env.C_Sound={PlaySound=function(id) state.sounds[#state.sounds+1]={id};return state.soundSuccess~=false,42 end}
+    env.PlaySoundFile=function() error("Custom audio recordings must not be played") end
     env.C_Timer={After=function(delay,fn) state.timers[#state.timers+1]={at=state.now+delay,fn=fn} end}
     env.CreateVector2D=function(x,y) return {x=x,y=y} end
     local maps={
@@ -198,8 +200,31 @@ local beacon=b.B.List()[1];b.B.Select(beacon);b.B.Answer()
 check(b.B.navigating and #b.s.sent==1,"Answer acknowledges privately")
 a.B.Receive(b.s.sent[1][2],b.B.name,"GUILD")
 check(a.B.own.responders[b.B.me]==b.B.name,"Caller sees responder")
+check(b.s.sounds[1][1]==10843,"Beacon uses native Horn of Cenarius sound kit")
+check(a.B.UI.answerBanner:IsShown() and a.B.UI.answerName:GetText()==b.B.name,"Caller gets a named first-response celebration")
+check(a.B.UI.answerTitle:GetText()=="THE ALLIANCE ANSWERS!" and a.B.UI.answerCount:GetText()=="1 ALLY ON THE WAY","First responder gets the full rally")
+check(a.s.sounds[#a.s.sounds][1]==8173,"First response uses native Alliance capture fanfare")
+check(not b.B.UI.answerBanner:IsShown(),"Responder does not celebrate someone else's beacon")
+local soundCount=#a.s.sounds
+local answerPacket=b.s.sent[1][2]
+a.B.Receive(answerPacket,b.B.name,"GUILD")
+check(#a.s.sounds==soundCount and a.B.UI.answerCount:GetText()=="1 ALLY ON THE WAY","Duplicate responses never replay the rally")
+a.B.members["whitebeard tinkerton"]=true
+a.B.Receive(answerPacket,"Whitebeard Tinkerton","GUILD")
+check(#a.s.sounds==soundCount and a.B.UI.answerCount:GetText()=="2 ALLIES ON THE WAY","Additional allies update the count without another fanfare")
+check(a.B.UI.answerTitle:GetText()=="REINFORCEMENTS INBOUND" and a.B.UI.answerBanner.duration==4,"Additional allies get a shorter celebration")
+a.B.UI.answerBanner.scripts.OnUpdate(a.B.UI.answerBanner,5)
+check(not a.B.UI.answerBanner:IsShown(),"Rally animation expires")
+local restoredRally=client("Aldric","Stoneward",a.B.db,a.s.time)
+check(restoredRally.B.own.responders[b.B.me]==b.B.name,"Confirmed responder survives caller reload")
+restoredRally.B.Receive(answerPacket,b.B.name,"GUILD")
+check(#restoredRally.s.sounds==0 and not restoredRally.B.UI.answerBanner:IsShown(),"Reload cannot replay a duplicate first-response fanfare")
+a.B.UI.Answered(b.B.name,2,false,a.B.own)
+
 a.B.Extinguish();b.B.Receive(a.s.sent[#a.s.sent][2],a.B.name,"GUILD")
 check(#b.B.List()==0 and not b.B.navigating,"Extinguish stops navigation")
+a.B.UI.answerBanner.scripts.OnUpdate(a.B.UI.answerBanner,.1)
+check(not a.B.UI.answerBanner:IsShown(),"Extinguishing the beacon dismisses its rally")
 b.B.Receive(packet,a.B.name,"GUILD");check(#b.B.List()==0,"Cancellation blocks delayed beacon")
 local valid={id="123.456",sent=b.s.time,map=1433,px=.2,py=.5,reason="aid"}
 local encoded=P.Encode(valid)
@@ -252,6 +277,12 @@ restricted.s.restricted=false;restricted.s.sendResult=5
 check(not restricted.B.Light() and not restricted.B.own,"Failed send never claims delivery")
 local preview=client("Elowen","Dawnwatch");preview.B.Preview()
 check(#preview.s.sent==0 and #preview.s.sounds==0,"Preview never broadcasts or sounds automatically")
+local rallyPreview=client("Aldric","Stoneward")
+rallyPreview.env.SlashCmdList.LIGHTTHEBEACONS("rally")
+check(#rallyPreview.s.sent==0 and #rallyPreview.s.sounds==1 and rallyPreview.s.sounds[1][1]==8173,"Rally test is local and uses the native fanfare")
+local mutedRally=client("Aldric","Stoneward",{sound=false})
+mutedRally.B.Light();mutedRally.B.Receive("1|R|"..mutedRally.B.own.id.."|"..mutedRally.B.me,"Elowen Dawnwatch","GUILD")
+check(#mutedRally.s.sounds==0 and mutedRally.B.UI.answerBanner:IsShown(),"Mute suppresses both sounds without hiding the celebration")
 preview.B.Answer();check(#preview.s.sent==0,"Preview answer is local")
 preview.B.Sound(true);check(#preview.s.sounds==1,"Horn test works")
 preview.B.db.sound=false;preview.advance(6);preview.B.Sound();check(#preview.s.sounds==1,"Mute works")
@@ -409,6 +440,17 @@ preview.B.preview.name="Aldric Stoneward";preview.B.preview.point.n="Aldric Ston
 preview.B.preview.responders.other="Elowen Dawnwatch"
 preview.B.preview.route=preview.B.Routing.Plan({c=0,x=-8900,y=600},preview.B.preview.point,{[2]=true,[5]=true},"A",7)
 preview.B.route=preview.B.preview.route;preview.B.UI.Alert(preview.B.preview,true);preview.B.UI.Refresh()
+-- Separate visual proposal only: no addon broadcasts or installed theme edits.
+local sample={name="Jackdark Featherfall",owner="jackdark featherfall",id="design-preview",sent=preview.B.Client.Now()-43,
+    expires=preview.B.Client.Now()+257,map=1446,px=.47,py=.50,reason="aid",
+    point={c=1,x=-7224,y=-3734,n="Jackdark Featherfall's beacon"},
+    responders={one="Blackbeard Soulless",two="Whitebeard Tinkerton"}}
+preview.B.preview=nil;preview.B.session.beacons={[sample.owner]=sample};preview.B.selected=sample.owner
+preview.B.db.known={[80]=true,[32]=true};preview.B.db.flightMasterScanned=true
+preview.B.route=preview.B.Routing.Plan(preview.B.TravelData.nodes[80],sample.point,preview.B.db.known,"A",7)
+preview.B.Client.Zone=function() return "Tanaris" end
+preview.B.UI.Alert(sample);preview.B.UI.Refresh()
+
 -- Snapshot the actual widget tree for separate visual QA (not a hand-built mockup).
 local function snapshot(c,target,path)
     local function bounds(o)
@@ -450,7 +492,7 @@ local function snapshot(c,target,path)
     for _,o in ipairs(c.objects) do if inside(o) and visible(o) then
         local x,y,w,h=bounds(o);local item={id=o.id,kind=o.kind,x=x-ox,y=y-oy,width=w,height=h,
             frameLevel=o.frameLevel,layer=o.layer,text=o.text,fontSize=o.fontSize,color=o.color,align=o.align,
-            wrap=o.wrap,file=o.file,coords=o.coords,solid=o.solid,alpha=o.alpha,backdrop=o.backdrop,
+            wrap=o.wrap,file=o.file,coords=o.coords,solid=o.solid,alpha=o.alpha,vertexColor=o.vertexColor,backdrop=o.backdrop,
             backdropColor=o.backdropColor,border=o.border}
         local ancestor=o
         while ancestor do
@@ -466,6 +508,8 @@ end
 if arg[2] then
     snapshot(preview,preview.B.UI.frame,arg[2].."-window.json")
     snapshot(preview,preview.B.UI.banner,arg[2].."-alert.json")
+    preview.B.UI.Answered("Blackbeard Soulless",1,true,nil)
+    snapshot(preview,preview.B.UI.answerBanner,arg[2].."-answer.json")
     preview.B.UI.options=true;preview.B.UI.Refresh()
     for _,o in ipairs(preview.objects) do o.box=nil end
     snapshot(preview,preview.B.UI.frame,arg[2].."-options.json")

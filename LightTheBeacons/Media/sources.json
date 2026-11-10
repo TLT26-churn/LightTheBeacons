@@ -65,6 +65,36 @@
       "file": "Arrow.tga",
       "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/MINIMAP/MinimapArrow.PNG",
       "sha256": "c5ebf879021ea651eb0ed15d28637ce41866746d039aa11f775ad6671314f9ff"
+    },
+    {
+      "file": "AllianceCrest.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/Alliance-Logo.PNG",
+      "sha256": "10423ff315a32b948a3f01651c49e92467d0b76ef28411737bf5e05eebdb23ea"
+    },
+    {
+      "file": "AllianceCloth.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Glues/CHARACTERCREATE/AlliedRacesAllianceandHordeBanner.PNG",
+      "sha256": "49e064be99379943c68991f979c8964e8f0c4495a4c7bc19949a82de4ebc6bf4"
+    },
+    {
+      "file": "AllianceGlow.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/AllianceGlow-Logo.PNG",
+      "sha256": "36ff5c4fc127129327a78b35ea344ba5cc7f51375890d294a9a8079b408c1891"
     }
-  ]
+  ],
+  "sounds": [
+    {
+      "usage": "beacon",
+      "soundKitID": 10843,
+      "name": "HornOfCenarius (DwarfHorn)",
+      "source": "https://www.wowhead.com/sound=10843/hornofcenarius"
+    },
+    {
+      "usage": "first response",
+      "soundKitID": 8173,
+      "name": "PVPFlagCapturedAlliance",
+      "source": "https://www.wowhead.com/tbc/sound=8173/pvpflagcapturedalliance"
+    }
+  ],
+  "soundPolicy": "Native WoW sound-kit references only. No audio recordings bundled."
 }

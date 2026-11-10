@@ -58,6 +58,7 @@ for s in sorted(items,key=lambda s:(s['frameLevel'],order.get(s.get('layer'),-1)
     elif s['kind']=='Texture' and s.get('file'):
         surface=asset(s['file'])
         if surface:
+            if s.get('vertexColor'):surface=tint(surface,s['vertexColor'])
             if s.get('coords'):
                 l,r,t,b=s['coords'];surface=surface.crop((round(l*surface.width),round(t*surface.height),round(r*surface.width),round(b*surface.height)))
             surface=surface.resize((w,h),Image.Resampling.LANCZOS)

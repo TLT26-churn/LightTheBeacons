@@ -22,7 +22,8 @@ for path in (addon/'Media').glob('*.tga'):
     with Image.open(path) as im:
         assert im.width&(im.width-1)==0 and im.height&(im.height-1)==0,path
         im.verify()
-assert (addon/'Media/WarHorn.ogg').read_bytes().startswith(b'OggS')
+assert not list((addon/'Media').glob('*.ogg')), 'Native WoW sound kits require no bundled recordings'
+assert {s['soundKitID'] for s in json.loads((addon/'Media/sources.json').read_text())['sounds']}=={10843,8173}
 for item in json.loads((addon/'Media/sources.json').read_text())['files']:
     assert hashlib.sha256((addon/'Media'/item['file']).read_bytes()).hexdigest()==item['sha256']
 archive=root/f'LightTheBeacons-{version}.zip'
