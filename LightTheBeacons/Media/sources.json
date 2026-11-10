@@ -129,6 +129,13 @@
       "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/AllianceGlow-Logo.PNG",
       "sha256": "36ff5c4fc127129327a78b35ea344ba5cc7f51375890d294a9a8079b408c1891",
       "nativePath": "Interface\\Timer\\AllianceGlow-Logo"
+    },
+    {
+      "file": "AllianceShield.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/WorldStateFrame/AllianceIcon.PNG",
+      "sha256": "0f35827613ddb8fda55c6bbf741807c70c1c573a2264892f4ee1702ef5720c82",
+      "nativePath": "Interface\\WorldStateFrame\\AllianceIcon",
+      "usage": "Friends location markers; native texture only, never bundled."
     }
   ],
   "nativeTexturePolicy": "Pinned source URLs and converted hashes identify local preview fixtures only. The distributable uses nativePath references and includes no Blizzard texture copies."

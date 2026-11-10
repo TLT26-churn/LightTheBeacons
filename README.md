@@ -25,10 +25,10 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
 
-- The local 1.5.0 draft adds **Mute all beacon alerts**, private **Friend** marks,
-  and **Show only Friends on the map**. These controls leave guild location
-  sharing independent. Friends icon review and live texture checks are pending;
-  this draft is not published or installed yet.
+- Version 1.5.0 adds **Mute all beacon alerts**, private **Friend** marks,
+  and **Show only Friends on the map**. Friends use the native Alliance shield;
+  regular guildmates keep the existing Alliance lion. These controls leave guild
+  location sharing independent.
 - Sends alerts only through the hidden guild addon channel. **No guild chat posts.**
 - Shows “The beacons are lit! <Name> calls for aid!” with WoW’s native Horn of Cenarius / Dwarf Horn.
 - Provides a compact Alliance Rally card, original royal brazier, lion crest,

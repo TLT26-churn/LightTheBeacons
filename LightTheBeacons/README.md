@@ -137,7 +137,9 @@ Individual Hide location and Hide beacon filters still apply; a Friend mark does
 not override them. With no Friends selected, other guildmates' markers are hidden.
 This map-only filter leaves the call list, alerts and outbound sharing unchanged.
 It defaults to off. Neither setting restricts which guildmates receive your
-location. The distinct Friends icon is under design review in this local draft.
+location. Friends use WoW's native Alliance shield on the map; regular guildmates
+keep the existing Alliance lion. Active beacon pins remain royal braziers. Changing
+a Friend mark refreshes the icon immediately on zone, continent and world maps.
 
 ## Guild location sharing
 

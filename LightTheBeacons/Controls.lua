@@ -163,7 +163,7 @@ function U.LocationPins()
                 index=index+1;local pin=U.locationPins[index]
                 if not pin then
                     pin=CreateFrame("Button",nil,canvas);U.locationPins[index]=pin;pin:SetSize(20,24)
-                    local icon=texture(pin,"AllianceCrest",0,0,20,24);icon:SetTexCoord(.175,.825,.09,.91)
+                    pin.icon=texture(pin,"AllianceCrest",0,0,20,24)
                     pin:RegisterForClicks("LeftButtonUp","RightButtonUp")
                     pin:SetScript("OnClick",function(self,mouse)
                         local pos=self.location;if not pos or pos.expires<=C.Now() then return end
@@ -179,6 +179,17 @@ function U.LocationPins()
                         GameTooltip:AddLine("Left-click: map waypoint. Right-click: player filters.",1,1,1,true);GameTooltip:Show()
                     end)
                     pin:SetScript("OnLeave",function() if GameTooltip then GameTooltip:Hide() end end)
+                end
+                -- Pins are reused as the roster/filter order changes. Reset both
+                -- texture and geometry so a former Friend's shield never leaks
+                -- onto a regular guildmate's marker.
+                pin.icon:ClearAllPoints()
+                if B.IsFriend(p.owner) then
+                    pin.icon:SetTexture(asset("AllianceShield"));pin.icon:SetTexCoord(.125,.875,0,1)
+                    pin.icon:SetSize(18,24);pin.icon:SetPoint("TOPLEFT",1,0)
+                else
+                    pin.icon:SetTexture(asset("AllianceCrest"));pin.icon:SetTexCoord(.175,.825,.09,.91)
+                    pin.icon:SetSize(20,24);pin.icon:SetPoint("TOPLEFT",0,0)
                 end
                 pin:SetParent(canvas);pin:SetFrameLevel(canvas:GetFrameLevel()+14)
                 pin.location=p;pin:ClearAllPoints();pin:SetPoint("CENTER",canvas,"TOPLEFT",x*canvas:GetWidth(),-y*canvas:GetHeight());pin:Show()

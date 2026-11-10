@@ -15,6 +15,7 @@ B.MediaPaths = {
     ["Torch"]="Interface\\ICONS\\INV_Torch_Lit",
     ["Arrow"]="Interface\\MINIMAP\\MinimapArrow",
     ["AllianceCrest"]="Interface\\Timer\\Alliance-Logo",
+    ["AllianceShield"]="Interface\\WorldStateFrame\\AllianceIcon",
     ["AllianceCloth"]="Interface\\Glues\\CHARACTERCREATE\\AlliedRacesAllianceandHordeBanner",
     ["AllianceGlow"]="Interface\\Timer\\AllianceGlow-Logo",
     RoyalBrazier="Interface\\AddOns\\LightTheBeacons\\Media\\RoyalBrazier.tga",

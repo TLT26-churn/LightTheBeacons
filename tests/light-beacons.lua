@@ -860,12 +860,18 @@ do
     world.SetMapID=function() end
     u.OpenSettingsPage("controls");u.friendsOnly:SetChecked(true);u.friendsOnly.scripts.OnClick(u.friendsOnly)
     check(b.db.friendsOnly and #b.Locations()==1 and u.locationPins[1]:IsShown(),"Friends-only control shows a marked friend's world-map location")
+    local icon=u.locationPins[1].icon
+    check(icon.file==b.MediaPaths.AllianceShield and icon.coords[1]==.125 and icon.coords[2]==.875 and icon.width==18 and icon.height==24,"Friends use the approved native Alliance shield with the reviewed crop and aspect ratio")
     b.SetFriend(caller.B.name,false)
     check(#b.Locations()==0 and not u.locationPins[1]:IsShown(),"Removing Friend status immediately hides a location while filtering")
     local function shownBeacons() local n=0;for _,pin in ipairs(u.pins) do if pin:IsShown() then n=n+1;check(pin.beacon.owner==b.me,"Own beacon remains visible under the Friends-only filter") end end;return n end
     check(shownBeacons()==1 and #b.List()==2,"Friends-only also filters non-friend beacon pins but keeps own pin and call list")
     u.OpenSettingsPage("filters");local row=u.filterRows[1];row.friend:SetChecked(true);row.friend.scripts.OnClick(row.friend)
     check(b.IsFriend(caller.B.me) and #b.Locations()==1 and u.locationPins[1]:IsShown(),"Friend checkbox immediately restores the filtered marker")
+    check(u.locationPins[1].icon==icon and icon.file==b.MediaPaths.AllianceShield,"Reused map pins restore the Friend's shield immediately")
+    for _,pin in ipairs(u.pins) do
+        if pin:IsShown() then check(pin.NormalTexture.file==b.MediaPaths.RoyalBrazier,"Friend status leaves active beacon brazier markers unchanged") end
+    end
     b.SetPlayerFilter(caller.B.name,"silent",true)
     check(#b.Locations()==0,"Individual Hide location still wins for a marked Friend")
     b.SetPlayerFilter(caller.B.name,"silent",false);b.db.showLocations=false
@@ -879,6 +885,8 @@ do
     check(not b.SetFriend(b.name,true) and not b.SetFriend("Bad|Name",true),"Friend marking rejects self and malformed names")
     b.db.friendsOnly=false
     check(#b.Locations()==1,"Disabling Friends-only restores normal guild map visibility")
+    u.MapPins()
+    check(u.locationPins[1].icon==icon and icon.file==b.MediaPaths.AllianceCrest and icon.coords[1]==.175 and icon.coords[2]==.825 and icon.width==20 and icon.height==24 and icon.anchor[4]==0,"Unmarking a Friend resets the reused pin to the original guildmate lion and geometry")
 end
 
 local perf=os.clock()

@@ -1,6 +1,6 @@
 # Release notes
 
-## 1.5.0 — Friends and quiet alerts (local draft)
+## 1.5.0 — Friends and quiet alerts
 
 - Add a global beacon-alert mute that suppresses live horns, popups, response
   celebrations and death prompts while preserving location sharing, call lists,
@@ -11,9 +11,9 @@
   through reloads.
 - Add Friends-only map filtering for shared positions and beacon pins, retaining
   your own beacon. Keep sharing, call lists and alert choices independent.
-- Friends marker artwork is awaiting user approval; no new runtime icon is
-  included yet. Publication and local installation are on hold.
-- Validate 304 simulated-client checks and native Lua settings renders.
+- Use WoW's native Alliance shield for Friends, keeping the existing Alliance
+  lion for regular guildmates and royal brazier for active beacons. Refresh icons
+  immediately on Friend/filter changes and when reusing a map pin.
 
 - Add All Rights Reserved with Free Player Use terms to the source and addon ZIP;
   preserve the separate Lodestar MIT license and third-party notices.
@@ -24,6 +24,8 @@
 - Reference Blizzard textures from the installed WoW client instead of bundling
   copies; keep the original royal brazier and native horn/sound references.
 - Keep WoW Forever 1.60.1 / interface 16001 support in one Windows/Linux ZIP.
+- Validate 309 simulated-client checks, native Lua settings renders and the
+  extracted portable ZIP. Live texture rendering awaits the user's reload.
 
 ## 1.4.0 — Guild watch
 
