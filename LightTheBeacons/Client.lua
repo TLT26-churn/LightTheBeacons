@@ -5,6 +5,25 @@ local function call(fn,...)
     local ok,a,b,c,d=pcall(fn,...);if ok then return a,b,c,d end
 end
 C.Call=call
+-- Forever can return nothing for a sound kit even when its native file plays.
+-- FileDataIDs address the client assets directly; no recording is bundled.
+function C.PlayAlertSound(fileID,kitID)
+    local success,handle=call(PlaySoundFile,fileID,"Master")
+    if P.Plain(success) and success==true then return true,handle,"file" end
+    local play=C_Sound and C_Sound.PlaySound or PlaySound
+    success,handle=call(play,kitID)
+    if P.Plain(success) and success==true then return true,handle,"kit" end
+    return false,nil,"unavailable"
+end
+function C.AudioSettings()
+    local get=C_CVar and C_CVar.GetCVar or GetCVar
+    local function value(name)
+        local v=call(get,name)
+        return P.Plain(v) and (type(v)=="string" or type(v)=="number") and tostring(v) or "unknown"
+    end
+    return "Sound enabled: "..value("Sound_EnableAllSound").."; master volume: "..value("Sound_MasterVolume")..
+        "; SFX enabled: "..value("Sound_EnableSFX").."."
+end
 -- Read this character's trained riding rank, never their level, temporary
 -- movement speed, or the skill's maximum trainable rank. No UI expansion needed.
 function C.TrainedTravelPace()

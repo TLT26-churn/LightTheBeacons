@@ -39,6 +39,7 @@ is highlighted. The footer credits **Whitebeard Tinkerton - US PVP**.
 - `/ltb clear`: extinguish your beacon.
 - `/ltb preview`: show a local sample alert and route. Nothing is transmitted.
 - `/ltb horn`: test the native Horn of Cenarius / Dwarf Horn without sending a beacon.
+- `/ltb sound`: show the last playback result and current audio settings.
 - `/ltb rally`: preview the response celebration and Alliance fanfare locally.
 - `/ltb options`: sound, automatic alerts, death prompts and travel pace.
 - `/ltb scan`: refresh from an open flight-master map, or explain how to scan.
@@ -61,6 +62,8 @@ An incoming call shows **“The beacons are lit! <Name> calls for aid!”** in a
 compact WoW-style banner. Left-click the banner to answer and start guidance;
 right-click to dismiss. Answering acknowledges your response to other addon
 users in your guild. The main panel also has **Answer the Call** and **Show Map**.
+Your own banner opens your beacon details; you cannot answer or start navigation
+to your own call.
 Use its arrows to switch between simultaneous calls. Scroll longer route lists.
 The caller's optional message appears in the alert, caller card and map-pin
 tooltip. Both players need **1.2.0 or later** to exchange custom text. Older
@@ -75,7 +78,10 @@ Duplicates and acknowledgements never replay the beacon horn. Your first
 responder triggers a gold lion flare, their name, an ally count and an Alliance
 capture fanfare. Later responders update the count with a shorter visual pulse;
 duplicate replies never replay the celebration, including after reload. Sounds
-can be muted in Options and respect the game's UI sound settings. Your beacon stays at the incident
+can be muted in Options. Native audio files play on the game's Master channel
+and respect master mute/volume; sound kits are a fallback. A failed playback is
+reported locally, and `/ltb sound` displays diagnostics without changing settings.
+Your beacon stays at the incident
 location when you release spirit. Use **Extinguish My Beacon** when aid is no
 longer needed.
 
@@ -180,9 +186,11 @@ are recorded in `ThirdParty/TravelData-source.txt`. Original UI artwork belongs
 to Blizzard Entertainment; pinned sources and hashes are in `Media/sources.json`.
 Sounds are referenced from the WoW client rather than bundled as recordings:
 [Horn of Cenarius / Dwarf Horn](https://www.wowhead.com/sound=10843/hornofcenarius)
-(sound kit 10843) for a beacon, and
+(FileDataID 566064; sound kit fallback 10843) for a beacon, and
 [Alliance flag-capture fanfare](https://www.wowhead.com/tbc/sound=8173/pvpflagcapturedalliance)
-(sound kit 8173) for the first responder. No external free horn or movie audio is used.
+(FileDataID 569543; sound kit fallback 8173) for the first responder. Direct horn
+playback was confirmed audible on the live Forever client. No external free horn
+or movie audio is used.
 
 API definitions: [Forever UI source](https://github.com/Gethe/wow-ui-source/tree/forever),
 particularly SkillInfo, SpellBook, ChatInfo, TaxiMap, Map, DeathInfo, DeathRecap and CombatLog.

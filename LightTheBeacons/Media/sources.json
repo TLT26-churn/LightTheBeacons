@@ -87,14 +87,18 @@
       "usage": "beacon",
       "soundKitID": 10843,
       "name": "HornOfCenarius (DwarfHorn)",
-      "source": "https://www.wowhead.com/sound=10843/hornofcenarius"
+      "source": "https://www.wowhead.com/sound=10843/hornofcenarius",
+      "fileDataID": 566064,
+      "playback": "PlaySoundFile(fileDataID, \"Master\"); native sound kit fallback"
     },
     {
       "usage": "first response",
       "soundKitID": 8173,
       "name": "PVPFlagCapturedAlliance",
-      "source": "https://www.wowhead.com/tbc/sound=8173/pvpflagcapturedalliance"
+      "source": "https://www.wowhead.com/tbc/sound=8173/pvpflagcapturedalliance",
+      "fileDataID": 569543,
+      "playback": "PlaySoundFile(fileDataID, \"Master\"); native sound kit fallback"
     }
   ],
-  "soundPolicy": "Native WoW sound-kit references only. No audio recordings bundled."
+  "soundPolicy": "Native WoW FileDataID references with sound-kit fallback. No audio recordings bundled."
 }

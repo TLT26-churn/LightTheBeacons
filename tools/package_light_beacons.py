@@ -24,6 +24,7 @@ for path in (addon/'Media').glob('*.tga'):
         im.verify()
 assert not list((addon/'Media').glob('*.ogg')), 'Native WoW sound kits require no bundled recordings'
 assert {s['soundKitID'] for s in json.loads((addon/'Media/sources.json').read_text())['sounds']}=={10843,8173}
+assert {s['fileDataID'] for s in json.loads((addon/'Media/sources.json').read_text())['sounds']}=={566064,569543}
 for item in json.loads((addon/'Media/sources.json').read_text())['files']:
     assert hashlib.sha256((addon/'Media'/item['file']).read_bytes()).hexdigest()==item['sha256']
 archive=root/f'LightTheBeacons-{version}.zip'

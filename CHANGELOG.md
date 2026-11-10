@@ -1,5 +1,19 @@
 # Release notes
 
+## 1.2.1 — Own-beacon and sound fixes
+
+- Your own alert opens your beacon details. It never answers the call, adds you
+  as a responder, starts rescue navigation or changes your waypoint.
+- Guard the answer action itself against self-answering, and stop previous
+  rescue guidance when lighting your own beacon.
+- Play the native DwarfHorn asset directly (FileDataID 566064, Master channel),
+  confirmed audible on the live Forever client. Use the same direct method for
+  the Alliance response fanfare (569543); keep sound-kit fallback support.
+- Treat missing playback results as failures. Sound tests report the result and
+  current audio settings; `/ltb sound` shows diagnostics without playing anything.
+- Preserve the three message templates and existing saves. Validate 195 checks
+  and the portable Windows/Linux ZIP. Compact UI options remain previews only.
+
 ## 1.2.0 — A reason to ride
 
 - Add an Alliance-themed message window for manual calls, the key binding and

@@ -44,6 +44,9 @@ Automatic PvP alerts remain immediate and do not reuse drafts or templates.
 Guildmates need 1.2.0 to see the custom text; earlier versions still receive the
 beacon and route normally.
 
+**1.2.1:** fixes self-navigation from your own alert and plays the deep horn
+directly from WoW's native asset. `/ltb horn` tests it; `/ltb sound` shows diagnostics.
+
 ![Message window — rendered preview with sample templates](docs/beacon-messages.png)
 
 **1.1.0:** the Alliance design includes a native WoW horn, a first-responder
@@ -91,4 +94,4 @@ By **Whitebeard Tinkerton — US PVP**. Flight data is adapted from Daniel Costa
 record are included under `LightTheBeacons/ThirdParty/`. Original Blizzard UI
 artwork remains Blizzard Entertainment’s property; pinned source URLs and
 hashes are in `LightTheBeacons/Media/sources.json`. Sounds play from Blizzard’s native
-client sound kits; no recordings are bundled. This project is not affiliated with Blizzard.
+client sound assets, with sound-kit fallback; no recordings are bundled. This project is not affiliated with Blizzard.

@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.2.0"
+B.version="1.2.1"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -12,9 +12,13 @@ function B.Sound(test,answer)
     if not test and not B.db.sound then return end
     local key=answer and "lastAnswerSound" or "lastHorn"
     if not test and B[key] and GetTime()-B[key]<5 then return end
-    B[key]=GetTime()
-    local success=C.Call(C_Sound and C_Sound.PlaySound or PlaySound,answer and 8173 or 10843)
-    if test and success==false then B.Print("The game could not play that sound. Check your sound settings.") end
+    local success,_,method=C.PlayAlertSound(answer and 569543 or 566064,answer and 8173 or 10843)
+    B.lastSoundResult=success and ("Playback accepted (native "..method..").") or "The game did not start the sound."
+    if success then B[key]=GetTime()
+    elseif test or not B.lastSoundError or GetTime()-B.lastSoundError>60 then
+        B.lastSoundError=GetTime();B.Print("The game did not start the sound. /ltb sound shows your audio settings.")
+    end
+    if test then B.Print(B.lastSoundResult.." "..C.AudioSettings()) end
     return success
 end
 function B.List()
@@ -138,7 +142,7 @@ function B.Light(reason,message)
     B.members[B.me]=true
     if note then B.Receive(note,B.name,"GUILD") end
     B.Receive(packet,B.name,"GUILD")
-    B.selected=B.me;B.Replan();B.UI.Refresh()
+    B.selected=B.me;B.navigating=false;B.Replan();B.UI.Refresh()
     if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
     if B.UI.composer then B.UI.composer:Hide() end
     return true
@@ -154,10 +158,14 @@ function B.Answer()
     local b=B.Selected()
     if not b then return end
     if B.preview then B.Print("This is a local preview. No call has been sent.");return end
+    if b.owner==B.me then
+        B.navigating=false;B.UI.Tick()
+        B.Print("This is your beacon. Your guildmates can answer the call.");return
+    end
     if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then
         B.Print("Return to life before following a rescue route. You can still view the beacon on your map.");return
     end
-    if b.owner~=B.me and not (b.responders and b.responders[B.me]) then
+    if not (b.responders and b.responders[B.me]) then
         local msg="1|R|"..b.id.."|"..b.owner
         if #msg>250 then return end
         local ok,why=C.Send(msg);if not ok then B.Print(why);return end
@@ -364,6 +372,7 @@ SlashCmdList.LIGHTTHEBEACONS=function(input)
     elseif command=="clear" then B.Extinguish()
     elseif command=="preview" then B.Preview()
     elseif command=="horn" then B.Sound(true)
+    elseif command=="sound" then B.Print((B.lastSoundResult or "No sound tested this session.").." "..C.AudioSettings())
     elseif command=="rally" then B.UI.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true)
     elseif command=="scan" then C.RefreshFlights(true)
     elseif command=="options" then B.UI.Toggle(true)

@@ -13,7 +13,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     local env=setmetatable({}, {__index=_G});env._G=env
     env.LightTheBeaconsDB=saved
     local B,objects,frames={},{},{}
-    local state={now=1000,time=startTime or 2000000000,dead=false,ghost=false,guild=true,sent={},sounds={},timers={},
+    local state={now=1000,time=startTime or 2000000000,dead=false,ghost=false,guild=true,sent={},sounds={},soundFiles={},timers={},
         pos={map=1429,px=.1,py=.45},outdoor=true,sendResult=0,known={[2]=true,[5]=true},recapLink="old"}
     local methods={}
     local function obj(name,parent,kind)
@@ -102,7 +102,14 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
         SendAddonMessage=function(prefix,msg,channel) state.sent[#state.sent+1]={prefix,msg,channel};return state.sendResult end}
     env.SendChatMessage=function() error("Ordinary chat must NEVER be used") end
     env.C_Sound={PlaySound=function(id) state.sounds[#state.sounds+1]={id};return state.soundSuccess~=false,42 end}
-    env.PlaySoundFile=function() error("Custom audio recordings must not be played") end
+    env.PlaySoundFile=function(id,channel)
+        assert(id==566064 or id==569543,"Only the two native WoW FileDataIDs may play; never a bundled recording")
+        assert(channel=="Master","Native alert files use the Master channel")
+        state.soundFiles[#state.soundFiles+1]={id,channel}
+        state.sounds[#state.sounds+1]={id==566064 and 10843 or 8173}
+        return state.soundSuccess~=false,42
+    end
+    env.GetCVar=function(name) return name=="Sound_MasterVolume" and "0.3" or "1" end
     env.C_Timer={After=function(delay,fn) state.timers[#state.timers+1]={at=state.now+delay,fn=fn} end}
     env.CreateVector2D=function(x,y) return {x=x,y=y} end
     local maps={
@@ -156,7 +163,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
             if not called then break end
         end
     end
-    advance(5);state.sent={};state.sounds={}
+    advance(5);state.sent={};state.sounds={};state.soundFiles={}
     if not skipTaxi then
         B.eventFrame.scripts.OnEvent(B.eventFrame,"TAXIMAP_OPENED",0)
         B.eventFrame.scripts.OnEvent(B.eventFrame,"TAXIMAP_CLOSED")
@@ -539,6 +546,55 @@ do
     end
     local n=0;for _ in pairs(bounded.pending) do n=n+1 end
     check(n==80,"Pending note storage is bounded across a large guild")
+end
+
+-- Own-call actions must never acknowledge or navigate back to the caller.
+do
+    local own=client("Aldric","Stoneward");own.B.Light()
+    check(own.B.UI.alertHint:GetText():find("view your beacon"),"Own alert advertises viewing, not answering")
+    local sent=#own.s.sent
+    own.B.UI.banner.scripts.OnClick(own.B.UI.banner,"LeftButton")
+    own.B.UI.Tick()
+    check(not own.B.navigating and not own.B.UI.hud:IsShown() and not own.s.waypoint,"Clicking own alert opens details without route guidance or a waypoint")
+    check(own.B.UI.frame:IsShown() and own.B.Selected()==own.B.own and #own.s.sent==sent,"Own toast remains useful without sending a response")
+    own.B.navigating=true;own.B.UI.hud:Show();own.B.Answer()
+    check(not own.B.navigating and not own.B.UI.hud:IsShown() and next(own.B.own.responders)==nil,"Core guard rejects direct self-answer and clears stale guidance")
+    own.B.Receive("1|R|"..own.B.own.id.."|"..own.B.me,own.B.name,"GUILD")
+    check(next(own.B.own.responders)==nil,"Network self-response never counts as an ally")
+    local helper=client("Elowen","Dawnwatch")
+    helper.B.Receive(own.s.sent[1][2],own.B.name,"GUILD")
+    helper.B.UI.banner.scripts.OnClick(helper.B.UI.banner,"LeftButton")
+    check(helper.B.navigating and #helper.s.sent==1,"Other guildmates still answer from the alert")
+    helper.B.Light()
+    check(not helper.B.navigating and helper.B.selected==helper.B.me,"Lighting one's own call stops previous rescue guidance")
+end
+-- Sound kits can fail silently on Forever while their native assets play.
+do
+    local c=client("Aldric","Stoneward")
+    c.env.C_Sound.PlaySound=function() error("Kit lookup should not run after successful direct playback") end
+    check(c.B.Sound(true) and c.s.soundFiles[1][1]==566064,"Beacon plays the live-confirmed DwarfHorn FileDataID")
+    check(c.B.Sound(true,true) and c.s.soundFiles[2][1]==569543,"Response fanfare uses its native file too")
+    local count=#c.s.soundFiles;c.B.db.sound=false;c.B.Sound();c.B.Sound(false,true)
+    check(#c.s.soundFiles==count,"Muted addon never plays either alert")
+    c.B.Sound(true);check(#c.s.soundFiles==count+1,"Explicit sound test works when addon alerts are muted")
+    local fallback=client("Aldric","Stoneward")
+    fallback.env.PlaySoundFile=function() return nil end
+    check(fallback.B.Sound(true) and fallback.s.sounds[1][1]==10843,"Sound-kit fallback remains available if direct file playback is unavailable")
+    fallback.env.PlaySoundFile=nil;fallback.env.C_Sound=nil
+    fallback.env.PlaySound=function(id) return id==10843,77 end
+    check(fallback.B.Sound(true),"Older global sound API remains a guarded fallback")
+    local failed=client("Aldric","Stoneward")
+    failed.env.PlaySoundFile=function() return nil end;failed.env.C_Sound.PlaySound=function() return nil end
+    check(failed.B.Sound(true)==false and failed.s.lastMessage:find("did not start"),"Nil/no-result playback is reported as failure rather than silently accepted")
+    check(not failed.B.lastHorn,"Failed playback does not consume the successful-sound cooldown")
+    failed.env.PlaySoundFile=function() error("Unavailable API") end
+    check(pcall(failed.B.Sound,true),"Playback API errors cannot break beacon delivery")
+    failed.env.PlaySoundFile=function() return {secret=true},42 end
+    check(not failed.B.Sound(true),"Restricted playback results are not treated as success")
+    failed.B.Print=function(s) failed.s.lastMessage=s end
+    failed.env.GetCVar=function() return {secret=true} end
+    failed.env.SlashCmdList.LIGHTTHEBEACONS("sound")
+    check(failed.s.lastMessage:find("unknown"),"Sound diagnostics handle unavailable or restricted settings")
 end
 
 local perf=os.clock()

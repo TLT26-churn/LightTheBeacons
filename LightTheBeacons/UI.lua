@@ -265,7 +265,9 @@ function U.Create()
         if mouse=="RightButton" then a:Hide();return end
         local b=U.alertBeacon
         if b and b.owner~="preview" and B.session.beacons[b.owner] then
-            B.Select(B.session.beacons[b.owner]);B.Answer();U.options=false;f:Show()
+            B.Select(B.session.beacons[b.owner])
+            if b.owner~=B.me then B.Answer() end
+            U.options=false;f:Show()
         elseif b and b.owner=="preview" then U.options=false;f:Show() end
         a:Hide()
     end)
@@ -360,7 +362,9 @@ end
 function U.Alert(b,preview)
     if not U.banner then return end
     U.alertBeacon=b
-    U.alertName:SetText(b.name.." calls for aid!")
+    local own=b.owner==B.me
+    U.alertName:SetText(own and "Your guild has been called to your aid." or b.name.." calls for aid!")
+    U.alertHint:SetText(own and "Click to view your beacon  -  Right-click to dismiss" or "Click to answer the call  -  Right-click to dismiss")
     U.alertZone:SetText((preview and "PREVIEW - " or "")..C.Zone(b.map).."  |  "..(reasons[b.reason] or "Calls for aid"))
     U.UpdateAlertMessage(b)
     U.banner.elapsed=0;U.banner:Show()
