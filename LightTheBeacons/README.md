@@ -1,4 +1,4 @@
-# Light the Beacons 1.4.1
+# Light the Beacons 1.5.0
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -50,7 +50,7 @@ Options contains settings, local previews and the subtle
 - `/ltb rally`: preview the response celebration and Alliance fanfare locally.
 - `/ltb options`: sound, automatic alerts, death prompts and travel pace.
 - `/ltb locations`: sharing, map visibility and floating beacon button settings.
-- `/ltb filters`: individual beacon and location filters.
+- `/ltb filters`: Friends and individual beacon/location filters.
 - `/ltb button`: show or hide the movable beacon button.
 - `/ltb scan`: refresh from an open flight-master map, or explain how to scan.
 - `/ltb status`: show local discovery and automatic-detection diagnostics.
@@ -107,13 +107,37 @@ Right-click opens the full card. **Shift-drag** moves the icon; its position and
 visibility are saved per character. Reset its position from the same settings page.
 The normal message composer remains available through the card and `/ltb light`.
 
-Under **Options → Player filters**, add a player's full character name including
+Under **Options → Friends & filters**, add a player's full character name including
 surname. Click their beacon mode to cycle **Normal → Silence → Hide**. Silence
 removes their beacon horn and popup while keeping their call in the list and on
 the map. Hide also removes their calls and beacon pins, and stops guidance to
 their beacon. **Hide location** independently hides their background position.
 Remove the filter to restore normal behavior. These choices apply locally and
 are never sent to the guild.
+
+## Quiet alerts and Friends
+
+Enable **Options → Mute all beacon alerts** to use guild location sharing without
+beacon interruptions. This suppresses incoming and own-call horns, response
+fanfare/celebrations, and death prompts. It also dismisses visible/queued alerts
+and stops recently started addon sounds. Calls stay in the card and on the map,
+and response counts still update. Manual calls, your existing automatic-PvP
+choice, sharing preferences and per-player filters are unchanged. Unmuting does
+not replay missed alerts. Explicit Test horn and Preview buttons still work.
+The global mute is off by default and is saved per character.
+
+In **Friends & filters**, tick **Friend** beside a player's name. Friend marks
+are private to this character and are not sent to the guild or linked to Battle.net
+friendship. Changing a Friend mark preserves that player's other filters. Remove
+deletes the entire row, including its Friend mark and filters.
+
+Enable **Show only Friends on the map** under **Map & beacon controls** to filter
+both shared locations and guild beacon pins. Your own lit beacon remains visible.
+Individual Hide location and Hide beacon filters still apply; a Friend mark does
+not override them. With no Friends selected, other guildmates' markers are hidden.
+This map-only filter leaves the call list, alerts and outbound sharing unchanged.
+It defaults to off. Neither setting restricts which guildmates receive your
+location. The distinct Friends icon is under design review in this local draft.
 
 ## Guild location sharing
 
@@ -133,7 +157,7 @@ stale coordinates. Offline or disconnected players disappear when their last
 update expires. Sharing preferences persist through reloads.
 
 Turn off **Show guildmates on my map** to hide all background position markers
-locally, or use **Hide location** in Player filters for particular people. Map
+locally, or use **Hide location** in Friends & filters for particular people. Map
 display choices do not change whether you share your own location. Hover a
 marker for name, zone, coordinates and update age. Left-click to open its source
 map and set a waypoint; right-click to open the player's filter setup.
@@ -218,7 +242,7 @@ instances do not create beacons or automatic prompts.
 
 `LightTheBeaconsDB` is saved **per character**. It contains options, discovered
 flights, learned connections/times, three message templates, sharing/display
-preferences, player filters, floating-button position and your own unexpired
+preferences, global alert mute, Friend marks, player filters, floating-button position and your own unexpired
 beacon including its message and responder names. Expired or invalid saved
 beacons are cleared at login; WoW writes the cleanup at its next normal save. Remote beacons and shared locations
 are held in memory only. Reloading preserves your ability to extinguish your

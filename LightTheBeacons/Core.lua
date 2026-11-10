@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.4.1"
+B.version="1.5.0"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -9,12 +9,16 @@ function B.Print(message)
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffc55cLight the Beacons:|r "..message) end
 end
 function B.Sound(test,answer)
-    if not test and not B.db.sound then return end
+    if not test and (not B.db.sound or B.db.muteBeacons) then return end
     local key=answer and "lastAnswerSound" or "lastHorn"
     if not test and B[key] and GetTime()-B[key]<5 then return end
-    local success,_,method=C.PlayAlertSound(answer and 569543 or 566064,answer and 8173 or 10843)
+    local success,handle,method=C.PlayAlertSound(answer and 569543 or 566064,answer and 8173 or 10843)
     B.lastSoundResult=success and ("Playback accepted (native "..method..").") or "The game did not start the sound."
-    if success then B[key]=GetTime()
+    if success then
+        B[key]=GetTime()
+        B.soundHandles=B.soundHandles or {}
+        for old,expires in pairs(B.soundHandles) do if expires<=GetTime() then B.soundHandles[old]=nil end end
+        if P.Number(handle,0,2147483647) then B.soundHandles[handle]=GetTime()+60 end
     elseif test or not B.lastSoundError or GetTime()-B.lastSoundError>60 then
         B.lastSoundError=GetTime();B.Print("The game did not start the sound. /ltb sound shows your audio settings.")
     end

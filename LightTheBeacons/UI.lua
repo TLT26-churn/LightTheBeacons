@@ -184,32 +184,37 @@ function U.Create()
     U.details:SetHeight(358)
     U.optionsPanel=CreateFrame("Frame",nil,f);U.optionsPanel:SetAllPoints();U.optionsPanel:Hide()
     local op=U.optionsPanel
-    local function check(label,description,y,key)
+    local function check(label,description,y,key,changed)
         local c=CreateFrame("CheckButton",nil,op);c:SetPoint("TOPLEFT",16,-y);c:SetSize(24,24)
         c:SetNormalTexture(asset("UI-CheckBox-Up"));c:SetCheckedTexture(asset("UI-CheckBox-Check"))
         text(op,47,y+3,335,22,12,gold):SetText(label)
         text(op,47,y+27,335,35,11,pale):SetText(description)
-        c:SetScript("OnClick",function(self) B.db[key]=self:GetChecked() and true or false;U.Refresh() end)
+        c:SetScript("OnClick",function(self)
+            local enabled=self:GetChecked() and true or false
+            if changed then changed(enabled) else B.db[key]=enabled end
+            U.Refresh()
+        end)
         return c
     end
-    U.sound=check("Sound the war horn","Deep WoW horn for calls; Alliance fanfare for your first responder.",56,"sound")
-    U.auto=check("Automatic PvP death alerts","Needs a readable hostile-player killing blow. Use the death prompt when attribution is unavailable.",126,"auto")
-    U.prompt=check("Offer a call for aid when I fall","Private prompt after an outdoor death. Nothing is sent until you accept.",204,"prompt")
-    U.pace=button(op,"Auto: On foot",16,278,232,function() B.ToggleTravelMode() end)
+    U.mute=check("Mute all beacon alerts","No beacon sounds, popups or rally banners. Location sharing and manual calls still work.",56,"muteBeacons",B.MuteBeacons)
+    U.sound=check("Sound the war horn","Deep WoW horn for calls; Alliance fanfare for your first responder. Global mute takes priority.",134,"sound")
+    U.auto=check("Automatic PvP death alerts","Needs a readable hostile-player killing blow. Use the death prompt when attribution is unavailable.",204,"auto")
+    U.prompt=check("Offer a call for aid when I fall","Private prompt after an outdoor death. Nothing is sent until you accept. Global mute hides prompts.",282,"prompt")
+    U.pace=button(op,"Auto: On foot",16,356,232,function() B.ToggleTravelMode() end)
     tip(U.pace,"Travel pace","Auto uses your trained riding tier: on foot, 60%, or 100%. Click to switch between Auto and an on-foot override.")
-    button(op,"Test horn",258,278,126,function() B.Sound(true) end)
-    button(op,"Refresh flights",16,316,175,function() C.RefreshFlights(true) end)
-    button(op,"Preview the rally",201,316,183,function() U.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true) end)
-    button(op,"Quick messages",16,354,175,function() U.Compose() end)
-    U.previewButton=button(op,"Preview a call",201,354,183,function()
+    button(op,"Test horn",258,356,126,function() B.Sound(true) end)
+    button(op,"Refresh flights",16,394,175,function() C.RefreshFlights(true) end)
+    button(op,"Preview the rally",201,394,183,function() U.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true) end)
+    button(op,"Quick messages",16,432,175,function() U.Compose() end)
+    U.previewButton=button(op,"Preview a call",201,432,183,function()
         U.options=false;U.expanded=false;B.Preview()
     end)
-    button(op,"Map & beacon controls",16,392,232,function() U.OpenSettingsPage("controls") end)
-    button(op,"Player filters",258,392,126,function() U.OpenSettingsPage("filters") end)
-    U.status=text(op,16,435,368,34,11,pale)
-    text(op,16,476,368,32,11,muted):SetText("Only guild addon users receive calls. Beacons last 5 minutes; calls have a 60-second cooldown.")
-    fill(op,16,520,368,1,.57,.45,.24,.3)
-    U.credit=text(op,16,530,368,16,11,muted);U.credit:SetText("Made by Whitebeard Tinkerton - US PVP")
+    button(op,"Map & beacon controls",16,470,232,function() U.OpenSettingsPage("controls") end)
+    button(op,"Friends & filters",258,470,126,function() U.OpenSettingsPage("filters") end)
+    U.status=text(op,16,513,368,34,11,pale)
+    text(op,16,554,368,32,11,muted):SetText("Only guild addon users receive calls. Beacons last 5 minutes; calls have a 60-second cooldown.")
+    fill(op,16,598,368,1,.57,.45,.24,.3)
+    U.credit=text(op,16,608,368,16,11,muted);U.credit:SetText("Made by Whitebeard Tinkerton - US PVP")
     -- Compose locally; choosing or saving a template never broadcasts it.
     local composer=panel(UIParent,"LightTheBeaconsComposer",620,418);U.composer=composer
     composer:SetPoint("CENTER");composer:SetFrameStrata("FULLSCREEN_DIALOG");draggable(composer)
@@ -338,6 +343,7 @@ function U.Create()
 end
 function U.Answered(name,count,first,beacon,preview)
     if not U.answerBanner then return end
+    if B.db.muteBeacons and not preview then return end
     local a=U.answerBanner
     if U.banner:IsShown() then
         if U.alertBeacon and U.alertBeacon.owner~=B.me then U.pendingAlert={beacon=U.alertBeacon,preview=U.alertPreview} end
@@ -383,6 +389,7 @@ function U.UpdateAlertMessage(b)
 end
 function U.Alert(b,preview)
     if not U.banner then return end
+    if B.db.muteBeacons and not preview then return end
     if b.owner==B.me or (not preview and B.BeaconMode(b.owner)~="normal") then return end
     if U.answerBanner and U.answerBanner:IsShown() then U.pendingAlert={beacon=b,preview=preview};return end
     U.alertBeacon=b
@@ -394,6 +401,7 @@ function U.Alert(b,preview)
     U.banner.elapsed=0;U.banner:Show()
 end
 function U.PromptDeath(confirmed)
+    if B.db.muteBeacons then return end
     U.deathConfirmed=confirmed
     U.deathText:SetText(confirmed and "A hostile player struck you down." or "Rally your guildmates to your fallen body.")
     U.deathPrompt:Show()
@@ -414,7 +422,7 @@ function U.Refresh()
     local id=selected and selected.id
     if U.selectionID~=id then U.selectionID=id;U.routeScroll:SetVerticalScroll(0) end
     U.pace.label:SetText(B.TravelLabel())
-    U.sound:SetChecked(B.db.sound);U.auto:SetChecked(B.db.auto);U.prompt:SetChecked(B.db.prompt)
+    U.mute:SetChecked(B.db.muteBeacons);U.sound:SetChecked(B.db.sound);U.auto:SetChecked(B.db.auto);U.prompt:SetChecked(B.db.prompt)
     U.light.label:SetText(B.own and B.own.expires>C.Now() and "My beacon" or "Light mine")
     U.light:SetEnabled(guild)
     U.status:SetText(guild and (B.db.flightMasterScanned and
@@ -508,7 +516,7 @@ function U.Refresh()
     end
     U.details:SetShown(U.expanded and selected~=nil and true or false)
     if U.expanded and selected then position(U.details,0,y);y=y+detailsHeight end
-    local height=U.options and (U.settingsPage and 510 or 560) or y+7
+    local height=U.options and (U.settingsPage=="controls" and 580 or U.settingsPage and 510 or 638) or y+7
     U.frame:SetHeight(height);U.frame.surface:SetHeight(height-12)
     U.RefreshControls()
 end
@@ -523,7 +531,7 @@ function U.MapPins()
     U.pins=U.pins or {};local i=0
     for _,b in ipairs(B.List()) do
         local p=B.Destination(b);local id,x,y=C.MapPoint(p,map)
-        if id==map and x and y then
+        if id==map and x and y and B.MapVisible(b.owner) then
             i=i+1;local pin=U.pins[i]
             if not pin then
                 pin=CreateFrame("Button",nil,canvas);pin:SetSize(24,24)

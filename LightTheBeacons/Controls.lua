@@ -68,18 +68,20 @@ function U.CreateControls()
         "On by default. Sends your position about every 10 seconds. Off stops background sharing; a lit beacon still shares its incident location.",100,function(value) B.ShareLocation(value) end)
     U.showLocations=checkbox(controls,"Show guildmates on my map",
         "Shows addon users on zone, continent and world maps. Hiding their markers does not change your own sharing.",202,function(value) B.db.showLocations=value;U.MapPins() end)
+    U.friendsOnly=checkbox(controls,"Show only Friends on the map",
+        "Filters guild location and beacon markers. Your beacon stays visible; calls and alerts are unchanged.",282,function(value) B.db.friendsOnly=value;U.MapPins() end)
     U.floatingCheck=checkbox(controls,"Show movable beacon button",
-        "On by default. Click to light or extinguish. Shift-drag to move it; right-click opens the full card.",292,function(value) B.db.floatingButton=value end)
-    U.resetFloating=button(controls,"Reset button position",16,380,184,function() B.db.buttonPosition=nil;U.RestoreFloating() end)
-    button(controls,"Open world map",210,380,174,function()
+        "On by default. Click to light or extinguish. Shift-drag to move it; right-click opens the full card.",372,function(value) B.db.floatingButton=value end)
+    U.resetFloating=button(controls,"Reset button position",16,460,184,function() B.db.buttonPosition=nil;U.RestoreFloating() end)
+    button(controls,"Open world map",210,460,174,function()
         if OpenWorldMap then C.Call(OpenWorldMap,947)
         elseif WorldMapFrame then WorldMapFrame:Show();C.Call(WorldMapFrame.SetMapID,WorldMapFrame,947) end
     end)
-    U.locationStatus=text(controls,16,423,368,38,11,pale)
-    U.locationCount=text(controls,16,470,368,17,11,muted)
+    U.locationStatus=text(controls,16,499,368,38,11,pale)
+    U.locationCount=text(controls,16,548,368,17,11,muted)
     local filters=CreateFrame("Frame",nil,U.frame);U.filtersPanel=filters;filters:SetAllPoints();filters:Hide()
-    text(filters,16,60,368,26,17,gold):SetText("Player filters")
-    text(filters,16,96,368,45,12,pale):SetText("Silence: no horn or popup. Hide: also removes their beacons. Location visibility is a separate choice.")
+    text(filters,16,60,368,26,17,gold):SetText("Friends & filters")
+    text(filters,16,96,368,45,12,pale):SetText("Mark Friends for the map filter. Silence keeps calls quiet; Hide removes their beacons. Location hiding is separate.")
     text(filters,16,148,368,16,11,gold):SetText("FULL CHARACTER NAME  (including surname)")
     local field=CreateFrame("Frame",nil,filters,"BackdropTemplate");field:SetPoint("TOPLEFT",16,-171);field:SetSize(244,28)
     field:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),edgeSize=8,insets={left=3,right=3,top=3,bottom=3}})
@@ -99,7 +101,7 @@ function U.CreateControls()
     local scroll=CreateFrame("ScrollFrame",nil,filters);U.filterScroll=scroll;scroll:SetPoint("TOPLEFT",16,-254);scroll:SetSize(368,192);scroll:EnableMouseWheel(true)
     U.filterChild=CreateFrame("Frame",nil,scroll);U.filterChild:SetSize(368,192);scroll:SetScrollChild(U.filterChild)
     scroll:SetScript("OnMouseWheel",function(self,delta) self:SetVerticalScroll(math.max(0,math.min(U.filterChild:GetHeight()-192,(self:GetVerticalScroll() or 0)-delta*64))) end)
-    U.filterEmpty=text(filters,24,284,352,50,12,muted,"CENTER");U.filterEmpty:SetText("No player filters.\nAdd a character's full name above.")
+    U.filterEmpty=text(filters,24,284,352,50,12,muted,"CENTER");U.filterEmpty:SetText("No Friends or player filters.\nAdd a character's full name above.")
     text(filters,16,462,368,34,11,muted):SetText("Scroll for more players. Changes apply only to this character and are never sent to the guild.")
     filters:SetScript("OnHide",function() edit:ClearFocus() end)
     U.filterRows={}
@@ -107,9 +109,14 @@ end
 local function filterRow(index)
     local row=CreateFrame("Frame",nil,U.filterChild);row:SetPoint("TOPLEFT",0,-((index-1)*64));row:SetSize(368,64)
     fill(row,0,60,368,1,.35,.43,.56,.35)
-    row.name=text(row,0,3,292,20,12,gold);row.name:SetWordWrap(false)
+    row.name=text(row,0,3,198,20,12,gold);row.name:SetWordWrap(false)
     row:EnableMouse(true)
+    row.friend=CreateFrame("CheckButton",nil,row);row.friend:SetPoint("TOPLEFT",204,0);row.friend:SetSize(22,22)
+    row.friend:SetNormalTexture(asset("UI-CheckBox-Up"));row.friend:SetCheckedTexture(asset("UI-CheckBox-Check"))
+    text(row,231,5,63,18,11,pale):SetText("Friend")
+    row.friend:SetScript("OnClick",function(self) local f=B.Filter(row.key);if f then B.SetFriend(f.name,self:GetChecked()) end end)
     row.remove=button(row,"Remove",300,0,68,function() B.RemovePlayerFilter(row.key) end)
+    tip(row.remove,"Remove player","Removes their Friend mark and all local filters.")
     row.mode=button(row,"Beacons: Normal",0,27,180,function()
         local f=B.Filter(row.key);if f then B.SetPlayerFilter(f.name,nextMode[f.beacons],f.hideLocation) end
     end)
@@ -123,16 +130,16 @@ function U.RefreshControls()
     if not U.controlsPanel then return end
     U.controlsPanel:SetShown(U.options and U.settingsPage=="controls")
     U.filtersPanel:SetShown(U.options and U.settingsPage=="filters")
-    U.sharing:SetChecked(B.db.shareLocation);U.showLocations:SetChecked(B.db.showLocations);U.floatingCheck:SetChecked(B.db.floatingButton)
+    U.sharing:SetChecked(B.db.shareLocation);U.showLocations:SetChecked(B.db.showLocations);U.floatingCheck:SetChecked(B.db.floatingButton);U.friendsOnly:SetChecked(B.db.friendsOnly)
     U.resetFloating:SetEnabled(B.db.floatingButton)
     U.locationStatus:SetText((not IsInGuild or not IsInGuild()) and "Join a guild to share locations." or B.locationStatus or
         (B.db.shareLocation and "Location sharing is on; waiting for a readable map position." or "Location sharing is off."))
-    U.locationCount:SetText(#B.Locations().." visible guild locations - stale markers expire after 45 sec")
+    U.locationCount:SetText(#B.Locations()..(B.db.friendsOnly and " visible Friends - " or " visible guild locations - ").."stale markers expire after 45 sec")
     local list={};for key,f in pairs(B.db.playerFilters) do list[#list+1]={key=key,f=f} end
     table.sort(list,function(a,b) return a.f.name<b.f.name end)
     for i=1,math.max(#list,#U.filterRows) do
         local row=U.filterRows[i] or filterRow(i);U.filterRows[i]=row;local entry=list[i];row:SetShown(entry~=nil)
-        if entry then row.key=entry.key;row.name:SetText(entry.f.name);row.mode.label:SetText("Beacons: "..modes[entry.f.beacons]);row.location:SetChecked(entry.f.hideLocation);tip(row,entry.f.name,"Beacons: "..modes[entry.f.beacons]..". Location: "..(entry.f.hideLocation and "hidden" or "shown")..".") end
+        if entry then row.key=entry.key;row.name:SetText(entry.f.name);row.friend:SetChecked(entry.f.friend);row.mode.label:SetText("Beacons: "..modes[entry.f.beacons]);row.location:SetChecked(entry.f.hideLocation);tip(row,entry.f.name,(entry.f.friend and "Friend. " or "").."Beacons: "..modes[entry.f.beacons]..". Location: "..(entry.f.hideLocation and "hidden" or "shown")..".") end
     end
     U.filterEmpty:SetShown(#list==0);U.filterChild:SetHeight(math.max(192,#list*64))
     U.filterScroll:SetVerticalScroll(math.min(U.filterScroll:GetVerticalScroll() or 0,U.filterChild:GetHeight()-192))
@@ -166,6 +173,7 @@ function U.LocationPins()
                     pin:SetScript("OnEnter",function(self)
                         local pos=self.location;if not GameTooltip or not pos then return end
                         GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:AddLine(pos.name,1,.82,.43)
+                        if B.IsFriend(pos.owner) then GameTooltip:AddLine("Friend",1,.82,.43) end
                         GameTooltip:AddLine(C.Zone(pos.map).." - "..math.floor(pos.px*100+.5)..", "..math.floor(pos.py*100+.5),.86,.9,.97)
                         GameTooltip:AddLine("Updated "..math.max(0,C.Now()-pos.sent).." seconds ago.",.7,.75,.83)
                         GameTooltip:AddLine("Left-click: map waypoint. Right-click: player filters.",1,1,1,true);GameTooltip:Show()

@@ -2,7 +2,7 @@
 ## Title: Light the Beacons
 ## Notes: Private guild calls for aid, shared map positions, and routes using your discovered flights.
 ## Author: Whitebeard Tinkerton - US PVP
-## Version: 1.4.1
+## Version: 1.5.0
 ## X-License: All Rights Reserved with Free Player Use; see LICENSE.txt
 ## SavedVariablesPerCharacter: LightTheBeaconsDB
 ## IconTexture: Interface\AddOns\LightTheBeacons\Media\RoyalBrazier.tga

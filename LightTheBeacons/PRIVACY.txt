@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.4.1 / 2026-11-10
+Version 1.5.0 / 2026-11-10
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (prefix LTB1).
@@ -25,7 +25,10 @@ per-recipient access list. A guildmate with another addon that listens for this
 prefix can receive and record these packets. Don't put sensitive personal
 information in a beacon message. Hiding/silencing a player or hiding map markers
 only changes your display; it does not prevent that guildmate receiving your
-broadcasts. Your discovered flights, filters, saved templates and travel timings
+broadcasts. Friend marks and Friends-only filtering are local display choices;
+they do not make your location visible exclusively to Friends. Global beacon
+mute suppresses local notifications, not outgoing beacons or background sharing.
+Your discovered flights, Friend marks, filters, saved templates and travel timings
 are not transmitted. Templates are sent only when used in a beacon.
 
 Stopping sharing
@@ -39,7 +42,7 @@ This cannot erase information already received or recorded by another player.
 What is stored locally
 WoW saves LightTheBeaconsDB per character in its WTF/SavedVariables files.
 It holds settings, discovered flight points, learned flight connections/times,
-three optional message templates, player filters with character names, button
+three optional message templates, Friend marks/player filters with character names, button
 position, a guild identifier, cooldown/response bookkeeping, and your own active
 beacon including its message and responder names. Expired or invalid saved
 beacons are discarded at login; unexpired ones are restored so you can cancel

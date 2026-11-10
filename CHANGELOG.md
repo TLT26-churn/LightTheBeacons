@@ -1,6 +1,19 @@
 # Release notes
 
-## 1.4.1 — License and privacy review
+## 1.5.0 — Friends and quiet alerts (local draft)
+
+- Add a global beacon-alert mute that suppresses live horns, popups, response
+  celebrations and death prompts while preserving location sharing, call lists,
+  responder counts and manual calls. Dismiss queued alerts and stop addon sounds
+  immediately. Explicit test/preview actions remain available.
+- Add private per-character Friend marks in Friends & filters. Preserve existing
+  beacon and location filters when toggling Friend status, and retain all choices
+  through reloads.
+- Add Friends-only map filtering for shared positions and beacon pins, retaining
+  your own beacon. Keep sharing, call lists and alert choices independent.
+- Friends marker artwork is awaiting user approval; no new runtime icon is
+  included yet. Publication and local installation are on hold.
+- Validate 304 simulated-client checks and native Lua settings renders.
 
 - Add All Rights Reserved with Free Player Use terms to the source and addon ZIP;
   preserve the separate Lodestar MIT license and third-party notices.

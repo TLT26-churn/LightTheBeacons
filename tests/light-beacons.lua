@@ -113,6 +113,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
         state.sounds[#state.sounds+1]={id==566064 and 10843 or 8173}
         return state.soundSuccess~=false,42
     end
+    env.StopSound=function(handle) state.stoppedSound=handle;state.stoppedSounds=state.stoppedSounds or {};state.stoppedSounds[handle]=true end
     env.GetCVar=function(name) return name=="Sound_MasterVolume" and "0.3" or "1" end
     env.C_Timer={After=function(delay,fn) state.timers[#state.timers+1]={at=state.now+delay,fn=fn} end}
     env.CreateVector2D=function(x,y) return {x=x,y=y} end
@@ -647,7 +648,7 @@ do
     u.answer.scripts.OnClick()
     check(helper.B.navigating and #helper.s.sent==1,"Resuming does not send another acknowledgement")
     u.optionsButton.scripts.OnClick()
-    check(u.optionsPanel:IsShown() and not u.main:IsShown() and u.frame:GetHeight()==560,"Options replaces the compact contents and reveals the credit")
+    check(u.optionsPanel:IsShown() and not u.main:IsShown() and u.frame:GetHeight()==638,"Options replaces the compact contents and reveals the credit")
     u.optionsButton.scripts.OnClick()
     check(u.main:IsShown() and not u.optionsPanel:IsShown() and u.details:IsShown(),"Back restores the expanded card without resetting its state")
     helper.B.Light()
@@ -812,6 +813,74 @@ do
     end
 end
 
+-- Global alert mute and private Friends map filtering remain independent of sharing.
+do
+    local caller=client("Aldric","Stoneward");local viewer=client("Elowen","Dawnwatch")
+    local b,u=viewer.B,viewer.B.UI
+    check(not b.db.muteBeacons and not b.db.friendsOnly,"Existing alert and all-guild map defaults remain unchanged")
+    local overlap=client("Aldric","Stoneward");local handle=60
+    overlap.env.PlaySoundFile=function() handle=handle+1;return true,handle end
+    overlap.B.Sound(true);overlap.B.Sound(true);overlap.B.MuteBeacons(true)
+    check(overlap.s.stoppedSounds[61] and overlap.s.stoppedSounds[62],"Global mute stops overlapping addon sounds, not just the last horn")
+    caller.B.Light();local packet=caller.s.sent[#caller.s.sent][2]
+    b.Receive(packet,caller.B.name,"GUILD");u.Answered(caller.B.name,1,true,nil)
+    u.PromptDeath(false)
+    local sent=#viewer.s.sent;u.mute:SetChecked(true);u.mute.scripts.OnClick(u.mute)
+    check(not u.banner:IsShown() and not u.answerBanner:IsShown() and not u.deathPrompt:IsShown() and not u.pendingAlert,"Global mute dismisses current popups and queued notifications")
+    check(viewer.s.stoppedSound==42 and #viewer.s.sent==sent,"Global mute stops the addon's sound handle without broadcasting a setting")
+    local soundCount=#viewer.s.sounds
+    b.Light();local own=b.own
+    caller.B.Receive(viewer.s.sent[#viewer.s.sent][2],b.name,"GUILD")
+    caller.B.Select(caller.B.session.beacons[b.me]);caller.B.Answer()
+    b.Receive(caller.s.sent[#caller.s.sent][2],caller.B.name,"GUILD")
+    u.PromptDeath(false)
+    check(#viewer.s.sounds==soundCount and not u.answerBanner:IsShown() and not u.deathPrompt:IsShown(),"Muted own calls and responses cannot play sounds or show rallies/death prompts")
+    check(own.responders[caller.B.me] and b.db.answeredBeaconID==own.id,"Muted responses still update the caller's ally count and duplicate tracking")
+    caller.advance(61);viewer.advance(61);caller.B.Light();b.Receive(caller.s.sent[#caller.s.sent][2],caller.B.name,"GUILD")
+    check(#b.List()==2 and not u.banner:IsShown() and #viewer.s.sounds==soundCount,"New guild calls remain available quietly under global mute")
+    caller.B.BroadcastLocation();b.Receive(caller.s.sent[#caller.s.sent][2],caller.B.name,"GUILD")
+    b.BroadcastLocation()
+    check(#b.Locations()==1 and viewer.s.sent[#viewer.s.sent][2]:find('^1|L|'),"Muted clients still share and receive live guild locations")
+    local restored=client("Elowen","Dawnwatch",b.db)
+    check(restored.B.db.muteBeacons and restored.B.db.shareLocation and restored.B.db.sound,"Global mute survives reload without overwriting sharing or sound preferences")
+    b.MuteBeacons(false);u.answerBanner:Hide()
+    check(not u.banner:IsShown() and not u.pendingAlert,"Unmuting never replays dismissed or queued calls")
+    b.MuteBeacons(true);b.Sound(true);u.Answered("Preview",1,true,nil,true)
+    check(#viewer.s.sounds==soundCount+1 and u.answerBanner:IsShown(),"Explicit test/preview buttons still work while live alerts are muted")
+    b.MuteBeacons(true)
+    local before=#viewer.s.sent
+    b.SetPlayerFilter(caller.B.name,"silent",true);b.SetFriend("  Aldric   Stoneward  ",true)
+    check(b.IsFriend(caller.B.me) and b.Filter(caller.B.me).hideLocation and b.BeaconMode(caller.B.me)=="silent","Friend marking normalizes names and preserves existing beacon/location filters")
+    b.SetPlayerFilter(caller.B.name,"hidden",false)
+    check(b.IsFriend(caller.B.me),"Editing ordinary filters preserves the Friend mark")
+    b.SetPlayerFilter(caller.B.name,"normal",false)
+    local env=viewer.env;local world=env.CreateFrame("Frame","WorldMapFrame",env.UIParent);env.WorldMapFrame=world
+    local canvas=env.CreateFrame("Frame",nil,world);canvas:SetSize(900,600)
+    world.GetCanvas=function() return canvas end;world.GetMapID=function() return 947 end
+    world.SetMapID=function() end
+    u.OpenSettingsPage("controls");u.friendsOnly:SetChecked(true);u.friendsOnly.scripts.OnClick(u.friendsOnly)
+    check(b.db.friendsOnly and #b.Locations()==1 and u.locationPins[1]:IsShown(),"Friends-only control shows a marked friend's world-map location")
+    b.SetFriend(caller.B.name,false)
+    check(#b.Locations()==0 and not u.locationPins[1]:IsShown(),"Removing Friend status immediately hides a location while filtering")
+    local function shownBeacons() local n=0;for _,pin in ipairs(u.pins) do if pin:IsShown() then n=n+1;check(pin.beacon.owner==b.me,"Own beacon remains visible under the Friends-only filter") end end;return n end
+    check(shownBeacons()==1 and #b.List()==2,"Friends-only also filters non-friend beacon pins but keeps own pin and call list")
+    u.OpenSettingsPage("filters");local row=u.filterRows[1];row.friend:SetChecked(true);row.friend.scripts.OnClick(row.friend)
+    check(b.IsFriend(caller.B.me) and #b.Locations()==1 and u.locationPins[1]:IsShown(),"Friend checkbox immediately restores the filtered marker")
+    b.SetPlayerFilter(caller.B.name,"silent",true)
+    check(#b.Locations()==0,"Individual Hide location still wins for a marked Friend")
+    b.SetPlayerFilter(caller.B.name,"silent",false);b.db.showLocations=false
+    check(#b.Locations()==0,"Hide all locations still wins over Friends-only")
+    b.db.showLocations=true
+    local reload=client("Elowen","Dawnwatch",b.db)
+    check(reload.B.db.friendsOnly and reload.B.IsFriend(caller.B.me) and reload.B.BeaconMode(caller.B.me)=="silent","Friends, map filtering and prior per-player settings survive reload")
+    check(#viewer.s.sent==before,"Friend and map display choices never transmit names or settings")
+    b.RemovePlayerFilter(caller.B.me)
+    check(not b.IsFriend(caller.B.me) and #b.Locations()==0,"Removing the player row clears its Friend mark too")
+    check(not b.SetFriend(b.name,true) and not b.SetFriend("Bad|Name",true),"Friend marking rejects self and malformed names")
+    b.db.friendsOnly=false
+    check(#b.Locations()==1,"Disabling Friends-only restores normal guild map visibility")
+end
+
 local perf=os.clock()
 local allKnown={};for id in pairs(data.nodes) do allKnown[id]=true end
 for _=1,50 do R.Plan(start,{c=1,x=6400,y=700},allKnown,"A",14) end
@@ -914,6 +983,7 @@ if arg[2] then
     snapshot(preview,preview.B.UI.frame,arg[2].."-controls.json")
     preview.B.SetPlayerFilter("Jackdark Featherfall","silent",false)
     preview.B.SetPlayerFilter("Blackbeard Soulless","hidden",true)
+    preview.B.SetFriend("Jackdark Featherfall",true)
     preview.B.UI.OpenSettingsPage("filters")
     for _,o in ipairs(preview.objects) do o.box=nil end
     snapshot(preview,preview.B.UI.frame,arg[2].."-filters.json")
