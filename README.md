@@ -2,7 +2,7 @@
 
 A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
-based on each responding character’s discovered flight points.
+based on each responding character’s discovered flight points and trained riding tier.
 
 **[Download the latest addon ZIP](https://github.com/TLT26-churn/LightTheBeacons/releases/latest)** ·
 [Full guide](LightTheBeacons/README.md) · [Release notes](CHANGELOG.md)
@@ -33,6 +33,9 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 - Offers optional automatic PvP death alerts when the client exposes readable
   evidence of a hostile player’s killing blow. Automatic alerts default to off;
   a manual death prompt is available when attribution is restricted.
+
+**1.0.3:** automatically uses the character’s trained 60%/100% riding tier, or
+walking speed when untrained. Options includes an on-foot override.
 
 **1.0.2:** fixes routes to undiscovered flight points such as Gadgetzan. The old
 unreliable discovery cache is reset once; settings and flight timings are kept.

@@ -67,7 +67,7 @@ function U.StepTitle(step)
     if step.kind=="flight" then return "Fly to "..step.to.n end
     if step.kind=="boat" then return "Boat to "..step.to.n end
     if step.kind=="zeppelin" then return "Zeppelin to "..step.to.n end
-    return (B.db.pace>7 and "Ride to " or "Travel to ")..step.to.n
+    return ((B.route and B.route.speed or B.TravelSpeed())>7 and "Ride to " or "Travel to ")..step.to.n
 end
 function U.Cycle(delta)
     if B.preview then return end
@@ -143,10 +143,8 @@ function U.Create()
     U.sound=check("Sound the war horn", "A short horn for new calls. Uses the game's Master volume.",131,"sound")
     U.auto=check("Call automatically after a confirmed PvP death", "Requires a readable hostile-player killing blow. Otherwise, use the call-for-aid prompt.",203,"auto")
     U.prompt=check("Offer a call for aid when I fall", "A private prompt after an outdoor death. Nothing is sent until you accept.",275,"prompt")
-    U.pace=button(op,"Travel pace: On foot",34,354,207,function()
-        B.db.pace=B.db.pace==7 and 11.2 or B.db.pace==11.2 and 14 or 7
-        if not B.navigating then B.Replan() end;U.Refresh()
-    end)
+    U.pace=button(op,"Auto: On foot",34,354,207,function() B.ToggleTravelMode() end)
+    tip(U.pace,"Travel pace","Auto uses your trained riding tier: on foot, 60%, or 100%. Click to switch between Auto and an on-foot override.")
     button(op,"Test horn",251,354,125,function() B.Sound(true) end)
     button(op,"Refresh flights",386,354,193,function() C.RefreshFlights(true) end)
     text(op,36,399,546,39,11,pale):SetText("Only guildmates with the addon receive your call. Beacons burn for 5 minutes, with a 60-second cooldown between calls.")
@@ -231,8 +229,7 @@ function U.Refresh()
     U.count:SetText(#list==0 and "No active calls" or #list==1 and "1 active call" or #list.." active calls")
     U.prev:SetShown(#list>1 and not B.preview);U.nextCall:SetShown(#list>1 and not B.preview)
     U.empty:SetShown(selected==nil)
-    local pace=B.db.pace==7 and "On foot" or B.db.pace==11.2 and "60% mount" or "100% mount"
-    U.pace.label:SetText("Travel pace: "..pace)
+    U.pace.label:SetText(B.TravelLabel())
     U.sound:SetChecked(B.db.sound);U.auto:SetChecked(B.db.auto);U.prompt:SetChecked(B.db.prompt)
     U.light.label:SetText(B.own and B.own.expires>C.Now() and "Extinguish My Beacon" or "Light My Beacon")
     U.light:SetEnabled(IsInGuild and IsInGuild() and true or false)

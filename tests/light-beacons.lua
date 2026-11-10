@@ -8,7 +8,7 @@ local validEvents={}
 for name in ("PLAYER_LOGIN ADDON_LOADED CHAT_MSG_ADDON GUILD_ROSTER_UPDATE PLAYER_GUILD_UPDATE "..
     "CLUB_MEMBER_UPDATED CLUB_MEMBER_ADDED CLUB_MEMBER_REMOVED PLAYER_ENTERING_WORLD TAXIMAP_OPENED TAXIMAP_CLOSED "..
     "TAXI_NODE_STATUS_CHANGED PLAYER_DEAD PLAYER_UNGHOST PLAYER_ALIVE PLAYER_REGEN_ENABLED "..
-    "ZONE_CHANGED_NEW_AREA COMBAT_LOG_EVENT_UNFILTERED"):gmatch("%S+") do validEvents[name]=true end
+    "ZONE_CHANGED_NEW_AREA SKILL_LINES_CHANGED SPELLS_CHANGED COMBAT_LOG_EVENT_UNFILTERED"):gmatch("%S+") do validEvents[name]=true end
 local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     local env=setmetatable({}, {__index=_G});env._G=env
     env.LightTheBeaconsDB=saved
@@ -89,6 +89,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     env.UnitFactionGroup=function() return "Alliance" end
     env.UnitIsDeadOrGhost=function() return state.dead or state.ghost end
     env.UnitOnTaxi=function() return state.taxi end
+    env.C_SkillInfo={GetSkillLineInfoByID=function(id) assert(id==762);return {skillID=762,rank=state.riding or 0,maxRank=300} end}
     env.IsInInstance=function() return not state.outdoor,state.outdoor and "none" or "pvp" end
     env.GetPlayerFacing=function() return 0 end
     env.C_Club={GetGuildClubId=function() return state.guild and 42 or nil end,
@@ -341,6 +342,64 @@ check(not flying.B.route.pendingFlight and not flying.B.waitingLanding,"Route re
 local deadResponder=client("Elowen","Dawnwatch")
 deadResponder.B.Receive(packet,a.B.name,"GUILD");deadResponder.s.dead=true;deadResponder.B.Answer()
 check(not deadResponder.B.navigating and #deadResponder.s.sent==0,"A ghost cannot start a flight rescue route")
+-- Automatic pace uses trained rank, is local to the character, and replans on training.
+local rider=client("Aldric","Stoneward",{pace=14})
+check(rider.B.TravelSpeed()==7 and rider.B.db.travelMode=="auto","Old manual 100% setting does not grant untrained riding")
+rider.s.riding=75;rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==11.2,"Apprentice riding selects 60% movement speed")
+rider.s.riding=150;rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==14,"Journeyman riding selects 100% movement speed")
+rider.s.riding=300;rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==14,"Higher riding ranks never inflate ground speed above 100%")
+rider.env.C_SkillInfo.GetSkillLineInfoByID=function() return {skillID=762,rank=75,maxRank=300,name="Reiten"} end
+rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==11.2,"Uses trained rank, not max rank or localized skill name")
+rider.env.C_SkillInfo=nil
+rider.env.C_SpellBook={IsSpellKnown=function(id) return id==33388 or id==33391 end}
+rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==14,"Spellbook fallback checks highest learned riding tier first")
+rider.env.C_SpellBook.IsSpellKnown=function(id) return id==33388 end;rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==11.2,"Spellbook apprentice fallback selects 60%")
+rider.env.C_SpellBook=nil;rider.env.IsPlayerSpell=function(id) return id==33391 end;rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==14,"Legacy player-spell fallback works")
+rider.env.IsPlayerSpell=nil;rider.env.IsSpellKnown=function(id) return id==33388 end;rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==11.2,"Legacy known-spell fallback works")
+rider.env.IsSpellKnown=nil;rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==7 and not rider.B.ridingKnown,"Missing training APIs fall back to walking without guessing")
+rider.env.C_SkillInfo={GetSkillLineInfoByID=function() return {skillID=762,rank={secret=true}} end}
+rider.env.C_SpellBook={IsSpellKnown=function() return {secret=true} end};rider.B.UpdateTravelPace()
+check(rider.B.TravelSpeed()==7 and not rider.B.ridingKnown,"Restricted training data cannot unlock a mount tier")
+rider.env.C_SkillInfo.GetSkillLineInfoByID=function() error("not ready") end
+rider.env.C_SpellBook.IsSpellKnown=function() error("not ready") end
+check(pcall(rider.B.UpdateTravelPace) and rider.B.TravelSpeed()==7,"Unavailable APIs never abort addon loading")
+local walker=client("Aldric","Stoneward")
+local mounted=client("Elowen","Dawnwatch")
+mounted.s.riding=150;mounted.B.UpdateTravelPace()
+check(walker.B.TravelSpeed()==7 and mounted.B.TravelSpeed()==14,"Two characters use their own trained speeds")
+local owner="elowen dawnwatch"
+walker.B.session.beacons[owner]={owner=owner,name="Elowen Dawnwatch",id="riding-test",sent=walker.s.time,expires=walker.s.time+300,map=1429,px=.15,py=.46,reason="aid",responders={}}
+walker.B.selected=owner;walker.B.Replan()
+local footTime=walker.B.route.seconds
+check(walker.B.route.speed==7 and #walker.B.route.steps==1,"Untrained local rescue plans a walking leg")
+walker.B.navigating=true
+walker.s.riding=75;walker.B.eventFrame.scripts.OnEvent(walker.B.eventFrame,"SKILL_LINES_CHANGED")
+check(walker.B.route.speed==11.2 and math.abs(walker.B.route.seconds-footTime/1.6)<.001,"Learning 60% riding automatically shortens the ground ETA")
+check(walker.B.navigating and walker.s.waypoint~=nil,"Training replans active guidance and updates the waypoint")
+walker.s.riding=150;walker.B.eventFrame.scripts.OnEvent(walker.B.eventFrame,"SPELLS_CHANGED")
+check(walker.B.route.speed==14 and math.abs(walker.B.route.seconds-footTime/2)<.001,"Learning 100% riding automatically halves walking time")
+walker.B.ToggleTravelMode()
+check(walker.B.route.speed==7 and walker.B.db.travelMode=="foot" and walker.B.navigating,"On-foot override replans an active mounted route")
+walker.B.ToggleTravelMode()
+check(walker.B.route.speed==14 and walker.B.db.travelMode=="auto","Auto restores the trained mount speed")
+walker.s.taxi=true;walker.s.riding=75;walker.B.eventFrame.scripts.OnEvent(walker.B.eventFrame,"SKILL_LINES_CHANGED")
+check(walker.B.route.pendingFlight,"Training while on a taxi waits for landing to replan")
+local slowFlight=R.Plan(start,goal,{[2]=true,[5]=true},"A",11.2)
+for _,step in ipairs(slowFlight.steps) do if step.kind=="flight" then
+    for _,original in ipairs(known.steps) do if original.kind=="flight" and step.fromID==original.fromID and step.toID==original.toID then
+        check(step.seconds==original.seconds,"Mount training does not accelerate flight travel")
+    end end
+end end
+
 local perf=os.clock()
 local allKnown={};for id in pairs(data.nodes) do allKnown[id]=true end
 for _=1,50 do R.Plan(start,{c=1,x=6400,y=700},allKnown,"A",14) end

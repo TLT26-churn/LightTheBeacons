@@ -1,4 +1,4 @@
-# Light the Beacons 1.0.2
+# Light the Beacons 1.0.3
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -82,9 +82,19 @@ is never accepted as proof of discovery because Forever can mark unvisited
 points as known. New node positions and connections are also learned from the
 actual flight-master map. Existing rescue routes update after a scan.
 
-Choose **On foot**, **60% mount**, or **100% mount** in Options to match how you
-intend to travel. Flight durations start as estimates and improve when a direct
-flight is timed and arrival at the expected landing point is verified.
+Travel pace defaults to **Auto**, using this character's trained riding rank:
+no training means on foot (7 yards/second), Apprentice riding means a 60% mount
+(11.2 yards/second), and Journeyman or higher means a 100% mount (14 yards/second).
+Training upgrades replan the rescue route automatically. The Options button
+switches between Auto and an **On foot** override. An old manually chosen mount
+speed never unlocks a tier the character has not trained. Unreadable training
+falls back to walking, marked unverified in Options and `/ltb status`.
+
+Mounted estimates assume you can use a mount of your trained tier for outdoor
+ground legs; select the on-foot override if you intend to walk. They do not
+include temporary speed buffs, mount cast time, or combat delays. Training does
+not speed up flights or boats. Flight durations start as estimates and improve
+when a direct flight is timed and arrival at the expected landing point is verified.
 
 These are **estimated routes**, not terrain-aware GPS paths. Ground segments use
 distance with a detour allowance; follow roads around mountains, buildings and
@@ -144,7 +154,7 @@ to Blizzard Entertainment; pinned sources and hashes are in `Media/sources.json`
 The war-horn sound was synthesized for this addon without sampled recordings.
 
 API definitions: [Forever UI source](https://github.com/Gethe/wow-ui-source/tree/forever),
-particularly ChatInfo, TaxiMap, Map, DeathInfo, DeathRecap and CombatLog.
+particularly SkillInfo, SpellBook, ChatInfo, TaxiMap, Map, DeathInfo, DeathRecap and CombatLog.
 
 Forever discovery compatibility: the world-map flag limitation is also documented
 in [ForeverPlusPlus API observations](https://github.com/xIGBClutchIx/ForeverPlusPlus/blob/main/docs/forever-api.md).

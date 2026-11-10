@@ -5,6 +5,29 @@ local function call(fn,...)
     local ok,a,b,c,d=pcall(fn,...);if ok then return a,b,c,d end
 end
 C.Call=call
+-- Read this character's trained riding rank, never their level, temporary
+-- movement speed, or the skill's maximum trainable rank. No UI expansion needed.
+function C.TrainedTravelPace()
+    local info=C_SkillInfo and call(C_SkillInfo.GetSkillLineInfoByID,762)
+    if type(info)=="table" and P.Plain(info) and P.Number(info.skillID,762,762)
+        and P.Number(info.rank,0,1000) then
+        return info.rank>=150 and 14 or info.rank>=75 and 11.2 or 7,true
+    end
+    -- Some client builds expose training in the spellbook before skill data.
+    local readable=false
+    local function known(id)
+        local value=C_SpellBook and call(C_SpellBook.IsSpellKnown,id)
+        if P.Plain(value) and type(value)=="boolean" then readable=true;if value then return true end end
+        value=call(IsPlayerSpell,id)
+        if P.Plain(value) and type(value)=="boolean" then readable=true;if value then return true end end
+        value=call(IsSpellKnown,id)
+        if P.Plain(value) and type(value)=="boolean" then readable=true;return value end
+        return false
+    end
+    if known(33391) then return 14,true end -- Journeyman Riding (150)
+    if known(33388) then return 11.2,true end -- Apprentice Riding (75)
+    return 7,readable
+end
 function C.Now() return GetServerTime and GetServerTime() or time() end
 function C.Me()
     local name,surname=call(UnitNameUnmodified or UnitName,"player")

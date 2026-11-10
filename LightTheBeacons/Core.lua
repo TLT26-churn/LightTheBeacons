@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.0.2"
+B.version="1.0.3"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -23,6 +23,24 @@ function B.Selected()
     if B.preview then return B.preview end
     return B.selected and B.session and B.session.beacons[B.selected]
 end
+function B.TravelSpeed()
+    return B.db and B.db.travelMode=="foot" and 7 or B.ridingPace or 7
+end
+function B.UpdateTravelPace()
+    local old=B.TravelSpeed()
+    B.ridingPace,B.ridingKnown=C.TrainedTravelPace()
+    return old~=B.TravelSpeed()
+end
+function B.TravelLabel()
+    if B.db.travelMode=="foot" then return "On foot (override)" end
+    if not B.ridingKnown then return "Auto: On foot (unverified)" end
+    return "Auto: "..(B.ridingPace==14 and "100% mount" or B.ridingPace==11.2 and "60% mount" or "On foot")
+end
+function B.ToggleTravelMode()
+    B.db.travelMode=B.db.travelMode=="foot" and "auto" or "foot"
+    if B.preview then B.Preview() else B.Replan();if B.navigating then B.SetNextWaypoint() end end
+    B.UI.Refresh()
+end
 function B.Destination(b)
     if not b then return end
     local p=b.point or C.World(b.map,b.px,b.py)
@@ -35,6 +53,7 @@ function B.Select(b)
     B.Replan();B.UI.Refresh()
 end
 function B.Replan()
+    B.UpdateTravelPace()
     if B.preview then B.route=B.preview.route;return end
     if UnitOnTaxi and UnitOnTaxi("player") then
         B.route={steps={},unavailable=true,pendingFlight=true,reason="Your route will update when you land."}
@@ -43,7 +62,7 @@ function B.Replan()
     B.waitingLanding=nil
     local beacon=B.Selected();local start=C.Position();local goal=B.Destination(beacon)
     B.route=nil
-    if start and goal then B.route=R.Plan(start,goal,B.db.known,C.Faction(),B.db.pace,nil,B.db.times) end
+    if start and goal then B.route=R.Plan(start,goal,B.db.known,C.Faction(),B.TravelSpeed(),nil,B.db.times) end
     B.routeIndex=1;B.transportReady=nil
 end
 function B.Receive(msg,sender,channel)
@@ -154,12 +173,13 @@ function B.Death()
     if C_Timer then C_Timer.After(.6,decide) else decide() end
 end
 function B.Preview()
+    B.UpdateTravelPace()
     local data=B.TravelData
     local start={c=0,x=-8900,y=600,n="Your position"}
     local goal={c=0,x=-9510,y=-2640,n="Aldric's beacon"}
     B.preview={name="Aldric",owner="preview",id="preview",sent=C.Now()-12,expires=C.Now()+288,
         map=1433,px=.34,py=.52,reason="pvp",point=goal,responders={other="Elowen"}}
-    B.preview.route=R.Plan(start,goal,{[2]=true,[4]=true,[5]=true,[12]=true},"A",7,data)
+    B.preview.route=R.Plan(start,goal,{[2]=true,[4]=true,[5]=true,[12]=true},"A",B.TravelSpeed(),data)
     B.route=B.preview.route;B.routeIndex=1;B.navigating=false
     B.UI.frame:Show();B.UI.Alert(B.preview,true);B.UI.Refresh()
 end
@@ -219,6 +239,10 @@ function B.Initialize()
         if type(B.db[key])~=type(value) then B.db[key]=value end
     end
     if B.db.pace~=7 and B.db.pace~=11.2 and B.db.pace~=14 then B.db.pace=7 end
+    -- Existing manual speed is retained in saves, but automatic training
+    -- detection is the default from 1.0.3 onward.
+    if B.db.travelMode~="foot" then B.db.travelMode="auto" end
+    B.UpdateTravelPace()
     if not P.Number(B.db.lastSent,0,C.Now()) then B.db.lastSent=nil end
     B.session=P.NewSession();B.nonce=math.random(100000,999999)
     B.lastLivingRecap=C.RecapKey()
@@ -242,6 +266,9 @@ for _,event in ipairs({"PLAYER_LOGIN","ADDON_LOADED","CHAT_MSG_ADDON","GUILD_ROS
 if type(CombatLogGetCurrentEventInfo)=="function" or (C_CombatLog and type(C_CombatLog.GetCurrentEventInfo)=="function") then
     pcall(frame.RegisterEvent,frame,"COMBAT_LOG_EVENT_UNFILTERED")
 end
+-- Optional registrations cannot prevent the slash command from loading on a
+-- client build that renames a skill/spell event.
+for _,event in ipairs({"SKILL_LINES_CHANGED","SPELLS_CHANGED"}) do pcall(frame.RegisterEvent,frame,event) end
 frame:SetScript("OnEvent",function(_,event,...)
     if event=="ADDON_LOADED" then if ...==addon and IsLoggedIn and IsLoggedIn() then B.Initialize() end;return end
     if event=="PLAYER_LOGIN" then B.Initialize();return end
@@ -254,7 +281,15 @@ frame:SetScript("OnEvent",function(_,event,...)
     elseif event=="TAXIMAP_OPENED" then C.TaxiOpened()
     elseif event=="TAXIMAP_CLOSED" then C.TaxiClosed()
     elseif event=="TAXI_NODE_STATUS_CHANGED" then C.RefreshFlights()
-    elseif event=="PLAYER_ENTERING_WORLD" then C.RefreshFlights();B.GuildChanged()
+    elseif event=="SKILL_LINES_CHANGED" or event=="SPELLS_CHANGED" then
+        if B.UpdateTravelPace() then
+            if B.preview then B.Preview() else B.Replan();if B.navigating then B.SetNextWaypoint() end end
+        end
+        B.UI.Refresh()
+    elseif event=="PLAYER_ENTERING_WORLD" then
+        C.RefreshFlights();B.GuildChanged()
+        if B.UpdateTravelPace() then B.Replan();if B.navigating then B.SetNextWaypoint() end end
+        B.UI.Refresh()
     elseif event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE" then
         if not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then
             B.deathPoint=nil;B.killingBlow=nil;B.deathSerial=(B.deathSerial or 0)+1
@@ -286,6 +321,7 @@ SlashCmdList.LIGHTTHEBEACONS=function(input)
     elseif command=="scan" then C.RefreshFlights(true)
     elseif command=="options" then B.UI.Toggle(true)
     elseif command=="status" then
+        B.UpdateTravelPace();B.Print("Travel pace: "..B.TravelLabel()..".")
         B.Print(C.KnownCount().." confirmed flight points. Automatic PvP: "..(B.db.auto and "on, confirmed kills only" or "off")..".")
         if not B.db.flightMasterScanned then B.Print("Open a flight master's map to confirm your discovered flight points.") end
         B.Print("Public combat reader: "..((CombatLogGetCurrentEventInfo or (C_CombatLog and C_CombatLog.GetCurrentEventInfo)) and "available" or "unavailable; using readable death recaps when supplied")..".")

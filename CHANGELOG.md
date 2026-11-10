@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.0.3
+
+- Automatically plan ground legs using the responding character's trained riding
+  tier: none, 60%, or 100%. Read the riding skill rank, with learned riding spells
+  as a fallback; never infer training from level or maximum skill rank.
+- Replan active guidance when riding training changes. Keep flight and public
+  transport times independent of mount speed.
+- Replace manual mount-tier selection with Auto and an on-foot override.
+  Unreadable training safely uses walking speed and reports that it is unverified.
+- Preserve character saves and add regression coverage for training upgrades,
+  separate characters, missing/restricted APIs, overrides and active flight travel.
+- The Alliance theme and replacement sound candidates remain separate previews.
+
 ## 1.0.2
 
 - Fix routes to unvisited destinations such as Gadgetzan: only an open flight
