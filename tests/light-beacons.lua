@@ -32,6 +32,9 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     function methods:SetHeight(h) self.height=h end
     function methods:GetWidth() return self.width end
     function methods:GetHeight() return self.height end
+    function methods:SetScale(v) self.scale=v end
+    function methods:GetScale() return self.scale or 1 end
+    function methods:GetEffectiveScale() return self:GetScale()*(self.parent and self.parent:GetEffectiveScale() or 1) end
     function methods:SetScript(e,f) self.scripts[e]=f end
     function methods:HookScript(e,f) local old=self.scripts[e];self.scripts[e]=function(...) if old then old(...) end;f(...) end end
     function methods:RegisterEvent(e) assert(validEvents[e],"Unknown Forever event: "..tostring(e));self.events[e]=true end
@@ -968,7 +971,9 @@ local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
 local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 local combinedPreview=assert(loadfile("tests/combined-death.lua"))(client,check)
 assert(loadfile("tests/death-instance-guards.lua"))(client,check)
+local nativePreview=assert(loadfile("tests/death-reliability.lua"))(client,check)
 if arg[2] then
+    snapshot(nativePreview,nativePreview.B.DeathUI.frame,arg[2].."-death-client-test.json")
     snapshot(combinedPreview.main,combinedPreview.main.B.DeathUI.frame,arg[2].."-combined-death.json")
     snapshot(combinedPreview.unknown,combinedPreview.unknown.B.DeathUI.frame,arg[2].."-combined-unknown.json")
     local replacement=assert(loadfile("tests/death-replacement-layout.lua"))(combinedPreview.main)

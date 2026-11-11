@@ -1,4 +1,11 @@
-# Light the Beacons 1.6.3
+# Light the Beacons 1.6.3-test.1
+
+Local client-test build. Guild death actions dock beneath Blizzard's original
+death controls, which retain their normal behavior and existing skin. Readable
+death-recap contributors are offered for review; nothing is shared in Ask first
+mode until you confirm. Battlegrounds, arenas and other instances are excluded.
+Use `/ltb deathstatus` for local diagnostics and `/ltb deathdock` to toggle docking.
+This build has not been merged into main or published as a release.
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route

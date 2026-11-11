@@ -326,26 +326,6 @@ function C.RememberAttacker(guid,name,flags,amount)
     if not recent[guid] and count>=32 then recent[oldest]=nil end
     recent[guid]={guid=guid,name=name,at=now}
 end
-function C.DeathAttackers(at,killer)
-    local byName={}
-    local function add(guid,name)
-        if not P.Text(name,100) or name~=B.Grudges.Clean(name,70,100)
-            or not P.Text(guid,80) or not guid:match("^Player%-%x+%-%x+$") then return end
-        local key=P.Identity(name)
-        if not key or key==B.me or B.members[key] then return end
-        local lethal=killer and killer.source==guid or false
-        if not byName[key] or lethal then byName[key]={key=key,guid=guid,name=name,killingBlow=lethal} end
-    end
-    for _,entry in pairs(B.recentAttackers or {}) do
-        if entry.at>=at-30 and entry.at<=at+3.2 then add(entry.guid,entry.name) end
-    end
-    if killer then add(killer.source,killer.name) end
-    local list={};for _,entry in pairs(byName) do list[#list+1]=entry end
-    table.sort(list,function(a,b) if a.killingBlow~=b.killingBlow then return a.killingBlow end;return a.key<b.key end)
-    -- Reserve space for a recap-only killer even if the recent cache was full.
-    while #list>32 do table.remove(list) end
-    return list
-end
 function C.CombatEvent(...)
     local e={...}
     if B.Grudges then B.Grudges.Combat(e) end
@@ -376,34 +356,6 @@ function C.ReadCombatEvent()
     if type(fn)~="function" then return end
     local ok=pcall(function() C.CombatEvent(fn()) end)
     if not ok then B.killingBlow=nil;B.nonPlayerDeath=nil end
-end
-function C.ConfirmedNonPlayerDeath()
-    if B.nonPlayerDeath and GetTime()-B.nonPlayerDeath<=4 then return true end
-    local link=C.RecapKey()
-    if not link or link==B.lastLivingRecap then return false end
-    local recap=C_DeathRecap and call(C_DeathRecap.GetRecapEvents)
-    if type(recap)~="table" or not P.Plain(recap) then return false end
-    for _,e in ipairs(recap) do
-        if type(e)=="table" and P.Plain(e) and C.NonPlayerSource(e.sourceGUID,e.sourceFlags)
-            and P.Number(e.overkill,0,1e12) and P.Number(e.timeBeforeDeath,0,.25) then return true end
-    end
-    return false
-end
-function C.ConfirmedDeath()
-    if B.killingBlow and GetTime()-B.killingBlow.at<=4 then return true,B.killingBlow end
-    -- Some builds return GUID/flags in recaps, others only a caster name.
-    -- A name alone cannot distinguish an NPC from a player and is ignored.
-    local link=C.RecapKey()
-    if not link or link==B.lastLivingRecap then return false end
-    local recap=C_DeathRecap and call(C_DeathRecap.GetRecapEvents)
-    if type(recap)~="table" or not P.Plain(recap) then return false end
-    for _,e in ipairs(recap) do
-        if type(e)=="table" and P.Plain(e) and C.HostilePlayer(e.sourceGUID,e.sourceFlags)
-            and P.Number(e.overkill,0,1e12) and P.Number(e.timeBeforeDeath,0,.25) then
-                return true,{source=e.sourceGUID,name=P.Text(e.sourceName,100) and e.sourceName or nil}
-            end
-    end
-    return false
 end
 function C.RecapKey()
     local key=C_DeathRecap and call(C_DeathRecap.GetRecapLink)

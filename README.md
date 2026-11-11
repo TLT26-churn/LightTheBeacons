@@ -4,6 +4,11 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
+**Local client-test branch: `codex/death-client-test`, version `1.6.3-test.1`.**
+This build is not a public release. It docks guild death actions below the
+original Blizzard death controls and reads both supported public recap timing
+formats. See the [client test guide](docs/DEATH-CLIENT-TEST.md).
+
 **[CurseForge](https://www.curseforge.com/wow/addons/light-the-beacons)** ·
 [GitHub downloads](https://github.com/TLT26-churn/LightTheBeacons/releases/latest) ·
 [Full guide](LightTheBeacons/README.md) · [Release notes](CHANGELOG.md)

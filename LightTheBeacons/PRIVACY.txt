@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.6.3 / 2026-11-11
+Version 1.6.3-test.1 / 2026-11-11
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
@@ -57,7 +57,12 @@ attackers and selections stay local until you choose Inscribe selected or save
 a reviewed entry. The addon keeps a bounded session-only cache of up to 32
 readable hostile players who recently damaged you, using their
 names, GUIDs and local timestamps. The cache is not sent or saved as tracking
-history. Entries older than 30 seconds are ignored for new deaths and pruned
+history. Fresh public death-recap damage can supply the same names and GUIDs
+when combat-log data is unavailable. Readable relative times or server timestamps
+tie that evidence to the death; old recaps and guessed nearby attackers are excluded.
+Late recap names are left unchecked once review has opened. Local `/ltb deathstatus`
+prints only version, availability/status and attacker count, never player names.
+Entries older than 30 seconds are ignored for new deaths and pruned
 when fresh damage arrives. The cache is cleared on resurrection, guild changes and disabling death
 grudges/sharing. A pending death snapshot remains until dismissed or resolved.
 Other detected attackers require confirmation and are not labelled killing blows.

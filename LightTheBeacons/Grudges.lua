@@ -354,40 +354,75 @@ function G.OnDeath()
     G.deathSerial=(G.deathSerial or 0)+1;local serial,scope=G.deathSerial,G.scope
     local draft={serial=serial,scope=scope,at=GetTime(),where=G.Place(),enemy="",guid="",evidence="manual",selected={},saved={}}
     G.pendingDeath=draft
-    local function attempt(final)
+    local function attempt(fallback,finished)
         local dead=C.Call(UnitIsDeadOrGhost,"player")
-        if draft.handled or G.pendingDeath~=draft or serial~=G.deathSerial or scope~=G.scope
+        if G.pendingDeath~=draft or serial~=G.deathSerial or scope~=G.scope
             or not G.Active() or G.options.deathMode=="off" or not C.IsOutdoor()
             or not P.Plain(dead) or dead~=true then return end
         local confirmed,evidence=C.ConfirmedDeath()
-        draft.attackers=C.DeathAttackers(draft.at,confirmed and evidence or nil)
+        local incoming=C.DeathAttackers(draft.at,confirmed and evidence or nil)
+        local incomingByGUID={};for _,entry in ipairs(incoming) do incomingByGUID[entry.guid]=entry end
+        local list,seen,newNames={}, {},0
+        -- Keep visible rows in place while the player is clicking. Late recap
+        -- results may enrich a row or append an unchecked one, never reorder it.
+        for _,old in ipairs(draft.attackers or {}) do
+            local entry=incomingByGUID[old.guid] or old;entry.key=old.key;entry.name=old.name
+            list[#list+1]=entry;seen[entry.guid]=true
+        end
+        for _,entry in ipairs(incoming) do
+            if not seen[entry.guid] and #list<32 then
+                if draft.selected[entry.key]==nil then
+                    draft.selected[entry.key]=not draft.handled;newNames=newNames+1
+                end
+                list[#list+1]=entry;seen[entry.guid]=true
+            end
+        end
+        draft.attackers=list;draft.collecting=not finished
         local first=draft.attackers[1]
         if first then
             draft.enemy=first.name;draft.guid=first.guid;draft.evidence=first.killingBlow and "pvp" or "manual"
             draft.note=(first.killingBlow and "Killed me in " or "Attacked me before my death in ")..draft.where.."."
-            for _,entry in ipairs(draft.attackers) do draft.selected[entry.key]=true end
             if G.options.deathMode=="auto" then
-                if first.killingBlow then
-                    local entry=G.Inscribe(draft.enemy,draft.note,draft.guid,"pvp",draft.where)
+                local lethal;for _,entry in ipairs(list) do if entry.killingBlow then lethal=entry;break end end
+                if lethal and not draft.saved[lethal.key] then
+                    local entry=G.Inscribe(lethal.name,"Killed me in "..draft.where..".",lethal.guid,"pvp",draft.where)
                     if entry then
-                        draft.saved[first.key]=entry.id;draft.selected[first.key]=false
-                        if #draft.attackers==1 then draft.handled=true;G.CancelDeathPrompt();return end
+                        draft.saved[lethal.key]=entry.id;draft.selected[lethal.key]=false
                     end
                 end
             end
-        elseif not confirmed and C.ConfirmedNonPlayerDeath() then
+        elseif fallback and not confirmed and C.ConfirmedNonPlayerDeath() then
             draft.handled=true;G.CancelDeathPrompt();return
-        elseif not final then return end
-        if final or first then
+        elseif not fallback then return end
+        if fallback or first then
+            if draft.handled and newNames>0 then B.DeathUI.message="Recap updated. New names are unchecked." end
             draft.handled=true;draft.note=draft.note or "PvP death in "..draft.where.."."
-            B.GrudgeUI.PromptDeath(draft)
+            local remaining=0;for _,entry in ipairs(draft.attackers) do if not draft.saved[entry.key] then remaining=remaining+1 end end
+            if #draft.attackers>0 and remaining==0 and not B.DeathUI.draft then B.DeathUI.RemoveGrudge()
+            else B.GrudgeUI.PromptDeath(draft) end
         end
     end
     if C_Timer then
         C_Timer.After(.7,function() attempt(false) end)
         C_Timer.After(1.8,function() attempt(false) end)
-        C_Timer.After(3.2,function() attempt(true) end)
-    else attempt(true) end
+        C_Timer.After(3.2,function() attempt(true,false) end)
+        C_Timer.After(5.5,function() attempt(true,true) end)
+    else attempt(true,true) end
+end
+-- Some Forever recaps expose only a given name. Preserve that readable label
+-- but match subsequent sightings/kills by the stored player GUID as well.
+function G.PersonFor(name,guid)
+    if guidOK(guid) and guid~="" then
+        for _,record in ipairs(G.log or {}) do
+            local person=record.kind=="I" and record.guid==guid and G.people[P.Identity(record.enemy)]
+            local debt=person and G.entries[record.id]
+            if debt and not debt.seal and not G.deleted[record.id] then return person,P.Identity(record.enemy) end
+        end
+    end
+    local key=P.Identity(name);local person=key and G.people[key]
+    for _,debt in ipairs(person and person.debts or {}) do
+        if not debt.seal and (debt.entry.guid=="" or debt.entry.guid==guid) then return person,key end
+    end
 end
 function G.Combat(e)
     if not G.Active() or not G.options.autoAvenge or not C.IsOutdoor() or not P.Text(e[2]) or e[2]~="PARTY_KILL" then return end
@@ -396,7 +431,7 @@ function G.Combat(e)
     local now=GetTime();local old=G.killSeen[e[8]]
     if old and now-old<8 then return end
     G.killSeen[e[8]]=now
-    local person=G.people[P.Identity(e[9])]
+    local person=G.PersonFor(e[9],e[8])
     for _,r in ipairs(person and person.debts or {}) do
         if not r.seal and (r.entry.guid=="" or r.entry.guid==e[8]) then G.Avenge(r.entry.id,e[8],"kill");break end
     end
@@ -405,8 +440,11 @@ function G.ObserveUnit(unit)
     if not G.Active() then return end
     local player,attack=C.Call(UnitIsPlayer,unit),C.Call(UnitCanAttack,"player",unit)
     if not P.Plain(player) or not P.Plain(attack) or player~=true or attack~=true then return end
-    local name=C.UnitName(unit);local key=name and P.Identity(name);local person=key and G.people[key]
+    local name=C.UnitName(unit);local guid=C.Call(UnitGUID,unit)
+    if not P.Plain(guid) then guid=nil end
+    local person,key=G.PersonFor(name,guid)
     if not person or person.open==0 or G.options.hidden[key] then return end
+    if not P.Text(name,100) then name=person.name end
     G.sightings[key]={where=G.Place(),at=C.Now()}
     if G.options.sightingAlerts and (not G.seenAlert[key] or GetTime()-G.seenAlert[key]>60) then
         G.seenAlert[key]=GetTime()

@@ -1,5 +1,23 @@
 # Release notes
 
+## 1.6.3-test.1 — Local client test; not published
+
+- Keep Blizzard's original Release Spirit, Death Recap, timers and resurrection
+  controls untouched. Dock the guild extension below them; use side space when
+  necessary, and hide only the extension if readable layout space is unavailable.
+  The original dialog retains its existing skin. The guild extension retains LTB art.
+- Read hostile-player contributors from fresh public death recaps, supporting
+  relative times and Forever epoch timestamps. Merge readable combat damage by
+  GUID. Reject stale/ambiguous/restricted evidence and keep manual name entry.
+- Retry delayed recap data for 5.5 seconds. Preserve rows and selections during
+  updates; late names remain unchecked. Retain confirmed evidence for the incident.
+- Match abbreviated recap names to subsequent sightings and kills by GUID.
+- Keep pending review after releasing spirit; hide it while Death Recap is open.
+  Exclude battlegrounds/arenas/instances and cancel delayed actions on resurrection.
+- Add `/ltb deathstatus` for local diagnostics without character names, and
+  `/ltb deathdock` to toggle docking beneath the native window.
+- Requires live client verification before merging or publishing.
+
 ## 1.6.3 — One death window, selectable attackers
 
 - Combine the beacon and grudge prompts in one themed death window with the

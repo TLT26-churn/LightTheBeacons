@@ -11,7 +11,7 @@ function D.Hide()
 end
 function D.Reset()
     D.active=nil;D.draft=nil;D.beacon=nil;D.confirmed=nil;D.dismissed=nil;D.suspended=nil;D.message=nil;D.where=nil;D.page=1
-    D.Hide()
+    D.awaitingLayout=nil;D.recapOpen=nil;D.dockStatus="inactive";D.Hide()
 end
 function D.Dismiss()
     D.dismissed=true;G.CancelDeathPrompt();D.Hide()
@@ -28,7 +28,7 @@ function D.Beacon(confirmed)
     D.beacon=true;D.confirmed=confirmed;D.Refresh()
 end
 function D.BeaconSent()
-    if D.active then if B.db.prompt then D.beacon=true end;D.Refresh() end
+    if D.active then B.deathBeaconSent=true;if B.db.prompt then D.beacon=true end;D.Refresh() end
 end
 function D.Grudge(draft)
     if D.draft~=draft then D.page=1;D.message=nil end
@@ -49,7 +49,7 @@ function D.Create()
     f:SetScript("OnHide",function() if not D.transition and D.active and not D.dismissed then D.Dismiss() end end)
     UISpecialFrames[#UISpecialFrames+1]="LightTheBeaconsDeathPrompt"
     W.picture(f,"RoyalBrazier",23,19,48,48)
-    label(f,85,20,407,40,31,"title",gold):SetText("You have fallen")
+    D.title=label(f,85,20,407,40,31,"title",gold);D.title:SetText("You have fallen")
     D.place=label(f,86,60,410,20,14,"body",muted)
     W.link(f,"X",510,20,25,D.Dismiss,15,"dark")
     D.aid=CreateFrame("Frame",nil,f);D.aid:SetPoint("TOPLEFT",22,-82);D.aid:SetSize(516,58)
@@ -91,8 +91,8 @@ function D.Create()
     D.inscribe=W.link(D.ledger,"Inscribe selected",0,300,239,D.Inscribe,17,"primary")
     D.manual=W.link(D.ledger,"Edit / add a name",251,300,265,function() B.GrudgeUI.BeginDeathEntry() end,15,"dark")
     D.privacy=label(D.ledger,0,337,516,20,13,"body",muted,"CENTER")
-    D.status=label(f,22,400,388,36,14,"body",gold)
-    D.dismiss=W.link(f,"Dismiss",434,400,104,D.Dismiss,15,"dark")
+    D.status=label(f,22,400,367,36,14,"body",gold)
+    D.dismiss=W.link(f,"Hide guild actions",401,400,137,D.Dismiss,15,"dark")
     -- Keep existing callers pointed at the same physical window.
     B.UI.deathPrompt=f;B.UI.deathCall=D.call
     B.GrudgeUI.deathPrompt=f;B.GrudgeUI.deathAction=D.manual;B.GrudgeUI.deathDismiss=D.dismiss;B.GrudgeUI.deathText=D.explanation
@@ -119,7 +119,7 @@ function D.Refresh()
         local list=draft.attackers or {};local pages=math.max(1,math.ceil(#list/4));D.page=math.max(1,math.min(pages,D.page))
         local selected,remaining=0,0
         for _,entry in ipairs(list) do if not draft.saved[entry.key] then remaining=remaining+1;if draft.selected[entry.key] then selected=selected+1 end end end
-        D.explanation:SetText(#list>0 and "Detected attackers · last 30 seconds\nChoose the names to share with your guild."
+        D.explanation:SetText(#list>0 and "Detected damage · death recap / combat log\nChoose the names to share with your guild."
             or "Killed by a player? The client couldn't identify your killer.\nAdd their name to review a grudge before sharing.")
         D.all:SetShown(#list>0);D.all:SetEnabled(remaining>0);D.all.caption:SetText(selected==remaining and remaining>0 and "Clear selection" or "Select all")
         for i,row in ipairs(D.rows) do
@@ -147,8 +147,8 @@ function D.Refresh()
         D.privacy:SetText(#list>0 and "Inscribe shares the selected entries with guild addon users." or "Nothing is shared until you save in the ledger.")
         position(D.privacy,0,bottom+49);D.ledger:SetHeight(bottom+72);y=y+bottom+76
     end
-    D.status:SetText(D.message or "");position(D.status,22,y);position(D.dismiss,434,y)
+    D.status:SetText(D.message or (draft and draft.collecting and "Checking for delayed recap details…" or ""));position(D.status,22,y);position(D.dismiss,401,y)
     local height=y+52;D.frame:SetHeight(height);D.frame.surface:SetHeight(height-20)
-    if D.frame.SetScale then D.frame:SetScale(math.min(1,(UIParent:GetWidth()-30)/560,(UIParent:GetHeight()-30)/height)) end
+    if not D.ApplyPosition() then D.Hide();return end
     D.frame:Show()
 end

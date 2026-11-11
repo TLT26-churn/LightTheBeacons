@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.6.3"
+B.version="1.6.3-test.1"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -214,21 +214,27 @@ function B.TickRoute()
         B.routeIndex=B.routeIndex+1;B.SetNextWaypoint();B.UI.Refresh()
     end
 end
-function B.Death()
+function B.Death(restored)
     if B.deathActive or not C.IsOutdoor() then return end
+    C.BeginDeathEvidence()
     B.deathActive=true;B.DeathUI.Reset();B.DeathUI.active=true;B.DeathUI.where=B.Grudges.Place()
     B.deathPoint=C.Position() or B.lastLivingPoint
     B.Grudges.OnDeath()
     B.deathSerial=(B.deathSerial or 0)+1;local serial=B.deathSerial
     local function decide()
-        if serial~=B.deathSerial or not C.IsOutdoor() or not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then return end
-        local confirmed=C.ConfirmedDeath();B.lastDeathConfirmed=confirmed
-        if B.db.auto and confirmed then
-            if B.Light("pvp") then return end
+        local dead=C.Call(UnitIsDeadOrGhost,"player")
+        if serial~=B.deathSerial or not C.IsOutdoor() or not P.Plain(dead) or dead~=true then return end
+        if B.DeathUI.dismissed then return end
+        local confirmed=C.ConfirmedDeath();B.lastDeathConfirmed=confirmed;B.DeathUI.confirmed=confirmed
+        if B.db.auto and not restored and confirmed and not B.deathBeaconSent and not B.own and not B.DeathUI.suspended then
+            if B.Light("pvp") then B.deathBeaconSent=true;return end
         end
         if B.db.prompt and IsInGuild and IsInGuild() then B.UI.PromptDeath(confirmed) end
     end
-    if C_Timer then C_Timer.After(.6,decide) else decide() end
+    B.deathBeaconSent=nil
+    if C_Timer then
+        C_Timer.After(.6,decide);C_Timer.After(1.8,decide);C_Timer.After(3.2,decide);C_Timer.After(5.5,decide)
+    else decide() end
 end
 function B.Preview()
     B.UI.options=false;B.UI.settingsPage=nil
@@ -321,7 +327,7 @@ function B.Initialize()
     B.UpdateTravelPace()
     if not P.Number(B.db.lastSent,0,C.Now()) then B.db.lastSent=nil end
     B.session=P.NewSession();B.nonce=math.random(100000,999999)
-    B.lastLivingRecap=C.RecapKey()
+    C.CaptureLivingRecap()
     B.me,B.name=C.Me();B.GuildChanged();B.InitializeSocial();B.Grudges.Initialize()
     if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
         C.Call(C_ChatInfo.RegisterAddonMessagePrefix,P.prefix)
@@ -331,6 +337,12 @@ function B.Initialize()
     C.RefreshFlights()
     if hooksecurefunc and TakeTaxiNode then hooksecurefunc("TakeTaxiNode",C.TaxiTaken) end
     if C_Timer then
+        C_Timer.After(.3,function()
+            -- Reloading while dead may recover the review UI, never an auto-call
+            -- based on the recap that was already present at login.
+            local dead=C.Call(UnitIsDeadOrGhost,"player")
+            if P.Plain(dead) and dead==true then B.Death(true) end
+        end)
         C_Timer.After(4,function() B.members=C.Members();if IsInGuild and IsInGuild() then C.Send("1|Q");B.BroadcastLocation() end end)
     end
     B.UI.Refresh()
@@ -373,7 +385,7 @@ frame:SetScript("OnEvent",function(_,event,...)
         B.UI.Refresh()
     elseif event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE" then
         if not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then
-            B.deathPoint=nil;B.killingBlow=nil;B.nonPlayerDeath=nil;B.deathActive=nil;B.deathSerial=(B.deathSerial or 0)+1
+            B.deathPoint=nil;B.killingBlow=nil;B.nonPlayerDeath=nil;B.deathActive=nil;B.deathEvidence=nil;B.deathSerial=(B.deathSerial or 0)+1
             C.ClearAttackers();B.DeathUI.Reset()
             B.Grudges.deathSerial=(B.Grudges.deathSerial or 0)+1
             B.Grudges.deathActive=nil
@@ -388,6 +400,7 @@ end)
 local elapsed=0
 frame:SetScript("OnUpdate",function(_,delta)
     if not B.db then return end
+    B.DeathUI.Tick(delta)
     B.Grudges.Tick()
     elapsed=elapsed+delta;if elapsed<1 then return end;elapsed=0
     local now=C.Now();P.Prune(B.session,now)
@@ -395,7 +408,7 @@ frame:SetScript("OnUpdate",function(_,delta)
     if B.selected and not B.Selected() then B.selected=nil;B.route=nil;B.navigating=false end
     if not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then
         B.lastLivingPoint=C.Position()
-        B.lastLivingRecap=C.RecapKey()
+        C.CaptureLivingRecap()
     end
     C.ObserveFlight();B.TickRoute();B.BroadcastLocation();B.UI.Tick();B.GrudgeUI.Tick()
 end)
@@ -414,6 +427,16 @@ SlashCmdList.LIGHTTHEBEACONS=function(input)
     elseif command=="filters" then B.UI.OpenSettingsPage("filters")
     elseif command=="button" then B.db.floatingButton=not B.db.floatingButton;B.UI.Refresh()
     elseif command=="grudges" or command=="book" then B.GrudgeUI.Toggle()
+    elseif command=="deathdock" then
+        B.db.deathDock=B.db.deathDock==false;B.DeathUI.Refresh()
+        B.Print("Dock guild actions below the death window: "..(B.db.deathDock and "on" or "off")..". Blizzard's controls are unchanged.")
+    elseif command=="deathstatus" then
+        B.Print("LTB "..B.version.."; death panel: "..(B.DeathUI.dockStatus or "inactive")..".")
+        B.Print("Recap: "..(B.recapReadStatus or "not read this session").."; "..
+            #(B.Grudges.pendingDeath and B.Grudges.pendingDeath.attackers or {}).." detected attackers. No names in this diagnostic.")
+        local restricted=C_CombatLog and C.Call(C_CombatLog.IsCombatLogRestricted)
+        B.Print("Combat log restricted: "..(P.Plain(restricted) and type(restricted)=="boolean" and tostring(restricted) or "unknown")..
+            "; outdoor death actions: "..(C.IsOutdoor() and "available" or "disabled")..".")
     elseif command=="status" then
         B.UpdateTravelPace();B.Print("Travel pace: "..B.TravelLabel()..".")
         B.Print(C.KnownCount().." confirmed flight points. Automatic PvP: "..(B.db.auto and "on, confirmed kills only" or "off")..".")
