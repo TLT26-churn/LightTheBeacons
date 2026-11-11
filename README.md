@@ -25,6 +25,10 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
 
+- Version 1.6.0 adds a **guild-shared Book of Grudges**. Open it from the Rally
+  card or with `/ltb grudges`: an aged, iron-bound ledger with signed grievances,
+  scratched tallies, page turning and wax seals for avenged debts. Guildmates
+  synchronize missed history when they are online together.
 - Version 1.5.0 adds **Mute all beacon alerts**, private **Friend** marks,
   and **Show only Friends on the map**. Friends use the native Alliance shield;
   regular guildmates keep the existing Alliance lion. These controls leave guild
@@ -60,6 +64,8 @@ hand. **Details** reveals the route, map and responders; answering adds a short
 next-step strip. Your own call offers **Extinguish My Beacon**. The author credit
 is tucked into **Options**, and the original royal brazier ships with the addon.
 
+![Guild Book of Grudges — rendered from the native Lua UI with sample entries](docs/book-of-grudges.png)
+
 ![Compact Rally card — rendered from the native Lua UI with sample data](docs/compact-rally-card.png)
 
 **Messages:** choose **Light mine** or `/ltb light`, type an optional message
@@ -93,7 +99,8 @@ verification; simulated-client checks cannot establish those live behaviors.
 
 ## Development
 
-The runtime is ordinary WoW Lua/XML with the original bundled brazier and native WoW texture/sound references. Players do
+The runtime is ordinary WoW Lua/XML with original brazier/tome artwork, bundled
+OFL fonts and native WoW texture/sound references. Players do
 not need Python, LuaJIT or any other external program.
 
 To run the headless tests, install LuaJIT. Packaging also requires a Lua compiler
@@ -109,9 +116,15 @@ extracted copy with simulated clients, then creates one portable ZIP. The tests
 cover private delivery, templates, Unicode messages, reordered packets, malformed messages, cooldowns, discovery isolation,
 routes, death attribution, reload/login startup, notification overlap, floating
 controls, per-player filters, location privacy/expiry and world-map projection.
+Ledger checks cover fragmented UTF-8 records, guild and author validation,
+reordered/duplicate history, offline multi-page sync, withdrawals, combat
+attribution, one-kill/one-debt settlement, retention and native book controls.
 
 Optional `tools/build_light_beacons_media.py` restores the original brazier and caches native texture references locally for previews. The preview renderer
 accepts `LTB_PREVIEW_FONT` if its default serif fonts are unavailable.
+`tools/build_grudge_media.py` reproduces the original worn-tome and wax textures.
+The book uses the bundled Pirata One and IM Fell English fonts, with their
+unaltered SIL Open Font License notices and source hashes in `LightTheBeacons/Fonts/`.
 
 ## Credits
 

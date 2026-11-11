@@ -27,6 +27,10 @@ their own rights and licenses:
   or sound recordings. See the addon's Media/sources.json.
 - The royal brazier was generated for this project using OpenAI image generation.
   This notice applies to that material only to the extent the author holds rights.
+- Pirata One and IM Fell English are bundled unchanged under the SIL Open Font
+  License 1.1. See LightTheBeacons/Fonts/*-OFL.txt (Fonts/ in the installed addon).
+  Those fonts retain their own license and are not subject to this project's
+  restrictions on redistribution or modification of original project materials.
 
 THE ADDON IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NONINFRINGEMENT.

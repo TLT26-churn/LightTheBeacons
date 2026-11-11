@@ -1,5 +1,5 @@
 {
-  "copyright": "RoyalBrazier.tga: artwork generated for Light the Beacons with OpenAI image generation. Blizzard textures and sounds remain native client assets; they are referenced, not bundled.",
+  "copyright": "Original brazier and procedural tome artwork for Light the Beacons. Blizzard textures and sounds remain native references.",
   "files": [
     {
       "file": "RoyalBrazier.tga",
@@ -12,6 +12,30 @@
       ],
       "sha256": "dfaf83128898c2b17551ce116123f18ed7f59aea20ae8031983fca2eb171d162",
       "description": "Original royal blue and gold brazier, generated for Light the Beacons. Transparent RGBA texture."
+    },
+    {
+      "file": "GrudgeTome.tga",
+      "kind": "original",
+      "source": "art/GrudgeTome.png",
+      "sourceSha256": "e2cf530ddfdca3a02b5731a947efb62b4179d2f502fa56de2d1a8f94248e71cb",
+      "size": [
+        1024,
+        1024
+      ],
+      "sha256": "2bc1dd2c46daf083eb0a8aad6b966dea0a934df967f3f75d919584fa3f28b7d0",
+      "description": "Original procedural aged-tome material; reproducible with tools/build_grudge_media.py."
+    },
+    {
+      "file": "GrudgeSeal.tga",
+      "kind": "original",
+      "source": "art/GrudgeSeal.png",
+      "sourceSha256": "3204688980a8cbbe12214c7b873103b28d9f362df225b97c52bf9df03998180b",
+      "size": [
+        128,
+        128
+      ],
+      "sha256": "2bddc43fa5507d7d3607d330e33f1454c95e12ee909146a420893d4af8241e32",
+      "description": "Original procedural aged-tome material; reproducible with tools/build_grudge_media.py."
     }
   ],
   "sounds": [

@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.5.0"
+B.version="1.6.0"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -215,6 +215,7 @@ function B.TickRoute()
     end
 end
 function B.Death()
+    B.Grudges.OnDeath()
     if not C.IsOutdoor() then return end
     B.deathPoint=C.Position() or B.lastLivingPoint
     B.deathSerial=(B.deathSerial or 0)+1;local serial=B.deathSerial
@@ -265,9 +266,11 @@ end
 function B.GuildChanged()
     B.me,B.name=C.Me()
     local inGuild=IsInGuild and IsInGuild()
-    local guild=inGuild and (C_Club and C.Call(C_Club.GetGuildClubId) or C.Call(GetGuildInfo,"player")) or ""
+    local guild
+    if inGuild then guild=(C_Club and C.Call(C_Club.GetGuildClubId)) or C.Call(GetGuildInfo,"player") else guild="" end
     if not P.Plain(guild) then guild=nil end
-    if not guild and IsInGuild and IsInGuild() then B.members=C.Members();return end
+    if (not guild or guild=="") and IsInGuild and IsInGuild() then B.guildPending=true;B.members=C.Members();return end
+    B.guildPending=false
     guild=tostring(guild or "")
     if B.guild and B.guild~=guild then
         B.lastLocationAttempt=nil;B.locationShared=false;B.locationStatus=nil
@@ -278,6 +281,7 @@ function B.GuildChanged()
     B.guild=guild;B.members=C.Members()
     if B.db.guild~=guild then B.db.active=nil;B.db.guild=guild end
     B.RestoreOwn()
+    B.Grudges.GuildChanged()
 end
 function B.Initialize()
     if B.db then return end
@@ -317,9 +321,10 @@ function B.Initialize()
     if not P.Number(B.db.lastSent,0,C.Now()) then B.db.lastSent=nil end
     B.session=P.NewSession();B.nonce=math.random(100000,999999)
     B.lastLivingRecap=C.RecapKey()
-    B.me,B.name=C.Me();B.GuildChanged();B.InitializeSocial()
+    B.me,B.name=C.Me();B.GuildChanged();B.InitializeSocial();B.Grudges.Initialize()
     if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
         C.Call(C_ChatInfo.RegisterAddonMessagePrefix,P.prefix)
+        C.Call(C_ChatInfo.RegisterAddonMessagePrefix,B.Grudges.prefix)
     end
     B.UI.Create()
     C.RefreshFlights()
@@ -339,7 +344,7 @@ if type(CombatLogGetCurrentEventInfo)=="function" or (C_CombatLog and type(C_Com
 end
 -- Optional registrations cannot prevent the slash command from loading on a
 -- client build that renames a skill/spell event.
-for _,event in ipairs({"SKILL_LINES_CHANGED","SPELLS_CHANGED"}) do pcall(frame.RegisterEvent,frame,event) end
+for _,event in ipairs({"SKILL_LINES_CHANGED","SPELLS_CHANGED","PLAYER_TARGET_CHANGED","UPDATE_MOUSEOVER_UNIT"}) do pcall(frame.RegisterEvent,frame,event) end
 frame:SetScript("OnEvent",function(_,event,...)
     if event=="ADDON_LOADED" then if ...==addon and IsLoggedIn and IsLoggedIn() then B.Initialize() end;return end
     if event=="PLAYER_LOGIN" then B.Initialize();return end
@@ -347,8 +352,11 @@ frame:SetScript("OnEvent",function(_,event,...)
     if event=="CHAT_MSG_ADDON" then
         local prefix,msg,channel,sender=...
         if P.Plain(prefix) and prefix==P.prefix and P.Plain(channel) and channel=="GUILD" then B.Receive(msg,sender,channel) end
+        if P.Plain(prefix) and prefix==B.Grudges.prefix and P.Plain(channel) and channel=="GUILD" then B.Grudges.Receive(msg,sender,channel) end
     elseif event=="COMBAT_LOG_EVENT_UNFILTERED" then C.ReadCombatEvent()
     elseif event=="PLAYER_DEAD" then B.Death()
+    elseif event=="PLAYER_TARGET_CHANGED" then B.Grudges.ObserveUnit("target")
+    elseif event=="UPDATE_MOUSEOVER_UNIT" then B.Grudges.ObserveUnit("mouseover")
     elseif event=="TAXIMAP_OPENED" then C.TaxiOpened()
     elseif event=="TAXIMAP_CLOSED" then C.TaxiClosed()
     elseif event=="TAXI_NODE_STATUS_CHANGED" then C.RefreshFlights()
@@ -364,6 +372,8 @@ frame:SetScript("OnEvent",function(_,event,...)
     elseif event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE" then
         if not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then
             B.deathPoint=nil;B.killingBlow=nil;B.deathSerial=(B.deathSerial or 0)+1
+            B.Grudges.deathSerial=(B.Grudges.deathSerial or 0)+1
+            B.Grudges.deathActive=nil
             if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
         end
     elseif event=="ZONE_CHANGED_NEW_AREA" then if not B.navigating then B.Replan() end
@@ -372,6 +382,7 @@ end)
 local elapsed=0
 frame:SetScript("OnUpdate",function(_,delta)
     if not B.db then return end
+    B.Grudges.Tick()
     elapsed=elapsed+delta;if elapsed<1 then return end;elapsed=0
     local now=C.Now();P.Prune(B.session,now)
     if B.own and B.own.expires<=now then B.own=nil;B.db.active=nil end
@@ -380,7 +391,7 @@ frame:SetScript("OnUpdate",function(_,delta)
         B.lastLivingPoint=C.Position()
         B.lastLivingRecap=C.RecapKey()
     end
-    C.ObserveFlight();B.TickRoute();B.BroadcastLocation();B.UI.Tick()
+    C.ObserveFlight();B.TickRoute();B.BroadcastLocation();B.UI.Tick();B.GrudgeUI.Tick()
 end)
 SLASH_LIGHTTHEBEACONS1="/ltb";SLASH_LIGHTTHEBEACONS2="/beacons"
 SlashCmdList.LIGHTTHEBEACONS=function(input)
@@ -396,6 +407,7 @@ SlashCmdList.LIGHTTHEBEACONS=function(input)
     elseif command=="locations" then B.UI.OpenSettingsPage("controls")
     elseif command=="filters" then B.UI.OpenSettingsPage("filters")
     elseif command=="button" then B.db.floatingButton=not B.db.floatingButton;B.UI.Refresh()
+    elseif command=="grudges" or command=="book" then B.GrudgeUI.Toggle()
     elseif command=="status" then
         B.UpdateTravelPace();B.Print("Travel pace: "..B.TravelLabel()..".")
         B.Print(C.KnownCount().." confirmed flight points. Automatic PvP: "..(B.db.auto and "on, confirmed kills only" or "off")..".")

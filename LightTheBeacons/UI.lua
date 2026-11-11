@@ -150,6 +150,7 @@ function U.Create()
         else B.Answer() end
     end)
     U.expand=link(U.main,"Details +",310,139,74,function() U.expanded=not U.expanded;U.Refresh() end)
+    U.book=link(U.main,"Book of Grudges",191,139,114,function() B.GrudgeUI.Toggle() end)
     U.brief=CreateFrame("Frame",nil,U.main);U.brief:SetSize(368,38)
     fill(U.brief,0,0,368,38,.045,.13,.29,1)
     fill(U.brief,0,0,2,38,.85,.66,.29,.9)
@@ -442,7 +443,7 @@ function U.Refresh()
     U.callMessage:SetText(hasMessage and ('"'..callMessage..'"') or not selected and "Light a beacon when you need allies at your side." or "")
     U.callMessage:SetShown(hasMessage or not selected)
     local actionsY=(hasMessage or not selected) and 139 or 107
-    position(U.answer,16,actionsY);position(U.expand,310,actionsY)
+    position(U.answer,16,actionsY);position(U.expand,310,actionsY);position(U.book,191,actionsY)
     U.answer.label:SetText(not selected and "Light My Beacon" or own and "Extinguish My Beacon" or B.preview and "Preview only" or
         navigating and "On my way" or selected.responders and selected.responders[B.me] and "Resume route" or "Answer the Call")
     U.answer:SetEnabled(guild and not B.preview and not navigating)

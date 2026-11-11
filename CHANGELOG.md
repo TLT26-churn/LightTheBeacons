@@ -1,5 +1,31 @@
 # Release notes
 
+## 1.6.0 — The guild Book of Grudges
+
+- Integrate an aged, iron-bound ledger into Light the Beacons. Open it from the
+  Rally card or `/ltb grudges`; browse names and turn individual grievance pages.
+  Keep the approved dark tome, clear title, signed notes, scratched tallies and
+  cracked wax seals. Bundle original materials and OFL fonts for Windows/Linux.
+- Share inscriptions, vengeance and author withdrawals through a separate guild
+  addon protocol. Preserve the original grievance when a debt is avenged. Show
+  who wrote and who answered each wrong, with date, zone and evidence type.
+- Recover missed history from online guildmates in bounded batches. Validate
+  live sender identity, scope every event to its guild, bound fragment buffers,
+  retry delayed sends, deduplicate records and cap retained history at 90 days
+  and 1,200 events. Relayed historical attribution trusts the supplying guildmate.
+- Record confirmed outdoor PvP deaths and your own readable killing blows when
+  supported; retain manual inscription and witnessed-vengeance confirmation.
+  One confirmed kill settles at most one oldest unpaid debt. Never infer an
+  enemy from a name alone or read restricted combat data.
+- Add local target/mouseover warnings, personal hidden names, phrase choices and
+  independent book settings. Sightings are not transmitted or saved. Turning
+  book sharing off pauses its network and automatic recording.
+- Keep notices in one separate bottom slot; retain beacon alert behavior, known
+  flights, riding detection, Friends, map sharing and existing saved settings.
+- Validate 493 simulated-client checks, native Lua book renders, bundled assets
+  and the extracted Windows/Linux ZIP. Live guild sync and PvP attribution
+  still require in-game verification.
+
 ## 1.5.0 — Friends and quiet alerts
 
 - Add a global beacon-alert mute that suppresses live horns, popups, response

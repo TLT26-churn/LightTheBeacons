@@ -8,7 +8,7 @@ local validEvents={}
 for name in ("PLAYER_LOGIN ADDON_LOADED CHAT_MSG_ADDON GUILD_ROSTER_UPDATE PLAYER_GUILD_UPDATE "..
     "CLUB_MEMBER_UPDATED CLUB_MEMBER_ADDED CLUB_MEMBER_REMOVED PLAYER_ENTERING_WORLD TAXIMAP_OPENED TAXIMAP_CLOSED "..
     "TAXI_NODE_STATUS_CHANGED PLAYER_DEAD PLAYER_UNGHOST PLAYER_ALIVE PLAYER_REGEN_ENABLED "..
-    "ZONE_CHANGED_NEW_AREA SKILL_LINES_CHANGED SPELLS_CHANGED COMBAT_LOG_EVENT_UNFILTERED"):gmatch("%S+") do validEvents[name]=true end
+    "ZONE_CHANGED_NEW_AREA SKILL_LINES_CHANGED SPELLS_CHANGED COMBAT_LOG_EVENT_UNFILTERED PLAYER_TARGET_CHANGED UPDATE_MOUSEOVER_UNIT"):gmatch("%S+") do validEvents[name]=true end
 local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     local env=setmetatable({}, {__index=_G});env._G=env
     env.LightTheBeaconsDB=saved
@@ -87,6 +87,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     env.GameTooltip=obj("GameTooltip",env.UIParent);env.GameTooltip:Hide()
     env.UISpecialFrames={};env.SlashCmdList={};env.DEFAULT_CHAT_FRAME={AddMessage=function(_,m) state.lastMessage=m end}
     env.GetTime=function() return state.now end;env.GetServerTime=function() return state.time end
+    env.date=os.date
     env.IsShiftKeyDown=function() return state.shift==true end
     env.IsLoggedIn=function() return not coldLogin end
     env.RegionalUniqueNamesEnabled=function() return true end
@@ -949,7 +950,7 @@ local function snapshot(c,target,path)
     local ox,oy,ow,oh=bounds(target);local scene={width=ow,height=oh,items={}}
     for _,o in ipairs(c.objects) do if inside(o) and visible(o) then
         local x,y,w,h=bounds(o);local item={id=o.id,kind=o.kind,x=x-ox,y=y-oy,width=w,height=h,
-            frameLevel=o.frameLevel,layer=o.layer,text=o.text,fontSize=o.fontSize,color=o.color,align=o.align,
+            frameLevel=o.frameLevel,layer=o.layer,text=o.text,fontSize=o.fontSize,font=o.font,color=o.color,align=o.align,
             wrap=o.wrap,nonSpaceWrap=o.nonSpaceWrap,file=o.file,coords=o.coords,solid=o.solid,alpha=o.alpha,desaturated=o.desaturated,vertexColor=o.vertexColor,backdrop=o.backdrop,
             backdropColor=o.backdropColor,border=o.border}
         local ancestor=o
@@ -963,7 +964,18 @@ local function snapshot(c,target,path)
     end end
     local f=assert(io.open(path,"w"));f:write(json(scene));f:close()
 end
+local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
 if arg[2] then
+    snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges.json")
+    grudgePreview.B.GrudgeUI.Turn(1)
+    for _,o in ipairs(grudgePreview.objects) do o.box=nil end
+    snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-avenged.json")
+    grudgePreview.B.GrudgeUI.Mode("inscribe")
+    for _,o in ipairs(grudgePreview.objects) do o.box=nil end
+    snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-inscribe.json")
+    grudgePreview.B.GrudgeUI.Mode("settings")
+    for _,o in ipairs(grudgePreview.objects) do o.box=nil end
+    snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-settings.json")
     snapshot(preview,preview.B.UI.frame,arg[2].."-window.json")
     preview.B.UI.expanded=true;preview.B.UI.Refresh()
     for _,o in ipairs(preview.objects) do o.box=nil end

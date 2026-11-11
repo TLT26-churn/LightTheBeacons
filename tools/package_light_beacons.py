@@ -10,6 +10,9 @@ assert re.search(r'^## Interface: 16001$',toc,re.M)
 assert (root/'LICENSE.txt').read_bytes()==(addon/'LICENSE.txt').read_bytes(), 'License copies must match'
 assert (addon/'PRIVACY.txt').is_file()
 assert (addon/'ThirdParty/Lodestar-LICENSE.txt').is_file()
+for item in json.loads((addon/'Fonts/sources.json').read_text()):
+    assert hashlib.sha256((addon/'Fonts'/item['file']).read_bytes()).hexdigest()==item['sha256']
+    assert 'SIL OPEN FONT LICENSE' in (addon/'Fonts'/item['license']).read_text()
 for line in toc.splitlines():
     if line and not line.startswith('#'):assert (addon/line).is_file(),line
 for path in addon.rglob('*.lua'):
@@ -25,6 +28,8 @@ for path in (addon/'Media').glob('*.tga'):
     with Image.open(path) as im:
         assert im.width&(im.width-1)==0 and im.height&(im.height-1)==0,path
         im.verify()
+with Image.open(addon/'Media/GrudgeTome.tga') as im:
+    assert im.getchannel('A').getextrema()==(255,255), 'Tome paper must remain opaque beneath stains'
 assert not list((addon/'Media').glob('*.ogg')), 'Native WoW sound kits require no bundled recordings'
 assert {s['soundKitID'] for s in json.loads((addon/'Media/sources.json').read_text())['sounds']}=={10843,8173}
 assert {s['fileDataID'] for s in json.loads((addon/'Media/sources.json').read_text())['sounds']}=={566064,569543}

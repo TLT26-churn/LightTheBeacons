@@ -1,8 +1,9 @@
 Light the Beacons — player privacy information
-Version 1.5.0 / 2026-11-10
+Version 1.6.0 / 2026-11-10
 
 What leaves your client
-All addon transmissions use WoW's GUILD addon-data channel (prefix LTB1).
+All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
+locations; LTBGR1 for the Book of Grudges).
 There is no external telemetry, analytics endpoint, web request, or ordinary
 chat posting in the addon. The game supplies your character name to recipients.
 
@@ -49,7 +50,34 @@ beacons are discarded at login; unexpired ones are restored so you can cancel
 them. Live expiry and cancellation also clear your own beacon record. WoW
 writes these changes to disk on its normal save/reload/logout cycle.
 
-Other players' beacons and background locations are kept in session memory,
+The guild Book of Grudges
+The book is enabled by default. Manually inscribed wrongs and recorded vengeance
+are shared with guild addon users. Automatic recording is also enabled for
+confirmed outdoor PvP deaths with a readable attacker identity and for your own
+confirmed killing blows against recorded enemies. These book options do not
+enable automatic beacon calls. Disable them independently in Book > Settings.
+Turning off "Use the guild-shared book" pauses all ledger transmission,
+reception and automatic recording; the saved book becomes read-only.
+
+Ledger records include a guild identifier, record ID/time, scribe's name,
+enemy's full character name, optional player GUID, zone, written grievance,
+evidence type and references to avenged/withdrawn entries. The zone of a newly
+written incident can reveal where its scribe was; this does not depend on the
+separate background location-sharing option. No exact coordinates are included
+in ledger records. Sighting warnings are local target/mouseover observations,
+not transmitted or saved enemy location history.
+
+The current guild's ledger and unsent changes are saved per character, capped
+at 1,200 records and 90 days. Guildmates exchange cached history to recover
+missed entries. Live authors are checked against the game's sender, but cached
+history trusts the relaying guildmate and is not cryptographically signed.
+Changing guild discards the old guild's cache and queued ledger packets.
+Withdrawal hides an entry with a shared tombstone; its original record remains
+in caches until expiry and cannot be forcibly erased from another client.
+Hiding a debtor affects your view and sighting warnings only. Local book options,
+hidden names and phrase choices are not transmitted.
+
+Other players' beacons and background locations (unlike ledger history) are kept in session memory,
 not saved as location history. Location records expire after 45 seconds and
 beacons after five minutes. Changing/leaving guild clears active guild data.
 Templates, filters and settings remain until changed or reset. Local backups

@@ -24,11 +24,11 @@ function P.Identity(name)
     return (n .. "-" .. realm:gsub("%s", "")):lower()
 end
 -- Plain, single-line text. Count complete UTF-8 characters, never split one.
-function P.Message(value, editing)
+function P.Message(value, editing, limit)
     if not P.Plain(value) or type(value)~="string" then return "",0 end
     value=value:gsub("[|%c]"," "):gsub("\226\128\168"," "):gsub("\226\128\169"," ")
     local out,i,count={},1,0
-    while i<=#value and count<P.messageLimit do
+    while i<=#value and count<(limit or P.messageLimit) do
         local b=value:byte(i)
         local size=b<128 and 1 or b>=194 and b<=223 and 2 or b>=224 and b<=239 and 3 or b>=240 and b<=244 and 4 or 0
         local valid=size>0 and i+size-1<=#value

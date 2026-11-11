@@ -48,8 +48,8 @@ function C.TrainedTravelPace()
     return 7,readable
 end
 function C.Now() return GetServerTime and GetServerTime() or time() end
-function C.Me()
-    local name,surname=call(UnitNameUnmodified or UnitName,"player")
+function C.UnitName(unit)
+    local name,surname=call(UnitNameUnmodified or UnitName,unit)
     if not P.Text(name) then return end
     if RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() then
         if P.Text(surname) then
@@ -58,11 +58,15 @@ function C.Me()
             if name:sub(-#tail)~=tail then name=name..tail end
         end
     elseif UnitFullName then
-        local first,realm=call(UnitFullName,"player")
+        local first,realm=call(UnitFullName,unit)
         if P.Text(first) then name=first end
         if P.Text(realm) then name=name.."-"..realm end
     end
-    return P.Identity(name),name
+    return name
+end
+function C.Me()
+    local name=C.UnitName("player")
+    return name and P.Identity(name),name
 end
 function C.Faction()
     local value=call(UnitFactionGroup,"player")
@@ -84,13 +88,13 @@ function C.Members()
     if P.Number(n,0,10000) then for i=1,n do add(call(GetGuildRosterInfo,i)) end end
     return members
 end
-function C.Send(msg)
+function C.Send(msg,prefix)
     if not IsInGuild or not IsInGuild() then return false,"Join a guild to light a beacon." end
     if not C_ChatInfo or not C_ChatInfo.SendAddonMessage then return false,"Addon messages are unavailable." end
     if C_ChatInfo.InChatMessagingLockdown and call(C_ChatInfo.InChatMessagingLockdown)==true then
         return false,"The game is restricting addon messages. Try again when combat ends."
     end
-    local ok,result=pcall(C_ChatInfo.SendAddonMessage,P.prefix,msg,"GUILD")
+    local ok,result=pcall(C_ChatInfo.SendAddonMessage,prefix or P.prefix,msg,"GUILD")
     local success=ok and P.Plain(result) and (result==true or result==0 or
         (Enum and Enum.SendAddonMessageResult and result==Enum.SendAddonMessageResult.Success))
     if not success then return false,"The game did not accept the beacon message. Please try again." end
@@ -303,6 +307,7 @@ function C.HostilePlayer(guid,flags)
 end
 function C.CombatEvent(...)
     local e={...}
+    if B.Grudges then B.Grudges.Combat(e) end
     if not P.Text(e[2]) or not P.Plain(e[8]) then B.killingBlow=nil;return end
     local mine=call(UnitGUID,"player")
     if not P.Text(mine) or e[8]~=mine then return end
@@ -315,7 +320,7 @@ function C.CombatEvent(...)
         -- Any later non-player damage invalidates a previous candidate.
         B.killingBlow=nil
         if P.Number(overkill,0,1e12) and C.HostilePlayer(e[4],e[6]) then
-            B.killingBlow={at=GetTime(),source=e[4]}
+            B.killingBlow={at=GetTime(),source=e[4],name=P.Text(e[5],100) and e[5] or nil}
         end
     elseif event=="ENVIRONMENTAL_DAMAGE" then B.killingBlow=nil end
 end
@@ -327,7 +332,7 @@ function C.ReadCombatEvent()
     if not ok then B.killingBlow=nil end
 end
 function C.ConfirmedDeath()
-    if B.killingBlow and GetTime()-B.killingBlow.at<=4 then return true end
+    if B.killingBlow and GetTime()-B.killingBlow.at<=4 then return true,B.killingBlow end
     -- Some builds return GUID/flags in recaps, others only a caster name.
     -- A name alone cannot distinguish an NPC from a player and is ignored.
     local link=C.RecapKey()
@@ -336,7 +341,9 @@ function C.ConfirmedDeath()
     if type(recap)~="table" or not P.Plain(recap) then return false end
     for _,e in ipairs(recap) do
         if type(e)=="table" and P.Plain(e) and C.HostilePlayer(e.sourceGUID,e.sourceFlags)
-            and P.Number(e.overkill,0,1e12) and P.Number(e.timeBeforeDeath,0,.25) then return true end
+            and P.Number(e.overkill,0,1e12) and P.Number(e.timeBeforeDeath,0,.25) then
+                return true,{source=e.sourceGUID,name=P.Text(e.sourceName,100) and e.sourceName or nil}
+            end
     end
     return false
 end

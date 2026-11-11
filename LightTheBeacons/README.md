@@ -1,4 +1,4 @@
-# Light the Beacons 1.5.0
+# Light the Beacons 1.6.0
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -41,6 +41,7 @@ Options contains settings, local previews and the subtle
 
 ## Use
 
+- `/ltb grudges` or **Book of Grudges** on the Rally card: open the shared ledger.
 - `/ltb` or the brazier beside the minimap: open the card.
 - `/ltb light`: compose a call at your position (or your fallen body).
 - `/ltb clear`: extinguish your beacon.
@@ -170,14 +171,72 @@ and can be delayed by game messaging restrictions. A marker does not establish
 that another player is on your layer. Earlier addon versions continue to
 exchange beacons normally but do not share background positions.
 
+## The guild Book of Grudges
+
+**1.6.0:** the book is integrated into Light the Beacons; no separate grudge addon
+is required. Every participating guildmate needs 1.6.0 or later. Older clients
+continue to exchange beacons normally and ignore the separate ledger protocol.
+
+The book has a dark leather binding, stained parchment, legible fantasy titles,
+a name index and one grievance per facing leaf. **Inscribe** accepts the enemy's
+full name and up to 160 characters. **Use hostile target** fills a readable player
+name. Every entry is signed with its author, date and zone and is shared with
+guild addon users. **Previous/Next leaf** traverses a debtor's history; the name
+index is paged and searchable. Hover a page for the complete written record.
+
+Any guildmate can **Strike this grudge** after witnessing the enemy's defeat.
+The confirmation records one victory against one selected debt, preserves the
+original words, and adds an attributed wax seal. Manual records are identified
+as manually witnessed victories. Only the original scribe can **Withdraw my
+entry**; a withdrawal is a shared tombstone that hides the entry, not a way to
+forcibly erase copies another player has already received.
+
+Book **Settings** default to guild sharing, automatic confirmed outdoor PvP
+death recording, automatic recording of your own confirmed killing blows,
+target/mouseover sighting warnings and grudge notices. These are independent of
+the beacon's automatic-call setting (which still defaults to off). Death
+recording needs a readable hostile player GUID, flags, lethal evidence and name.
+Automatic vengeance needs your own readable `PARTY_KILL` event against a known
+enemy; party participation is not treated as your kill. One kill settles the
+oldest unpaid debt, and repeated evidence is deduplicated. If the game restricts
+attribution, use manual inscription/vengeance. No secure/internal combat API is used.
+
+Sightings are local observations of a hostile player you target or mouse over;
+they are not shared or saved as enemy tracking. **Hide this name** suppresses a
+debtor in your index and sightings locally. Restore hidden names in Settings.
+Turning off **Use the guild-shared book** pauses receiving, sending and automatic
+recording and makes saved pages read-only. **The words** chooses a phrase per
+occasion or lets the book rotate through them. “The account is balanced” is
+reserved for a debtor with no unpaid wrongs. Notices use one bottom-screen slot;
+the existing beacon alert mute also suppresses them.
+
+The ledger uses `LTBGR1` on the hidden `GUILD` addon-data channel. It sends no
+ordinary chat. Records include a guild identifier, author, event ID/time, enemy
+name, optional readable player GUID, zone, written grievance and evidence type;
+seals/withdrawals reference the original entry. Packets are bounded, assembled
+without evaluating code and sent at most twice per second. Live authors must
+match the game's sender identity. Missed history is copied from current online
+guildmates, **trusting those peers' cached attribution**; historical records are
+not cryptographically signed or independently verified combat evidence.
+
+Records and unsent local changes persist per character. The current guild's
+cache retains at most 1,200 records for 90 days. Switching guild discards the
+previous guild's ledger cache and pending packets. Login and periodic inventory
+checks recover missing pages in bounded batches from online peers; this can
+take time and needs overlapping online sessions. There is no central server.
+Sharing is suspended while guild identity is unavailable, and records are also
+bound to the guild in their payload to reject delayed old-guild traffic.
+
 ## Private guild alerts
 
-All network traffic uses `C_ChatInfo.SendAddonMessage`, prefix `LTB1`, on the
+All network traffic uses `C_ChatInfo.SendAddonMessage`, prefixes `LTB1` for
+beacons/locations and `LTBGR1` for the book, on the
 hidden `GUILD` addon-data channel. **No message is posted in guild chat**, party
 chat, say, yell, ordinary whispers, or any external service. Only other members
 of your guild running the addon display the alert. Non-guild senders and packets
 received on other channels are ignored. Your identity comes from the game's
-sender field, never from an asserted name inside a packet.
+sender field for live events. Relayed book history has the separate trust model
+described above.
 
 Beacon messages contain a beacon ID, timestamp, map position, reason, optional
 caller text, and response/cancellation. Background location messages contain a
@@ -245,8 +304,11 @@ instances do not create beacons or automatic prompts.
 `LightTheBeaconsDB` is saved **per character**. It contains options, discovered
 flights, learned connections/times, three message templates, sharing/display
 preferences, global alert mute, Friend marks, player filters, floating-button position and your own unexpired
-beacon including its message and responder names. Expired or invalid saved
-beacons are cleared at login; WoW writes the cleanup at its next normal save. Remote beacons and shared locations
+beacon including its message and responder names.
+Guild grudge events, unsent ledger changes and local book settings are also
+saved; ledger history expires after 90 days and is cleared on a guild change.
+Expired or invalid saved beacons are cleared at login; WoW writes the cleanup at
+its next normal save. Remote beacons and shared locations
 are held in memory only. Reloading preserves your ability to extinguish your
 own active beacon. Leaving/changing guild clears active guild data. Installing
 or updating the addon does not modify the game's `WTF` directory or other saves.
@@ -257,7 +319,8 @@ routing, boats/zeppelins, new flight connections, saved settings, death detectio
 and UI construction, plus popup arbitration, movable controls, per-player
 filters, location opt-out/expiry and zone-to-continent-to-world map projection.
 Rendered previews are generated from the real Lua widget
-tree with local native-texture preview fixtures and a substitute serif font; the game uses Friz Quadrata.
+tree with local native-texture preview fixtures. The book renderer uses the same
+bundled fonts as the client; other panels use a substitute serif for Friz Quadrata.
 These checks do not substitute for live guild delivery, PvP, map and taint tests.
 
 From the source workspace:

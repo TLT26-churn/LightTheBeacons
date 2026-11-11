@@ -17,6 +17,7 @@ function B.MuteBeacons(enabled)
         if B.UI.banner then B.UI.banner:Hide() end
         if B.UI.answerBanner then B.UI.answerBanner:Hide() end
         if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
+        if B.GrudgeUI and B.GrudgeUI.toast then B.GrudgeUI.toast:Hide() end
         for handle,expires in pairs(B.soundHandles or {}) do if expires>GetTime() then C.Call(StopSound,handle) end end
         B.soundHandles={}
     end

@@ -70,7 +70,10 @@ for s in sorted(items,key=lambda s:(s['frameLevel'],order.get(s.get('layer'),-1)
     elif s['kind'] in ('FontString','EditBox') and s.get('text') is not None:
         # Draw at 2x then downsample to closely approximate in-game font rasterization.
         surface=Image.new('RGBA',(w*scale,h*scale));draw=ImageDraw.Draw(surface)
-        font=ImageFont.truetype(font_path,round(s.get('fontSize',12)*scale))
+        source_font=s.get('font','').replace('\\','/')
+        bundled_font=root/'LightTheBeacons/Fonts'/source_font.rsplit('/',1)[-1]
+        chosen_font=str(bundled_font) if source_font.startswith('Interface/AddOns/LightTheBeacons/Fonts/') and bundled_font.is_file() else font_path
+        font=ImageFont.truetype(chosen_font,round(s.get('fontSize',12)*scale))
         lines=[]
         for paragraph in str(s['text']).split('\n'):
             if s.get('wrap') is False:
