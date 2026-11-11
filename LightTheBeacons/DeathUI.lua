@@ -25,10 +25,15 @@ function D.Resume()
     D.Refresh()
 end
 function D.Beacon(confirmed)
+    if not C.DeathHasPvP(confirmed) then return end
     D.beacon=true;D.confirmed=confirmed;D.Refresh()
 end
 function D.BeaconSent()
-    if D.active then B.deathBeaconSent=true;if B.db.prompt then D.beacon=true end;D.Refresh() end
+    if D.active then
+        B.deathBeaconSent=true
+        if B.db.prompt and C.DeathHasPvP() then D.beacon=true end
+        D.Refresh()
+    end
 end
 function D.Grudge(draft)
     if D.draft~=draft then D.page=1;D.message=nil end
@@ -103,6 +108,7 @@ function D.Refresh()
     local dead=C.Call(UnitIsDeadOrGhost,"player")
     if D.dismissed or D.suspended or not P.Plain(dead) or dead~=true or B.db.muteBeacons or not C.IsOutdoor()
         or B.guildPending or not B.guild or B.guild=="" then D.Hide();return end
+    if not (B.deathEvidence and B.deathEvidence.pvp) then D.Hide();return end
     -- Wait for the one evidence decision; don't flash a second popup over the first.
     if G.pendingDeath and not G.pendingDeath.handled then D.Hide();return end
     local draft=D.draft
@@ -120,7 +126,7 @@ function D.Refresh()
         local selected,remaining=0,0
         for _,entry in ipairs(list) do if not draft.saved[entry.key] then remaining=remaining+1;if draft.selected[entry.key] then selected=selected+1 end end end
         D.explanation:SetText(#list>0 and "Detected damage · death recap / combat log\nChoose the names to share with your guild."
-            or "Killed by a player? The client couldn't identify your killer.\nAdd their name to review a grudge before sharing.")
+            or "Hostile-player damage detected; the name is unavailable.\nAdd their name to review a grudge before sharing.")
         D.all:SetShown(#list>0);D.all:SetEnabled(remaining>0);D.all.caption:SetText(selected==remaining and remaining>0 and "Clear selection" or "Select all")
         for i,row in ipairs(D.rows) do
             local entry=list[(D.page-1)*4+i];row.entry=entry;row:SetShown(entry~=nil)

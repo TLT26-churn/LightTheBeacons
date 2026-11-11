@@ -4,10 +4,11 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
-**Local client-test branch: `codex/death-client-test`, version `1.6.3-test.1`.**
+**Local client-test branch: `codex/death-client-test`, version `1.6.3-test.2`.**
 This build is not a public release. It docks guild death actions below the
 original Blizzard death controls and reads both supported public recap timing
-formats. See the [client test guide](docs/DEATH-CLIENT-TEST.md).
+formats. Both death prompts require positive hostile-player evidence; mob-only
+deaths and unavailable attribution stay quiet. See the [client test guide](docs/DEATH-CLIENT-TEST.md).
 
 **[CurseForge](https://www.curseforge.com/wow/addons/light-the-beacons)** ·
 [GitHub downloads](https://github.com/TLT26-churn/LightTheBeacons/releases/latest) ·
@@ -64,7 +65,7 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
   Messages appear on allies' alerts, beacon cards and map-pin tooltips.
 - Offers optional automatic PvP death alerts when the client exposes readable
   evidence of a hostile player’s killing blow. Automatic alerts default to off;
-  a manual death prompt is available when attribution is restricted.
+  manual calls and ledger entries remain available when attribution is restricted.
 
 ![Combined death window — actual addon widgets with fictional sample names](docs/combined-death.png)
 

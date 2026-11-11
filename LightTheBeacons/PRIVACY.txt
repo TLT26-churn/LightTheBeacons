@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.6.3-test.1 / 2026-11-11
+Version 1.6.3-test.2 / 2026-11-11
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
@@ -67,8 +67,11 @@ when fresh damage arrives. The cache is cleared on resurrection, guild changes a
 grudges/sharing. A pending death snapshot remains until dismissed or resolved.
 Other detected attackers require confirmation and are not labelled killing blows.
 Auto-save is optional and shares confirmed
-outdoor PvP deaths with a readable attacker identity; unknown killers require
-manual confirmation. Off disables death prompts and automatic death entries.
+outdoor PvP deaths with a readable attacker identity. Both death prompts require
+positive hostile-player involvement; mob-only deaths and unknown attribution
+produce no prompt. A confirmed player with an unavailable name requires manual
+confirmation. Manual calls and ledger entries remain accessible regardless.
+Off disables death prompts and automatic death entries.
 An upgrade preserves a previously disabled death option; previously enabled
 recording moves to Ask first. Automatic recording of your own confirmed killing
 blows against recorded enemies is enabled by default. These book options do not

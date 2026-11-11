@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.6.3-test.1"
+B.version="1.6.3-test.2"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -226,6 +226,7 @@ function B.Death(restored)
         if serial~=B.deathSerial or not C.IsOutdoor() or not P.Plain(dead) or dead~=true then return end
         if B.DeathUI.dismissed then return end
         local confirmed=C.ConfirmedDeath();B.lastDeathConfirmed=confirmed;B.DeathUI.confirmed=confirmed
+        if not C.DeathHasPvP(confirmed) then return end
         if B.db.auto and not restored and confirmed and not B.deathBeaconSent and not B.own and not B.DeathUI.suspended then
             if B.Light("pvp") then B.deathBeaconSent=true;return end
         end
@@ -386,6 +387,7 @@ frame:SetScript("OnEvent",function(_,event,...)
     elseif event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE" then
         if not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then
             B.deathPoint=nil;B.killingBlow=nil;B.nonPlayerDeath=nil;B.deathActive=nil;B.deathEvidence=nil;B.deathSerial=(B.deathSerial or 0)+1
+            C.CaptureLivingRecap()
             C.ClearAttackers();B.DeathUI.Reset()
             B.Grudges.deathSerial=(B.Grudges.deathSerial or 0)+1
             B.Grudges.deathActive=nil
@@ -432,6 +434,7 @@ SlashCmdList.LIGHTTHEBEACONS=function(input)
         B.Print("Dock guild actions below the death window: "..(B.db.deathDock and "on" or "off")..". Blizzard's controls are unchanged.")
     elseif command=="deathstatus" then
         B.Print("LTB "..B.version.."; death panel: "..(B.DeathUI.dockStatus or "inactive")..".")
+        B.Print("This death has hostile-player evidence: "..(B.deathEvidence and B.deathEvidence.pvp and "yes" or "no")..".")
         B.Print("Recap: "..(B.recapReadStatus or "not read this session").."; "..
             #(B.Grudges.pendingDeath and B.Grudges.pendingDeath.attackers or {}).." detected attackers. No names in this diagnostic.")
         local restricted=C_CombatLog and C.Call(C_CombatLog.IsCombatLogRestricted)

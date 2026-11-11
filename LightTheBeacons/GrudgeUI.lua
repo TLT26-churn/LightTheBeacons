@@ -240,7 +240,7 @@ function U.Create()
     U.checks={}
     local rules={
         {"enabled","Use the guild-shared book","Off pauses all grudge sending, receiving and automatic recording."},
-        {"deathMode","After an outdoor PvP death","Unknown killer: ask you to enter the name."},
+        {"deathMode","After an outdoor PvP death","Requires hostile-player evidence. Mob deaths stay quiet."},
         {"autoAvenge","Record my confirmed victories","Your readable killing blow settles one oldest unpaid debt."},
         {"sightingAlerts","Warn when a debtor is seen","Only a hostile player you target or mouse over. No shared tracking."},
         {"notices","Show grudge notices","One notice at a time. Beacon alert mute also silences these notices."},
@@ -253,7 +253,7 @@ function U.Create()
             for j,choice in ipairs({{"prompt","Ask first"},{"auto","Auto-save"},{"off","Off"}}) do
                 local b=link(U.settings,choice[2],(j-1)*128,y+23,122,function() G.SetDeathMode(choice[1]);U.Refresh() end,14)
                 U.deathModes[choice[1]]=b
-                tooltip(b,choice[2],choice[1]=="auto" and "Share confirmed killers automatically. Ask for a name when attribution is unavailable."
+                tooltip(b,choice[2],choice[1]=="auto" and "Share confirmed killers automatically. No prompt without hostile-player evidence."
                     or choice[1]=="prompt" and "Review a grudge after death. Nothing is shared until you save."
                     or "Do not prompt or automatically save death grudges.")
             end

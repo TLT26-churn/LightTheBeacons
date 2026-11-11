@@ -1,6 +1,6 @@
 # Death-window client test
 
-Branch: `codex/death-client-test` · Build: `1.6.3-test.1`
+Branch: `codex/death-client-test` · Build: `1.6.3-test.2`
 
 This is a local test build, not a GitHub/CurseForge release. Main is unchanged.
 The native-window takeover in the earlier design render is not enabled.
@@ -18,21 +18,24 @@ its dark Alliance/ledger style. Live addon compatibility is not yet verified.
 
 ## After installing
 
-1. Use `/reload`, then `/ltb deathstatus` to check for `1.6.3-test.1`.
+1. Use `/reload`, then `/ltb deathstatus` to check for `1.6.3-test.2`.
 2. On the next outdoor PvP death, verify that the original Release Spirit and
    Death Recap buttons are visible and work normally, with guild actions below
    or beside them. Native timers and any self-resurrection choice should remain.
 3. Review the attacker list. Only a confirmed fatal hit should say Killing blow.
-   Missing data offers Add a name. Nothing is shared by the default Ask first mode.
+   Confirmed player involvement with no readable name offers Add a name. A death
+   without positive PvP evidence stays quiet. Nothing is shared by default until confirmed.
 4. Uncheck a name, wait several seconds, and confirm the choice stays unchecked.
    Newly arriving recap names should also be unchecked, without moving existing rows.
 5. If you choose to share, Inscribe selected should record only checked names once.
    Opening/cancelling the beacon message editor should preserve those choices.
 6. Release spirit: pending review should remain available independently.
-   Resurrection or dismissal should clear it. Reloading while dead can restore
-   manual review but must not replay an automatic beacon from an old recap.
+   Resurrection or dismissal should clear it. Reloading while dead must not
+   reuse an old recap or trigger a prompt without new positive PvP evidence.
 7. In a battleground or arena, only the normal death UI should appear; no automatic
    beacon or death-grudge prompt should run. Other instance types are excluded too.
+8. A normal mob/environmental death should show only Blizzard's native controls,
+   even with incomplete/unavailable recap data. Both LTB death prompts stay quiet.
 
 `/ltb deathstatus` prints local status and counts without names, GUIDs or messages.
 `/ltb deathdock` toggles docking beneath the native dialog; the alternative uses
@@ -48,8 +51,9 @@ It supports `timeBeforeDeath` and server-epoch `timestamp`. A recap must have a
 new link or, on clients without links, a new timestamp matched to the death and
 newer than the living character's baseline. Up to 32 attackers are offered.
 Names may be abbreviated by the client; stored GUIDs preserve later matching.
-No nearby-player, target or pet-owner guesses are made. A restricted or missing
-identity remains a manual entry. Recaps may omit some damage contributors.
+No nearby-player, target or pet-owner guesses are made. Without positive PvP
+evidence, no prompt appears. You can still open the ledger or call for aid manually.
+Recaps may omit some damage contributors.
 
 Headless tests validate synthetic data, native-window immutability, docking,
 selection consent, lifecycle and guild protocol behavior. They cannot prove
@@ -57,9 +61,10 @@ live combat attribution or a skinning addon's behavior on the user's client.
 
 ## Headless verification
 
-The installed `1.6.3-test.1` addon passed **684 assertions**, including an optional
-test that loads the actual DEATH handlers from a pinned local copy of Blizzard's
-Forever `GameDialogDefs.lua`. This checks release restrictions, countdown labels,
+The `1.6.3-test.2` build passes **715 checks**, including PvE regressions that
+require positive PvP evidence and check both beacon and book visibility.
+The optional native-handler test loads the actual DEATH handlers from a pinned
+local copy of Blizzard's Forever `GameDialogDefs.lua`. This checks release restrictions, countdown labels,
 self-resurrection, recap availability, dismissal and arena spectator behavior
 while LTB runs alongside them. A further **180 layout configurations** cover
 screen sizes, root/native scales and dialog positions without overlapping the
@@ -72,7 +77,7 @@ From the repository root:
 luajit tests/light-beacons.lua /path/to/Interface/AddOns/LightTheBeacons '' /path/to/GameDialogDefs.lua
 ```
 
-Omit the last two arguments to run the standard 660 checks. An empty second
+Omit the last two arguments to run the standard suite. An empty second
 argument skips PNG snapshot inputs. The optional test extracts the DEATH table
 from the external file; Blizzard source is not committed or bundled in the addon.
 The reference used for this run has SHA-256

@@ -1,9 +1,11 @@
-# Light the Beacons 1.6.3-test.1
+# Light the Beacons 1.6.3-test.2
 
 Local client-test build. Guild death actions dock beneath Blizzard's original
 death controls, which retain their normal behavior and existing skin. Readable
 death-recap contributors are offered for review; nothing is shared in Ask first
-mode until you confirm. Battlegrounds, arenas and other instances are excluded.
+mode until you confirm. Both death prompts require positive hostile-player
+evidence. Mob-only deaths and unknown attribution stay quiet. Battlegrounds,
+arenas and other instances are excluded.
 Use `/ltb deathstatus` for local diagnostics and `/ltb deathdock` to toggle docking.
 This build has not been merged into main or published as a release.
 
@@ -222,14 +224,17 @@ call shows **Beacon lit**. Saving grudges never lights a beacon. The captured
 death zone stays with entries even if you move before saving. **Dismiss** skips
 the remaining death actions without cancelling an already lit beacon.
 
-When no attackers can be identified, the prompt appears after about three seconds
-and asks whether a player killed you. Enter their full name and review the note;
-this is saved as a manual account. With no detected player attackers, known lethal
-NPC/environmental damage suppresses the grudge section. Unidentified PvE deaths
-can still show this question—dismiss it.
+Both death prompts require positive evidence of hostile-player damage in the
+death encounter. Mob-only deaths, environmental deaths and unknown/restricted
+attribution stay quiet. When PvP involvement is confirmed but the player's name
+is unavailable, the prompt can offer manual name entry after about three seconds.
+Enter the name and review the note; this is saved as a manual account. Late recap
+data is checked for up to 5.5 seconds. A player who actually damaged you can still
+be offered for review if a mob landed the final hit. No player killing blow is
+claimed in that case. Manual calls and `/ltb grudges` remain available at any time.
 Auto-save shares only confirmed killers automatically; other detected attackers
-still require selection and confirmation. It uses the same manual fallback when
-no attackers can be identified. Confirmation requires readable hostile-player
+still require selection and confirmation. It stays quiet without positive PvP
+evidence. Confirmed automatic recording requires readable hostile-player
 GUID, flags, lethal evidence and name. Changing the prefilled enemy name makes
 the entry manual. Battlegrounds/instances are excluded. Global alert mute hides
 these prompts. Previously disabled death recording stays off after updating;
@@ -241,7 +246,7 @@ are independent of the beacon's automatic-call setting (which defaults to off).
 Automatic vengeance needs your own readable `PARTY_KILL` event against a known
 enemy; party participation is not treated as your kill. One kill settles the
 oldest unpaid debt, and repeated evidence is deduplicated. If the game restricts
-attribution, use the death prompt or manual inscription/vengeance. No secure/internal combat API is used.
+attribution, use manual inscription/vengeance. No secure/internal combat API is used.
 
 Sightings are local observations of a hostile player you target or mouse over;
 they are not shared or saved as enemy tracking. **Hide this name** suppresses a
@@ -331,10 +336,11 @@ recaps and restricted data. A caster name alone is insufficient evidence.
 Forever's published UI exposes restrictions on combat-log access; its public
 death-recap schema does not guarantee attacker GUID/flags. Consequently,
 automatic attribution may be unavailable on the live client. Hidden attribution
-and pet kills can require the manual prompt. The addon never reads secure or
+and pets without a readable owner can require opening the ledger manually. The addon never reads secure or
 internal combat APIs to work around those restrictions.
 
-The enabled-by-default death prompt provides a fallback: **Call for aid?**
+The enabled-by-default death prompt offers **Call for aid** only after detected
+hostile-player involvement. Mob-only deaths and unknown attribution stay quiet.
 Its button opens the message window; nothing is sent until you choose **Light
 the Beacons** there. Automatic calls skip that window and never attach a draft
 or saved template. Battlegrounds, arenas and

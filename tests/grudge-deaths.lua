@@ -23,11 +23,11 @@ check(#G.ids==1 and G.log[1].evidence=="pvp" and G.log[1].guid=="Player-2-00FF",
 check(G.log[1].where=="Elwynn Forest","Death entry retains its death zone after moving")
 known.advance(4);check(#G.ids==1 and not prompt(known),"Repeated death timers cannot reopen or duplicate an accepted entry")
 
-local unknown=fresh();death(unknown);unknown.advance(2)
-check(not prompt(unknown),"Unknown attribution waits briefly for the recap")
+local unknown=fresh();hit(unknown);unknown.B.killingBlow.name=nil;unknown.B.Client.ClearAttackers();death(unknown);unknown.advance(2)
+check(not prompt(unknown),"Confirmed player with an unavailable name waits briefly for recap details")
 unknown.advance(1.3);local UU=unknown.B.GrudgeUI
-check(prompt(unknown) and #unknown.B.Grudges.ids==0,"Unavailable attribution offers manual fallback without inventing a killer")
-check(UU.deathText:GetText():find("couldn't identify",1,true),"Unknown-killer prompt explains the limitation")
+check(prompt(unknown) and #unknown.B.Grudges.ids==0,"Confirmed player evidence without a name offers manual review without inventing a killer")
+check(UU.deathText:GetText():find("name is unavailable",1,true),"Unnamed-player prompt explains the limitation")
 UU.deathAction.scripts.OnClick();check(UU.name:GetText()=="","Manual fallback leaves the enemy field empty")
 UU.submit.scripts.OnClick();check(#unknown.B.Grudges.ids==0,"An empty enemy name cannot be shared")
 UU.name:SetText("Sample Rival");UU.submit.scripts.OnClick()
@@ -55,7 +55,7 @@ check(prompt(nameless) and nameless.B.Grudges.pendingDeath.enemy=="","Player evi
 local restricted=fresh();restricted.s.combatRestricted=true
 restricted.env.CombatLogGetCurrentEventInfo=function() error("Restricted reader must stay unused") end
 restricted.B.Client.ReadCombatEvent();death(restricted);restricted.advance(3.3)
-check(prompt(restricted) and #restricted.B.Grudges.ids==0,"Restricted combat data uses the manual fallback")
+check(not prompt(restricted) and #restricted.B.Grudges.ids==0,"Restricted combat data alone cannot trigger a PvP prompt")
 local npc=fresh();hit(npc,"Creature-2-00FF",0xA40);death(npc);npc.advance(3.3)
 check(not prompt(npc) and #npc.B.Grudges.ids==0,"Readable lethal NPC damage suppresses the PvP prompt")
 local fall=fresh();fall.B.Client.CombatEvent(0,"ENVIRONMENTAL_DAMAGE",false,nil,nil,0,0,"Player-1-Sample","Sample Scribe",0,0,"FALLING",100,0)
@@ -65,9 +65,9 @@ local pveRecap=fresh();pveRecap.s.recapLink="new"
 pveRecap.s.recap={{sourceGUID="Creature-2-00FF",sourceFlags=0xA40,overkill=0,timeBeforeDeath=.1}}
 death(pveRecap);pveRecap.advance(3.3);check(not prompt(pveRecap),"A new readable NPC recap suppresses the PvP prompt")
 local pet=fresh();hit(pet,"Creature-2-00FF",0x1940);death(pet);pet.advance(3.3)
-check(prompt(pet),"Player-controlled pets are not mistaken for confirmed PvE deaths")
+check(not prompt(pet) and not pet.B.Client.ConfirmedNonPlayerDeath(),"Unknown pet ownership is neither confirmed PvE nor evidence for a player-name prompt")
 
-local ghost=fresh();death(ghost);ghost.s.dead=false;ghost.s.ghost=true;event(ghost,"PLAYER_ALIVE");ghost.advance(3.3)
+local ghost=fresh();hit(ghost);death(ghost);ghost.s.dead=false;ghost.s.ghost=true;event(ghost,"PLAYER_ALIVE");ghost.advance(3.3)
 check(prompt(ghost),"Releasing spirit does not cancel the death prompt")
 local alive=fresh();death(alive);alive.s.dead=false;event(alive,"PLAYER_ALIVE");alive.advance(4)
 check(not prompt(alive),"Resurrection cancels delayed prompts")
@@ -94,7 +94,7 @@ check(not prompt(muteLater),"Global alert mute dismisses a visible prompt")
 local auto=fresh();auto.B.Grudges.SetDeathMode("auto");hit(auto);death(auto);auto.advance(1)
 check(#auto.B.Grudges.ids==1 and not prompt(auto),"Explicit Auto-save retains automatic confirmed-death recording")
 local autoUnknown=fresh();autoUnknown.B.Grudges.SetDeathMode("auto");death(autoUnknown);autoUnknown.advance(3.3)
-check(prompt(autoUnknown) and #autoUnknown.B.Grudges.ids==0,"Auto-save falls back to manual confirmation for an unknown killer")
+check(not prompt(autoUnknown) and #autoUnknown.B.Grudges.ids==0,"Auto-save stays quiet without evidence of hostile-player involvement")
 
 local prior=fresh();prior.B.GrudgeUI.Toggle(true);prior.B.GrudgeUI.Mode("inscribe")
 prior.B.GrudgeUI.name:SetText("Training Foe");prior.B.GrudgeUI.note:SetText("An unfinished account.")

@@ -134,3 +134,22 @@ function C.DeathAttackers(at,killer)
     while #list>32 do table.remove(list) end
     return list
 end
+-- A death notification is opt-in by evidence, not by the absence of an NPC
+-- killing blow. Unknown/restricted attribution must never turn a PvE death into
+-- a PvP prompt. Keep the decision for this incident through spirit release.
+function C.DeathHasPvP(confirmed,attackers)
+    local incident=B.deathEvidence
+    if not incident then return false end
+    if incident.pvp then return true end
+    if confirmed==nil then confirmed=C.ConfirmedDeath() end
+    if confirmed or #(attackers or C.DeathAttackers(incident.at))>0 then incident.pvp=true;return true end
+    -- The player identity may be readable even when its display name isn't.
+    -- That permits a manual-name review, but never invents a ledger entry.
+    local mine=C.Call(UnitGUID,"player")
+    for _,entry in ipairs(C.DeathRecap()) do
+        local key=entry.name and P.Identity(entry.name)
+        if C.HostilePlayer(entry.guid,entry.flags) and not (P.Text(mine,80) and mine==entry.guid)
+            and (not key or key~=B.me and not B.members[key]) then incident.pvp=true;return true end
+    end
+    return false
+end

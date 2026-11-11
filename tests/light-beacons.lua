@@ -297,7 +297,7 @@ check(a.B.own and a.B.own.reason=="pvp","Automatic confirmed PvP death")
 local saved=a.B.deathPoint;a.s.ghost=true;a.s.pos={map=1429,px=.9,py=.9}
 check(a.B.Client.Corpse()==saved,"Corpse destination stays at the incident after release")
 local npc=client("Aldric","Stoneward");npc.B.db.auto=true;npc.s.dead=true;npc.B.Death();npc.advance(3.3)
-check(#npc.s.sent==0 and npc.B.UI.deathPrompt:IsShown(),"Unconfirmed death prompts without sending")
+check(#npc.s.sent==0 and not npc.B.UI.deathPrompt:IsShown(),"Unconfirmed death stays quiet without sending")
 npc.s.outdoor=false;npc.B.UI.deathPrompt:Hide();npc.B.Death();npc.advance(1)
 check(not npc.B.UI.deathPrompt:IsShown(),"Battleground/instance suppression")
 local restricted=client("Aldric","Stoneward");restricted.s.restricted=true
@@ -545,7 +545,8 @@ do
     auto.B.Death();auto.advance(1)
     check(auto.B.own.reason=="pvp" and not auto.B.own.message and #auto.s.sent==1,"Automatic PvP calls bypass the composer and never send an old draft or template")
     check(not auto.B.UI.composer:IsShown(),"Automatic send dismisses a now-stale composer")
-    local fallen=client("Aldric","Stoneward");fallen.s.dead=true;fallen.B.Death();fallen.advance(1)
+    local fallen=client("Aldric","Stoneward");fallen.B.Client.RememberAttacker("Player-2-00AA","Example Enemy",0x440,100)
+    fallen.s.dead=true;fallen.B.Death();fallen.advance(1)
     fallen.B.UI.deathCall.scripts.OnClick();fallen.B.UI.messageEdit:SetText("Horde camping my body.")
     check(fallen.B.UI.composer:IsShown() and #fallen.s.sent==0,"Manual death prompt lets the caller add a message")
     fallen.B.UI.composeSend.scripts.OnClick()
@@ -967,6 +968,7 @@ local function snapshot(c,target,path)
     end end
     local f=assert(io.open(path,"w"));f:write(json(scene));f:close()
 end
+assert(loadfile("tests/pve-death-guards.lua"))(client,check)
 local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
 local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 local combinedPreview=assert(loadfile("tests/combined-death.lua"))(client,check)

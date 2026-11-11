@@ -361,6 +361,10 @@ function G.OnDeath()
             or not P.Plain(dead) or dead~=true then return end
         local confirmed,evidence=C.ConfirmedDeath()
         local incoming=C.DeathAttackers(draft.at,confirmed and evidence or nil)
+        if not C.DeathHasPvP(confirmed,incoming) then
+            if finished then G.CancelDeathPrompt() end
+            return
+        end
         local incomingByGUID={};for _,entry in ipairs(incoming) do incomingByGUID[entry.guid]=entry end
         local list,seen,newNames={}, {},0
         -- Keep visible rows in place while the player is clicking. Late recap
@@ -391,8 +395,6 @@ function G.OnDeath()
                     end
                 end
             end
-        elseif fallback and not confirmed and C.ConfirmedNonPlayerDeath() then
-            draft.handled=true;G.CancelDeathPrompt();return
         elseif not fallback then return end
         if fallback or first then
             if draft.handled and newNames>0 then B.DeathUI.message="Recap updated. New names are unchecked." end

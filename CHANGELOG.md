@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.6.3-test.2 — Keep regular PvE deaths quiet
+
+- Require positive hostile-player damage evidence before showing either the
+  beacon or grudge death prompt. Mob-only deaths, environmental damage and
+  unknown/restricted attribution stay quiet, including when automatic modes are on.
+- Keep delayed recap retries. A confirmed PvP encounter with an unavailable
+  player name can still offer manual review; absent PvP evidence never does.
+- Capture the recap baseline immediately on resurrection so the next death
+  cannot reuse a previous PvP recap. Manual calls and ledger entries remain available.
+- Add regression coverage for mob deaths, incomplete/unavailable recaps,
+  separate beacon/book settings and repeated deaths. Local test branch only.
+
 ## 1.6.3-test.1 — Local client test; not published
 
 - Keep Blizzard's original Release Spirit, Death Recap, timers and resurrection
