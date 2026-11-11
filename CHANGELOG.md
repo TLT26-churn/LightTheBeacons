@@ -16,7 +16,9 @@
   two actions, their settings and saved records independent.
 - Clear temporary attacker data on resurrection, guild changes or disabling
   death recording. Keep missing-attribution manual entry and global alert mute.
-- Validate 588 simulated-client checks, native Lua previews and the portable ZIP.
+- Explicitly exclude battlegrounds, arenas and uncertain instance states. Cancel
+  pending death actions and close the window when entering an instance.
+- Validate 599 simulated-client checks, native Lua previews and the portable ZIP.
   Live combat attribution still requires an in-game check.
 
 ## 1.6.2 — Prompt for a grudge after death

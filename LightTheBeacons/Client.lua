@@ -156,7 +156,7 @@ function C.Zone(map)
 end
 function C.IsOutdoor()
     local inInstance,kind=call(IsInInstance)
-    return P.Plain(inInstance) and inInstance==false and P.Plain(kind) and kind~="pvp" and kind~="arena"
+    return P.Plain(inInstance) and inInstance==false and P.Plain(kind) and kind=="none"
 end
 function C.Corpse()
     -- Retain the incident position when the player releases at a graveyard.

@@ -221,7 +221,7 @@ function B.Death()
     B.Grudges.OnDeath()
     B.deathSerial=(B.deathSerial or 0)+1;local serial=B.deathSerial
     local function decide()
-        if serial~=B.deathSerial or not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then return end
+        if serial~=B.deathSerial or not C.IsOutdoor() or not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then return end
         local confirmed=C.ConfirmedDeath();B.lastDeathConfirmed=confirmed
         if B.db.auto and confirmed then
             if B.Light("pvp") then return end
@@ -368,6 +368,7 @@ frame:SetScript("OnEvent",function(_,event,...)
         B.UI.Refresh()
     elseif event=="PLAYER_ENTERING_WORLD" then
         C.RefreshFlights();B.GuildChanged()
+        if not C.IsOutdoor() then C.ClearAttackers();B.DeathUI.Dismiss() end
         if B.UpdateTravelPace() then B.Replan();if B.navigating then B.SetNextWaypoint() end end
         B.UI.Refresh()
     elseif event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE" then
@@ -379,7 +380,9 @@ frame:SetScript("OnEvent",function(_,event,...)
             B.Grudges.CancelDeathPrompt()
             if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
         end
-    elseif event=="ZONE_CHANGED_NEW_AREA" then if not B.navigating then B.Replan() end
+    elseif event=="ZONE_CHANGED_NEW_AREA" then
+        if not C.IsOutdoor() then C.ClearAttackers();B.DeathUI.Dismiss() end
+        if not B.navigating then B.Replan() end
     elseif event~="PLAYER_REGEN_ENABLED" then B.GuildChanged() end
 end)
 local elapsed=0

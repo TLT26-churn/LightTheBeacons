@@ -323,7 +323,7 @@ function G.CancelDeathPrompt()
 end
 function G.InscribeDeathSelection(draft)
     if not draft or draft~=G.pendingDeath or not draft.handled or draft.scope~=G.scope or not G.Active()
-        or G.options.deathMode=="off" then return 0,"This death is no longer available." end
+        or G.options.deathMode=="off" or not C.IsOutdoor() then return 0,"This death is no longer available." end
     local chosen={}
     for _,entry in ipairs(draft.attackers or {}) do
         if draft.selected[entry.key] and not draft.saved[entry.key] then chosen[#chosen+1]=entry end

@@ -967,9 +967,13 @@ end
 local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
 local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 local combinedPreview=assert(loadfile("tests/combined-death.lua"))(client,check)
+assert(loadfile("tests/death-instance-guards.lua"))(client,check)
 if arg[2] then
     snapshot(combinedPreview.main,combinedPreview.main.B.DeathUI.frame,arg[2].."-combined-death.json")
     snapshot(combinedPreview.unknown,combinedPreview.unknown.B.DeathUI.frame,arg[2].."-combined-unknown.json")
+    local replacement=assert(loadfile("tests/death-replacement-layout.lua"))(combinedPreview.main)
+    for _,o in ipairs(replacement.objects) do o.box=nil end
+    snapshot(replacement,replacement.B.DeathUI.frame,arg[2].."-death-replacement-proposal.json")
     snapshot(deathPreview,deathPreview.B.GrudgeUI.deathPrompt,arg[2].."-grudge-death.json")
     snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges.json")
     grudgePreview.B.GrudgeUI.Turn(1)

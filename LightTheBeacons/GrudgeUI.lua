@@ -291,7 +291,7 @@ function U.PromptDeath(draft)
 end
 function U.BeginDeathEntry()
     local incident=G.pendingDeath
-    if not incident or incident.scope~=G.scope or not G.Active() then G.CancelDeathPrompt();return end
+    if not incident or incident.scope~=G.scope or not G.Active() or not C.IsOutdoor() then G.CancelDeathPrompt();return end
     U.Create();B.DeathUI.Suspend()
     -- Preserve an entry the player was already writing, even if its window is closed.
     if U.mode=="inscribe" and (U.name:GetText()~="" or U.note:GetText()~="") then

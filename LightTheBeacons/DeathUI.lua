@@ -57,6 +57,7 @@ function D.Create()
     label(D.aid,13,7,290,26,21,"title",gold):SetText("Call for aid")
     D.aidText=label(D.aid,13,34,295,19,13)
     D.call=W.link(D.aid,"Light the Beacons",321,14,183,function()
+        if not C.IsOutdoor() then D.Dismiss();return end
         D.Suspend();B.RequestLight(D.confirmed and "pvp" or "fallen")
     end,16,"dark")
     D.call.background:SetColorTexture(.07,.16,.30,1)
