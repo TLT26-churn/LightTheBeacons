@@ -305,31 +305,53 @@ function C.HostilePlayer(guid,flags)
     local band=bit and bit.band or bit32 and bit32.band
     return band and band(flags,0x40)~=0 and band(flags,0x400)~=0 or false
 end
+function C.NonPlayerSource(guid,flags)
+    if not P.Text(guid) or not guid:match("^Creature%-") or not P.Number(flags,0,2147483647) then return false end
+    local band=bit and bit.band or bit32 and bit32.band
+    -- A player-controlled pet is not proof of a PvE death.
+    return band and band(flags,0x800)~=0 and band(flags,0x100)==0 or false
+end
 function C.CombatEvent(...)
     local e={...}
     if B.Grudges then B.Grudges.Combat(e) end
-    if not P.Text(e[2]) or not P.Plain(e[8]) then B.killingBlow=nil;return end
+    if not P.Text(e[2]) or not P.Plain(e[8]) then B.killingBlow=nil;B.nonPlayerDeath=nil;return end
     local mine=call(UnitGUID,"player")
     if not P.Text(mine) or e[8]~=mine then return end
     local event=e[2]
     local overkill
     if event=="SWING_DAMAGE" then overkill=e[13]
     elseif event=="SPELL_DAMAGE" or event=="SPELL_PERIODIC_DAMAGE" or event=="RANGE_DAMAGE" or event=="DAMAGE_SHIELD" then overkill=e[16] end
-    if not P.Plain(overkill) then B.killingBlow=nil;return end
+    if not P.Plain(overkill) then B.killingBlow=nil;B.nonPlayerDeath=nil;return end
     if overkill~=nil then
         -- Any later non-player damage invalidates a previous candidate.
-        B.killingBlow=nil
+        B.killingBlow=nil;B.nonPlayerDeath=nil
         if P.Number(overkill,0,1e12) and C.HostilePlayer(e[4],e[6]) then
             B.killingBlow={at=GetTime(),source=e[4],name=P.Text(e[5],100) and e[5] or nil}
+        elseif P.Number(overkill,0,1e12) and C.NonPlayerSource(e[4],e[6]) then
+            B.nonPlayerDeath=GetTime()
         end
-    elseif event=="ENVIRONMENTAL_DAMAGE" then B.killingBlow=nil end
+    elseif event=="ENVIRONMENTAL_DAMAGE" then
+        B.killingBlow=nil;B.nonPlayerDeath=P.Number(e[14],0,1e12) and GetTime() or nil
+    end
 end
 function C.ReadCombatEvent()
     if C_CombatLog and call(C_CombatLog.IsCombatLogRestricted)==true then return end
     local fn=C_CombatLog and C_CombatLog.GetCurrentEventInfo or CombatLogGetCurrentEventInfo
     if type(fn)~="function" then return end
     local ok=pcall(function() C.CombatEvent(fn()) end)
-    if not ok then B.killingBlow=nil end
+    if not ok then B.killingBlow=nil;B.nonPlayerDeath=nil end
+end
+function C.ConfirmedNonPlayerDeath()
+    if B.nonPlayerDeath and GetTime()-B.nonPlayerDeath<=4 then return true end
+    local link=C.RecapKey()
+    if not link or link==B.lastLivingRecap then return false end
+    local recap=C_DeathRecap and call(C_DeathRecap.GetRecapEvents)
+    if type(recap)~="table" or not P.Plain(recap) then return false end
+    for _,e in ipairs(recap) do
+        if type(e)=="table" and P.Plain(e) and C.NonPlayerSource(e.sourceGUID,e.sourceFlags)
+            and P.Number(e.overkill,0,1e12) and P.Number(e.timeBeforeDeath,0,.25) then return true end
+    end
+    return false
 end
 function C.ConfirmedDeath()
     if B.killingBlow and GetTime()-B.killingBlow.at<=4 then return true,B.killingBlow end

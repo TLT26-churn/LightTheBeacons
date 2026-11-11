@@ -1,5 +1,19 @@
 # Release notes
 
+## 1.6.2 — Prompt for a grudge after death
+
+- Add the missing post-death grudge prompt. Prefill confirmed killers and let
+  players review the grievance before sharing it with the guild.
+- Offer a manual fallback after about three seconds when the client cannot
+  identify the killer. Never invent a name or label a manual account verified.
+  Suppress prompts for readable lethal NPC/environmental damage and instances.
+- Add Ask first (default), Auto-save, and Off to the book's Settings. Preserve
+  an existing disabled death option; move previously enabled recording to Ask first.
+- Deduplicate death events, cancel pending prompts on resurrection/guild changes,
+  respect global alert mute, preserve unfinished entries and retain the death zone.
+- Validate 539 simulated-client checks, native UI renders, Lua syntax and the
+  extracted portable ZIP. Live PvP attribution still needs an in-game check.
+
 ## 1.6.1 — Clearer Grudges controls
 
 - Title the tome **Grudges**, retaining the aged parchment and fantasy lettering.

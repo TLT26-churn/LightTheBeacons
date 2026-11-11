@@ -59,6 +59,11 @@ function G.Initialize()
     for k,v in pairs({enabled=true,autoRecord=true,autoAvenge=true,sightingAlerts=true,notices=true}) do
         if type(G.options[k])~="boolean" then G.options[k]=v end
     end
+    -- Older builds silently saved confirmed deaths. Introduce the requested
+    -- confirmation flow without re-enabling a previously disabled death option.
+    if G.options.deathMode~="prompt" and G.options.deathMode~="auto" and G.options.deathMode~="off" then
+        G.options.deathMode=G.options.autoRecord and "prompt" or "off"
+    end
     G.options.hidden=plainTable(G.options.hidden) and G.options.hidden or {}
     G.options.phrases=plainTable(G.options.phrases) and G.options.phrases or {}
     G.GuildChanged()
@@ -82,6 +87,7 @@ function G.GuildChanged()
     old.events=clean;for id in pairs(old.outbox) do if not clean[id] or P.Identity(clean[id].author)~=B.me then old.outbox[id]=nil end end
     G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings={};G.seenAlert={};G.killSeen={}
     G.request=nil;G.offerDue=nil;G.nextQuery=GetTime()+7;G.lastTick=nil;G.deathActive=nil;G.deathSerial=(G.deathSerial or 0)+1
+    G.pendingDeath=nil
     G.Rebuild();G.status=B.guild=="" and "Join a guild to open its shared book." or "Waiting for guild sync."
     if B.GrudgeUI then B.GrudgeUI.Reset() end
 end
@@ -185,11 +191,11 @@ end
 function G.Place()
     local p=C.Location();return p and G.Clean(C.Zone(p.map),70,100) or "Unknown location"
 end
-function G.Inscribe(enemy,note,guid,evidence)
+function G.Inscribe(enemy,note,guid,evidence,where)
     enemy=G.Clean(enemy,70,100);note=G.Clean(note)
     if P.Identity(enemy)==B.me then return nil,"The book records your enemies, not yourself." end
     if B.members[P.Identity(enemy)] then return nil,"This name belongs to your guild." end
-    return G.New("I",enemy,note,nil,guid,evidence,G.Place())
+    return G.New("I",enemy,note,nil,guid,evidence,where and G.Clean(where,70,100) or G.Place())
 end
 function G.Avenge(id,guid,evidence)
     local r=G.entries[id]
@@ -204,6 +210,7 @@ end
 function G.SetEnabled(value)
     G.options.enabled=value==true;G.queue={};G.queued={};G.pending={};G.request=nil;G.offerDue=nil
     G.nextQuery=GetTime()+2;G.status=value and "Waiting for guild sync." or "Sharing paused. The saved book is read-only."
+    if not value then G.CancelDeathPrompt() end
     if B.GrudgeUI then B.GrudgeUI.Refresh() end
 end
 local function requestPage(peer,cursor)
@@ -307,21 +314,47 @@ function G.Tick()
         else G.status="Waiting for the game to allow guild messages." end
     end
 end
+function G.CancelDeathPrompt()
+    G.pendingDeath=nil
+    if B.GrudgeUI and B.GrudgeUI.deathPrompt then B.GrudgeUI.deathPrompt:Hide() end
+end
+function G.SetDeathMode(mode)
+    if mode~="prompt" and mode~="auto" and mode~="off" then return end
+    G.options.deathMode=mode;G.options.autoRecord=mode~="off"
+    G.CancelDeathPrompt()
+end
 function G.OnDeath()
-    if G.deathActive or not G.Active() or not G.options.autoRecord or not C.IsOutdoor() then return end
+    if G.deathActive or not G.Active() or G.options.deathMode=="off" or not C.IsOutdoor() then return end
     G.deathActive=true
     G.deathSerial=(G.deathSerial or 0)+1;local serial,scope=G.deathSerial,G.scope
-    local recorded=false
-    local function attempt()
-        if recorded or serial~=G.deathSerial or scope~=G.scope or not G.Active() or not G.options.autoRecord
-            or not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then return end
+    local draft={serial=serial,scope=scope,where=G.Place(),enemy="",guid="",evidence="manual"}
+    G.pendingDeath=draft
+    local function attempt(final)
+        local dead=C.Call(UnitIsDeadOrGhost,"player")
+        if draft.handled or G.pendingDeath~=draft or serial~=G.deathSerial or scope~=G.scope
+            or not G.Active() or G.options.deathMode=="off" or not C.IsOutdoor()
+            or not P.Plain(dead) or dead~=true then return end
         local confirmed,evidence=C.ConfirmedDeath()
         if confirmed and evidence and nameOK(evidence.name) then
-            local entry=G.Inscribe(evidence.name,"Struck down "..B.name.." in "..G.Place()..". Let this wrong be remembered.",evidence.source,"pvp")
-            if entry then recorded=true end
+            draft.enemy=evidence.name;draft.guid=evidence.source;draft.evidence="pvp"
+            draft.note="Killed me in "..draft.where.."."
+            if G.options.deathMode=="auto" then
+                local entry=G.Inscribe(draft.enemy,draft.note,draft.guid,"pvp",draft.where)
+                if entry then draft.handled=true;G.pendingDeath=nil;return end
+            end
+        elseif not confirmed and C.ConfirmedNonPlayerDeath() then
+            draft.handled=true;G.CancelDeathPrompt();return
+        elseif not final then return end
+        if final or draft.evidence=="pvp" then
+            draft.handled=true;draft.note=draft.note or "PvP death in "..draft.where.."."
+            B.GrudgeUI.PromptDeath(draft)
         end
     end
-    if C_Timer then for _,delay in ipairs({.7,1.8,3.2}) do C_Timer.After(delay,attempt) end else attempt() end
+    if C_Timer then
+        C_Timer.After(.7,function() attempt(false) end)
+        C_Timer.After(1.8,function() attempt(false) end)
+        C_Timer.After(3.2,function() attempt(true) end)
+    else attempt(true) end
 end
 function G.Combat(e)
     if not G.Active() or not G.options.autoAvenge or not C.IsOutdoor() or not P.Text(e[2]) or e[2]~="PARTY_KILL" then return end

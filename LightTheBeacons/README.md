@@ -1,4 +1,4 @@
-# Light the Beacons 1.6.1
+# Light the Beacons 1.6.2
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -192,15 +192,30 @@ as manually witnessed victories. Only the original scribe can **Withdraw my
 entry**; a withdrawal is a shared tombstone that hides the entry, not a way to
 forcibly erase copies another player has already received.
 
-Book **Settings** default to guild sharing, automatic confirmed outdoor PvP
-death recording, automatic recording of your own confirmed killing blows,
-target/mouseover sighting warnings and grudge notices. These are independent of
-the beacon's automatic-call setting (which still defaults to off). Death
-recording needs a readable hostile player GUID, flags, lethal evidence and name.
+Book **Settings → After an outdoor PvP death** offers **Ask first** (default),
+**Auto-save**, and **Off**. Ask first opens a small **Add a grudge?** prompt after
+death. A confirmed killer is prefilled; **Review grudge** opens the entry form.
+Nothing is shared until **Save to guild ledger**. The captured death zone stays
+with the entry even if you move before saving. Dismiss skips that death.
+
+When attribution is unavailable, the prompt appears after about three seconds
+and asks whether a player killed you. Enter their full name and review the note;
+this is saved as a manual account. Known lethal NPC/environmental damage suppresses
+the prompt. Unidentified PvE deaths can still show this question—dismiss it.
+Auto-save shares only confirmed killers automatically, using the same manual
+fallback for unknown killers. Confirmation requires readable hostile-player
+GUID, flags, lethal evidence and name. Changing the prefilled enemy name makes
+the entry manual. Battlegrounds/instances are excluded. Global alert mute hides
+these prompts. Previously disabled death recording stays off after updating;
+previously enabled recording moves to Ask first.
+
+Book settings also default to guild sharing, automatic recording of your own
+confirmed killing blows, target/mouseover warnings and grudge notices. These
+are independent of the beacon's automatic-call setting (which defaults to off).
 Automatic vengeance needs your own readable `PARTY_KILL` event against a known
 enemy; party participation is not treated as your kill. One kill settles the
 oldest unpaid debt, and repeated evidence is deduplicated. If the game restricts
-attribution, use manual inscription/vengeance. No secure/internal combat API is used.
+attribution, use the death prompt or manual inscription/vengeance. No secure/internal combat API is used.
 
 Sightings are local observations of a hostile player you target or mouse over;
 they are not shared or saved as enemy tracking. **Hide this name** suppresses a

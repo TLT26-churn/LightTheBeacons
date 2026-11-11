@@ -965,7 +965,9 @@ local function snapshot(c,target,path)
     local f=assert(io.open(path,"w"));f:write(json(scene));f:close()
 end
 local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
+local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 if arg[2] then
+    snapshot(deathPreview,deathPreview.B.GrudgeUI.deathPrompt,arg[2].."-grudge-death.json")
     snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges.json")
     grudgePreview.B.GrudgeUI.Turn(1)
     for _,o in ipairs(grudgePreview.objects) do o.box=nil end

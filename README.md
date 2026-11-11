@@ -26,6 +26,9 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
 
+- **1.6.2** adds the missing post-death grudge prompt. Review a prefilled killer
+  when attribution is readable, or enter a name yourself when it is unavailable.
+  Grudges → Settings offers **Ask first** (default), **Auto-save**, and **Off**.
 - **1.6.1** makes the Grudges ledger clearer: outlined inputs with typing hints,
   framed action buttons, concise default alerts and a single fantasy title.
 

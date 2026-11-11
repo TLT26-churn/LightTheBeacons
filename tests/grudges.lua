@@ -133,6 +133,7 @@ check(not late.B.Grudges.Inscribe("Paused","This must not be sent."),"Paused sha
 check(#late.B.Grudges.queue==0,"Pausing sharing clears unsent transport packets")
 -- Confirmed death attribution: never guess from a caster name alone.
 local death=client("Aldric","Stoneward");local DG=death.B.Grudges;death.s.dead=true
+DG.SetDeathMode("auto")
 local hit={0,"SPELL_DAMAGE",false,"Player-2-00FF","Doctor Deathjuice",0x440,0,"Player-1-Aldric","Aldric Stoneward",0,0,1,"Strike",1,100,0}
 death.B.Client.CombatEvent(unpack(hit));death.B.Death();death.advance(1)
 check(#DG.ids==1 and DG.log[1].enemy=="Doctor Deathjuice" and DG.log[1].evidence=="pvp","Confirmed hostile-player killing blow inscribes a death")

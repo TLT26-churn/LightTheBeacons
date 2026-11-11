@@ -69,11 +69,12 @@ end
 function U.Person() return U.selected and G.people and G.people[U.selected] end
 function U.Record() local p=U.Person();return p and p.debts[U.debt] end
 function U.Reset()
-    U.selected=nil;U.indexPage=1;U.debt=1;U.query="";U.confirming=nil
+    U.selected=nil;U.indexPage=1;U.debt=1;U.query="";U.confirming=nil;U.deathDraft=nil
+    if U.deathPrompt then U.deathPrompt:Hide() end
     if U.frame then U.search:SetText("");U.name:SetText("");U.note:SetText("");U.Refresh() end
 end
 function U.Mode(mode)
-    U.mode=mode;U.confirming=nil;U.confirm:Hide()
+    U.mode=mode;U.confirming=nil;U.deathDraft=nil;U.confirm:Hide()
     if mode=="inscribe" then local p=U.Person();U.name:SetText(p and p.name or "");U.note:SetText("") end
     U.Refresh()
 end
@@ -200,10 +201,17 @@ function U.Create()
     U.composeBy=label(U.compose,0,406,384,42,14,"italic",faded)
     picture(U.compose,"GrudgeSeal",0,464,48,48)
     U.submit=link(U.compose,"Save to guild ledger",62,471,272,function()
-        local e,why=G.Inscribe(U.name:GetText(),U.note:GetText())
-        if e then U.selected=P.Identity(e.enemy);U.debt=#G.people[U.selected].debts;U.mode="book";U.name:ClearFocus();U.note:ClearFocus()
+        local draft=U.deathDraft
+        local verified=draft and draft.scope==G.scope and draft.evidence=="pvp"
+            and P.Identity(G.Clean(U.name:GetText(),70,100))==P.Identity(draft.enemy)
+        local e,why=G.Inscribe(U.name:GetText(),U.note:GetText(),verified and draft.guid or nil,
+            verified and "pvp" or "manual",draft and draft.where)
+        if e then
+            U.selected=P.Identity(e.enemy);U.debt=#G.people[U.selected].debts;U.mode="book";U.deathDraft=nil
+            U.name:ClearFocus();U.note:ClearFocus();U.name:SetText("");U.note:SetText("")
         else U.notice=why;U.noticeUntil=GetTime()+12 end
         U.Refresh()
+        if e and G.pendingDeath and G.pendingDeath.handled then U.PromptDeath(G.pendingDeath) end
     end,17,"primary")
     -- A page of the book's voice, using the approved phrases.
     U.words=CreateFrame("Frame",nil,f);U.words:SetPoint("TOPLEFT",521,-65);U.words:SetSize(384,535)
@@ -223,22 +231,36 @@ function U.Create()
     U.checks={}
     local rules={
         {"enabled","Use the guild-shared book","Off pauses all grudge sending, receiving and automatic recording."},
-        {"autoRecord","Inscribe my PvP deaths","Confirmed outdoor hostile-player deaths only. No name guessing."},
+        {"deathMode","After an outdoor PvP death","Unknown killer: ask you to enter the name."},
         {"autoAvenge","Record my confirmed victories","Your readable killing blow settles one oldest unpaid debt."},
         {"sightingAlerts","Warn when a debtor is seen","Only a hostile player you target or mouse over. No shared tracking."},
         {"notices","Show grudge notices","One notice at a time. Beacon alert mute also silences these notices."},
     }
     for i,item in ipairs(rules) do
-        local y=78+(i-1)*62;local check=CreateFrame("CheckButton",nil,U.settings);check:SetPoint("TOPLEFT",0,-y);check:SetSize(22,22)
-        check:SetNormalTexture(B.MediaPaths["UI-CheckBox-Up"]);check:SetCheckedTexture(B.MediaPaths["UI-CheckBox-Check"])
-        label(U.settings,30,y,354,23,16,"body",ink):SetText(item[2])
-        label(U.settings,30,y+24,354,34,12,"italic",faded):SetText(item[3])
-        check:SetScript("OnClick",function(self) if item[1]=="enabled" then G.SetEnabled(self:GetChecked()) else G.options[item[1]]=self:GetChecked() and true or false end;U.Refresh() end)
-        U.checks[item[1]]=check
+        local y=70+(i-1)*68
+        if item[1]=="deathMode" then
+            label(U.settings,0,y,384,23,16,"body",ink):SetText(item[2])
+            U.deathModes={}
+            for j,choice in ipairs({{"prompt","Ask first"},{"auto","Auto-save"},{"off","Off"}}) do
+                local b=link(U.settings,choice[2],(j-1)*128,y+23,122,function() G.SetDeathMode(choice[1]);U.Refresh() end,14)
+                U.deathModes[choice[1]]=b
+                tooltip(b,choice[2],choice[1]=="auto" and "Share confirmed killers automatically. Ask for a name when attribution is unavailable."
+                    or choice[1]=="prompt" and "Review a grudge after death. Nothing is shared until you save."
+                    or "Do not prompt or automatically save death grudges.")
+            end
+            label(U.settings,0,y+52,384,16,12,"italic",faded):SetText(item[3])
+        else
+            local check=CreateFrame("CheckButton",nil,U.settings);check:SetPoint("TOPLEFT",0,-y);check:SetSize(22,22)
+            check:SetNormalTexture(B.MediaPaths["UI-CheckBox-Up"]);check:SetCheckedTexture(B.MediaPaths["UI-CheckBox-Check"])
+            label(U.settings,30,y,354,23,16,"body",ink):SetText(item[2])
+            label(U.settings,30,y+24,354,34,12,"italic",faded):SetText(item[3])
+            check:SetScript("OnClick",function(self) if item[1]=="enabled" then G.SetEnabled(self:GetChecked()) else G.options[item[1]]=self:GetChecked() and true or false end;U.Refresh() end)
+            U.checks[item[1]]=check
+        end
     end
-    U.restore=link(U.settings,"Restore hidden names",0,400,232,function() G.options.hidden={};U.Refresh() end)
-    link(U.settings,"Sync pages",249,400,135,function() G.Sync();U.Refresh() end)
-    label(U.settings,0,443,384,68,13,"italic",faded):SetText("History is shared with guild addon users, retained for 90 days, and restored from online guildmates. Only the original scribe may withdraw a wrong. Hidden names affect only your view.")
+    U.restore=link(U.settings,"Restore hidden names",0,410,232,function() G.options.hidden={};U.Refresh() end)
+    link(U.settings,"Sync pages",249,410,135,function() G.Sync();U.Refresh() end)
+    label(U.settings,0,451,384,68,13,"italic",faded):SetText("History is shared with guild addon users, retained for 90 days, and restored from online guildmates. Only the original scribe may withdraw a wrong. Hidden names affect only your view.")
     label(U.settings,0,521,384,16,11,"italic",faded):SetText("Made by Whitebeard Tinkerton - US PVP")
     -- Separate bottom placement avoids the beacon/rally banner stack at the top.
     local toast=CreateFrame("Button",nil,UIParent,"BackdropTemplate");U.toast=toast
@@ -250,7 +272,42 @@ function U.Create()
     toast:RegisterForClicks("LeftButtonUp","RightButtonUp")
     toast:SetScript("OnClick",function(_,mouse) toast:Hide();if mouse~="RightButton" then U.Toggle(true) end end)
     toast:SetScript("OnUpdate",function() if GetTime()>=(U.toastUntil or 0) then toast:Hide() end end)
-    toast:Hide();f:Hide()
+    toast:Hide()
+    -- Above the separate call-for-aid prompt, with room between their borders.
+    local d=CreateFrame("Frame",nil,UIParent,"BackdropTemplate");U.deathPrompt=d
+    d:SetSize(460,190);d:SetPoint("CENTER",UIParent,"CENTER",0,8);d:SetFrameStrata("DIALOG");d:EnableMouse(true)
+    d:SetBackdrop({bgFile=B.MediaPaths["UI-DialogBox-Background"],edgeFile=B.MediaPaths["UI-DialogBox-Border"],tile=true,tileSize=32,edgeSize=16})
+    d:SetBackdropColor(.12,.08,.05,1);d:SetBackdropBorderColor(.40,.29,.18,1)
+    picture(d,"GrudgeSeal",19,14,34,34)
+    label(d,64,15,376,32,26,"title",brass):SetText("Add a grudge?")
+    U.deathText=label(d,20,56,420,74,16,"body",brass)
+    U.deathAction=link(d,"Review grudge",20,137,226,U.BeginDeathEntry,16,"dark")
+    U.deathDismiss=link(d,"Dismiss",270,137,170,G.CancelDeathPrompt,16,"dark")
+    label(d,20,170,420,15,11,"body",brass,"CENTER"):SetText("Nothing is shared until you save.")
+    d:Hide();f:Hide()
+end
+function U.PromptDeath(draft)
+    if B.db.muteBeacons or not G.Active() or G.options.deathMode=="off" then G.CancelDeathPrompt();return end
+    if G.pendingDeath~=draft or draft.scope~=G.scope then return end
+    U.Create()
+    local known=draft.evidence=="pvp"
+    U.deathText:SetText(known and ("Killed by "..draft.enemy..".\nReview the entry before sharing it with your guild.")
+        or "Killed by a player? The client couldn't identify your killer.\nEnter their name to add a grudge to the guild ledger.")
+    U.deathAction.caption:SetText(known and "Review grudge" or "Add grudge")
+    U.deathPrompt:Show()
+end
+function U.BeginDeathEntry()
+    local draft=G.pendingDeath
+    if not draft or draft.scope~=G.scope or not G.Active() then G.CancelDeathPrompt();return end
+    U.deathPrompt:Hide()
+    if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
+    -- Preserve an entry the player was already writing, even if its window is closed.
+    if U.mode=="inscribe" and (U.name:GetText()~="" or U.note:GetText()~="") then
+        U.Toggle(true);U.notice="Finish your current entry. The death prompt will return after you save, while you are still dead.";U.noticeUntil=GetTime()+12;U.Refresh();return
+    end
+    U.Toggle(true);U.Mode("inscribe");U.deathDraft=draft
+    U.name:SetText(draft.enemy);U.note:SetText(draft.note);G.CancelDeathPrompt()
+    U.Refresh()
 end
 function U.Notify(title,body,kind)
     U.notice=title.." "..body;U.noticeUntil=GetTime()+10
@@ -320,6 +377,10 @@ function U.Refresh()
     for i,row in ipairs(U.phraseRows) do row:SetShown(phrases[i]~=nil);if phrases[i] then row.caption:SetText((i==choice and "> " or numeral(i)..". ")..phrases[i]) end end
     U.phraseNote:SetText(choice and "Selected wording for this alert." or "Standard wording: "..G.defaultPhrases[U.phraseKind])
     for k,check in pairs(U.checks) do check:SetChecked(G.options[k]) end
+    for mode,button in pairs(U.deathModes) do
+        button.background:SetColorTexture(.31,.23,.13,mode==G.options.deathMode and .65 or .15)
+        button.caption:SetTextColor(unpack(mode==G.options.deathMode and brass or red))
+    end
     local hidden=0;for _ in pairs(G.options.hidden) do hidden=hidden+1 end
     U.restore.caption:SetText("Restore hidden names ("..hidden..")");U.restore:SetEnabled(hidden>0)
     U.status:SetText(U.noticeUntil and GetTime()<U.noticeUntil and U.notice or G.status or "Guild ledger ready.")

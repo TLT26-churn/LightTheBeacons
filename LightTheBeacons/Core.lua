@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.6.1"
+B.version="1.6.2"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -371,9 +371,10 @@ frame:SetScript("OnEvent",function(_,event,...)
         B.UI.Refresh()
     elseif event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE" then
         if not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then
-            B.deathPoint=nil;B.killingBlow=nil;B.deathSerial=(B.deathSerial or 0)+1
+            B.deathPoint=nil;B.killingBlow=nil;B.nonPlayerDeath=nil;B.deathSerial=(B.deathSerial or 0)+1
             B.Grudges.deathSerial=(B.Grudges.deathSerial or 0)+1
             B.Grudges.deathActive=nil
+            B.Grudges.CancelDeathPrompt()
             if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
         end
     elseif event=="ZONE_CHANGED_NEW_AREA" then if not B.navigating then B.Replan() end
