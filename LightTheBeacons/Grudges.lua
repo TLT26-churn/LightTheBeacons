@@ -1,6 +1,7 @@
 local _,B=...
 local P,C=B.Protocol,B.Client
 local G={prefix="LTBGR1",retention=90*86400,limit=1200,pageSize=12};B.Grudges=G
+G.defaultPhrases={incurred="Grudge recorded.",sighted="Known enemy sighted.",avenged="Grudge avenged."}
 G.phrases={
     incurred={"A debt is entered. Let stone remember.","Ink the wrong. Name the debtor.","Another wrong. Another reckoning.","The ledger grows.","Set this grievance down in iron and ink."},
     sighted={"A debtor stands before us.","That name is known.","The debt remains unpaid.","An oathbreaker approaches.","The book remembers this one."},
@@ -81,7 +82,7 @@ function G.GuildChanged()
     old.events=clean;for id in pairs(old.outbox) do if not clean[id] or P.Identity(clean[id].author)~=B.me then old.outbox[id]=nil end end
     G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings={};G.seenAlert={};G.killSeen={}
     G.request=nil;G.offerDue=nil;G.nextQuery=GetTime()+7;G.lastTick=nil;G.deathActive=nil;G.deathSerial=(G.deathSerial or 0)+1
-    G.Rebuild();G.status=B.guild=="" and "Join a guild to open its shared book." or "Waiting for the guild's scribes."
+    G.Rebuild();G.status=B.guild=="" and "Join a guild to open its shared book." or "Waiting for guild sync."
     if B.GrudgeUI then B.GrudgeUI.Reset() end
 end
 function G.Rebuild()
@@ -123,10 +124,10 @@ function G.List(query)
     return out
 end
 function G.Phrase(kind,balanced)
-    if balanced then return "The account is balanced." end
+    if balanced then return "All grudges avenged." end
     local lines=G.phrases[kind];local chosen=G.options.phrases[kind]
     if integer(chosen,1,#lines) then return lines[chosen] end
-    G.phraseTurn=(G.phraseTurn or 0)+1;return lines[(G.phraseTurn-1)%#lines+1]
+    return G.defaultPhrases[kind]
 end
 function G.Notify(kind,e)
     local r=e.kind=="I" and G.entries[e.id] or G.entries[e.target]
@@ -171,7 +172,7 @@ end
 function G.New(kind,enemy,note,target,guid,evidence,where)
     if not G.Active() then return nil,"Enable the shared book and join a guild first." end
     if #G.ids>=G.limit then return nil,"The book is full; older records expire after 90 days." end
-    if (not evidence or evidence=="manual") and G.lastWrite and GetTime()-G.lastWrite<2 then return nil,"Let the ink dry for a moment." end
+    if (not evidence or evidence=="manual") and G.lastWrite and GetTime()-G.lastWrite<2 then return nil,"Wait two seconds before adding another entry." end
     G.store.sequence=(tonumber(G.store.sequence) or 0)+1
     local at=math.floor(C.Now());local id=G.Hash(B.me).."."..at.."."..B.nonce.."."..G.store.sequence
     local e={kind=kind,id=id,author=B.name,at=at,guild=G.scope,enemy=enemy or "",note=note or "",target=target or "",guid=guid or "",where=where or "",evidence=evidence or "manual"}
@@ -202,7 +203,7 @@ function G.Withdraw(id)
 end
 function G.SetEnabled(value)
     G.options.enabled=value==true;G.queue={};G.queued={};G.pending={};G.request=nil;G.offerDue=nil
-    G.nextQuery=GetTime()+2;G.status=value and "Waiting for the guild's scribes." or "Sharing paused. The saved book is read-only."
+    G.nextQuery=GetTime()+2;G.status=value and "Waiting for guild sync." or "Sharing paused. The saved book is read-only."
     if B.GrudgeUI then B.GrudgeUI.Refresh() end
 end
 local function requestPage(peer,cursor)
@@ -214,7 +215,7 @@ function G.Sync()
     local nonce=tostring(math.floor(C.Now())).."."..B.nonce
     G.request={nonce=nonce,deadline=GetTime()+8,offers={}}
     G.Queue("1|Q|"..nonce.."|"..G.digest);G.nextQuery=GetTime()+180
-    G.status="Seeking missing pages from the guild."
+    G.status="Syncing guild records."
 end
 function G.Receive(msg,sender,channel)
     if not G.Active() or not P.Plain(channel) or channel~="GUILD" or not P.Plain(msg) or type(msg)~="string" or #msg>250 or msg:find("%c") then return end

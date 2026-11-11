@@ -1,0 +1,45 @@
+{
+  "version": "1.6.1",
+  "kind": "Native Lua UI renders",
+  "sampleNames": [
+    "Example Ally",
+    "Sample Scout",
+    "Sample Healer",
+    "Example Enemy",
+    "Sample Rival",
+    "Training Foe",
+    "Sample Scribe"
+  ],
+  "images": [
+    {
+      "file": "01-rally-and-routes.png",
+      "title": "Guild calls and rescue routes",
+      "caption": "Compact Rally card, incoming alert and expanded route. Fictional sample names; rendered addon UI.",
+      "sha256": "304c403f7b5ca650301cd74e6701ded23d9afd4b73222df66d4d9373c3866b1a",
+      "size": [
+        1920,
+        1440
+      ]
+    },
+    {
+      "file": "02-guild-grudges.png",
+      "title": "Guild-shared Grudges ledger",
+      "caption": "A recorded grudge marked avenged while preserving the original entry. Fictional sample names; rendered addon UI.",
+      "sha256": "aa64024616bb6fca6688b8a374eea398a19249ec498f746b95bef859682f7018",
+      "size": [
+        1920,
+        1440
+      ]
+    },
+    {
+      "file": "03-add-a-grudge.png",
+      "title": "Clear grudge entry controls",
+      "caption": "Outlined fields, typing hints and a Save to guild ledger button. Fictional sample names; rendered addon UI.",
+      "sha256": "6f679fdc5a07c52a5a55c887086c34b68aa06d084f62b4def97ca82f466df8ea",
+      "size": [
+        1920,
+        1440
+      ]
+    }
+  ]
+}

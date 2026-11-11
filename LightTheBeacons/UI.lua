@@ -150,7 +150,7 @@ function U.Create()
         else B.Answer() end
     end)
     U.expand=link(U.main,"Details +",310,139,74,function() U.expanded=not U.expanded;U.Refresh() end)
-    U.book=link(U.main,"Book of Grudges",191,139,114,function() B.GrudgeUI.Toggle() end)
+    U.book=link(U.main,"Grudges",191,139,114,function() B.GrudgeUI.Toggle() end)
     U.brief=CreateFrame("Frame",nil,U.main);U.brief:SetSize(368,38)
     fill(U.brief,0,0,368,38,.045,.13,.29,1)
     fill(U.brief,0,0,2,38,.85,.66,.29,.9)

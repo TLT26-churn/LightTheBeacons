@@ -900,10 +900,10 @@ preview.B.preview.responders.other="Elowen Dawnwatch"
 preview.B.preview.route=preview.B.Routing.Plan({c=0,x=-8900,y=600},preview.B.preview.point,{[2]=true,[5]=true},"A",7)
 preview.B.route=preview.B.preview.route;preview.B.UI.Alert(preview.B.preview,true);preview.B.UI.Refresh()
 -- Representative sample data for rendering the actual native UI.
-local sample={name="Jackdark Featherfall",owner="jackdark featherfall",id="design-preview",sent=preview.B.Client.Now()-43,
+local sample={name="Example Ally",owner="example ally",id="design-preview",sent=preview.B.Client.Now()-43,
     expires=preview.B.Client.Now()+257,map=1446,px=.47,py=.50,reason="aid",message="Three Horde at the cave. Need a healer!",
-    point={c=1,x=-7224,y=-3734,n="Jackdark Featherfall's beacon"},
-    responders={one="Blackbeard Soulless",two="Whitebeard Tinkerton"}}
+    point={c=1,x=-7224,y=-3734,n="Example Ally's beacon"},
+    responders={one="Sample Scout",two="Sample Healer"}}
 preview.B.preview=nil;preview.B.session.beacons={[sample.owner]=sample};preview.B.selected=sample.owner
 preview.B.db.known={[80]=true,[32]=true};preview.B.db.flightMasterScanned=true
 preview.B.route=preview.B.Routing.Plan(preview.B.TravelData.nodes[80],sample.point,preview.B.db.known,"A",7)
@@ -973,9 +973,17 @@ if arg[2] then
     grudgePreview.B.GrudgeUI.Mode("inscribe")
     for _,o in ipairs(grudgePreview.objects) do o.box=nil end
     snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-inscribe.json")
+    grudgePreview.B.GrudgeUI.name:SetText("")
+    for _,o in ipairs(grudgePreview.objects) do o.box=nil end
+    snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-fields.json")
+    grudgePreview.B.GrudgeUI.Mode("words")
+    for _,o in ipairs(grudgePreview.objects) do o.box=nil end
+    snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-phrases.json")
     grudgePreview.B.GrudgeUI.Mode("settings")
     for _,o in ipairs(grudgePreview.objects) do o.box=nil end
     snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-settings.json")
+    local emptyBook=client("Sample","Scribe");emptyBook.B.GrudgeUI.Toggle(true)
+    snapshot(emptyBook,emptyBook.B.GrudgeUI.frame,arg[2].."-grudges-empty.json")
     snapshot(preview,preview.B.UI.frame,arg[2].."-window.json")
     preview.B.UI.expanded=true;preview.B.UI.Refresh()
     for _,o in ipairs(preview.objects) do o.box=nil end
@@ -985,7 +993,7 @@ if arg[2] then
     snapshot(preview,preview.B.UI.frame,arg[2].."-guidance.json")
     preview.B.navigating=false;preview.B.UI.Refresh()
     snapshot(preview,preview.B.UI.banner,arg[2].."-alert.json")
-    preview.B.UI.Answered("Blackbeard Soulless",1,true,nil)
+    preview.B.UI.Answered("Sample Scout",1,true,nil)
     snapshot(preview,preview.B.UI.answerBanner,arg[2].."-answer.json")
     preview.B.UI.options=true;preview.B.UI.Refresh()
     for _,o in ipairs(preview.objects) do o.box=nil end
@@ -1001,9 +1009,9 @@ if arg[2] then
     preview.B.UI.OpenSettingsPage("controls")
     for _,o in ipairs(preview.objects) do o.box=nil end
     snapshot(preview,preview.B.UI.frame,arg[2].."-controls.json")
-    preview.B.SetPlayerFilter("Jackdark Featherfall","silent",false)
-    preview.B.SetPlayerFilter("Blackbeard Soulless","hidden",true)
-    preview.B.SetFriend("Jackdark Featherfall",true)
+    preview.B.SetPlayerFilter("Example Ally","silent",false)
+    preview.B.SetPlayerFilter("Sample Scout","hidden",true)
+    preview.B.SetFriend("Example Ally",true)
     preview.B.UI.OpenSettingsPage("filters")
     for _,o in ipairs(preview.objects) do o.box=nil end
     snapshot(preview,preview.B.UI.frame,arg[2].."-filters.json")

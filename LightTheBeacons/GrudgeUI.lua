@@ -19,19 +19,40 @@ local function picture(parent,file,x,y,w,h,layer)
     local t=parent:CreateTexture(nil,layer or "ARTWORK");t:SetTexture(root.."Media\\"..file..".tga")
     t:SetPoint("TOPLEFT",x,-y);t:SetSize(w,h);return t
 end
-local function link(parent,caption,x,y,w,fn,size)
+local function border(parent,x,y,w,h,color,alpha)
+    return {fill(parent,x,y,w,1,color,alpha),fill(parent,x,y+h-1,w,1,color,alpha),
+        fill(parent,x,y,1,h,color,alpha),fill(parent,x+w-1,y,1,h,color,alpha)}
+end
+local function link(parent,caption,x,y,w,fn,size,style)
     local b=CreateFrame("Button",nil,parent);b:SetPoint("TOPLEFT",x,-y);b:SetSize(w,27)
-    b.caption=label(b,0,4,w,22,size or 15,"italic",red);b.caption:SetText(caption)
+    local dark=style=="dark" or style=="primary"
+    b.background=fill(b,0,0,w,27,dark and {.21,.12,.075} or {.55,.44,.28},dark and .95 or .23)
+    b.edges=border(b,0,0,w,27,dark and brass or faded,.7)
+    b.hover=fill(b,1,1,w-2,25,brass,.2);b.hover:Hide()
+    b.caption=label(b,5,5,w-10,20,size or 14,"body",dark and brass or red,"CENTER");b.caption:SetText(caption)
     b:SetScript("OnClick",fn)
-    b:SetScript("OnEnable",function() b.caption:SetTextColor(unpack(red)) end)
-    b:SetScript("OnDisable",function() b.caption:SetTextColor(.43,.37,.28) end)
+    b:SetScript("OnEnter",function() if b:IsEnabled() then b.hover:Show() end end)
+    b:SetScript("OnLeave",function() b.hover:Hide() end)
+    b:SetScript("OnEnable",function() b.caption:SetTextColor(unpack(dark and brass or red)) end)
+    b:SetScript("OnDisable",function() b.caption:SetTextColor(.43,.37,.28);b.hover:Hide() end)
+    function b:Resize(height)
+        self:SetHeight(height);self.background:SetHeight(height);self.hover:SetHeight(height-2)
+        self.edges[2]:SetPoint("TOPLEFT",0,-height+1)
+        self.edges[3]:SetHeight(height);self.edges[4]:SetHeight(height)
+    end
     return b
 end
-local function field(parent,x,y,w,h,multi,limit)
-    fill(parent,x,y,w,h,ink,.06);fill(parent,x,y+h,w,1,faded,.5)
-    local e=CreateFrame("EditBox",nil,parent);e:SetPoint("TOPLEFT",x+4,-y-3);e:SetSize(w-8,h-6)
+local function field(parent,x,y,w,h,multi,limit,hint)
+    fill(parent,x,y,w,h,{.82,.73,.54},.38)
+    local edges=border(parent,x,y,w,h,faded,.8)
+    local e=CreateFrame("EditBox",nil,parent);e:SetPoint("TOPLEFT",x+8,-y-5);e:SetSize(w-16,h-10)
     e:SetFont(fonts.body,17,"");e:SetTextColor(unpack(ink));e:SetAutoFocus(false);e:SetMultiLine(multi)
     e:SetMaxLetters(limit);e:SetMaxBytes(limit*4)
+    e.hint=label(e,0,0,w-16,h-10,14,"body",faded);e.hint:SetText(hint or "Type here")
+    local function updateHint() e.hint:SetShown(not e.focused and (e:GetText() or "")=="") end
+    e:SetScript("OnTextChanged",updateHint)
+    e:SetScript("OnEditFocusGained",function() e.focused=true;for _,edge in ipairs(edges) do edge:SetColorTexture(.43,.17,.10,1) end;updateHint() end)
+    e:SetScript("OnEditFocusLost",function() e.focused=nil;for _,edge in ipairs(edges) do edge:SetColorTexture(unpack(faded)) end;updateHint() end)
     e:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
     if not multi then e:SetScript("OnEnterPressed",function(self) self:ClearFocus() end) end
     return e
@@ -89,18 +110,17 @@ function U.Create()
     UISpecialFrames[#UISpecialFrames+1]="LightTheBeaconsGrudgeBook"
     picture(f,"GrudgeTome",0,0,960,640,"BACKGROUND")
     label(f,52,20,260,18,12,"body",brass):SetText("LIGHT THE BEACONS")
-    local chapters={{"The book","book"},{"Inscribe","inscribe"},{"The words","words"},{"Settings","settings"}}
+    U.tabs={}
+    local chapters={{"Ledger","book"},{"Add grudge","inscribe"},{"Phrases","words"},{"Settings","settings"}}
     for i,item in ipairs(chapters) do
-        local b=link(f,item[1],580+(i-1)*80,15,77,function() U.Mode(item[2]) end,14)
-        b.caption:SetTextColor(unpack(brass))
+        local b=link(f,item[1],510+(i-1)*98,15,94,function() U.Mode(item[2]) end,13,"dark")
+        U.tabs[item[2]]=b
     end
-    local close=link(f,"X",915,13,25,function() f:Hide() end,17);close.caption:SetTextColor(unpack(brass))
-    label(f,55,65,363,16,11,"body",faded,"CENTER"):SetText("A CHRONICLE KEPT BY THE GUILD")
-    label(f,55,88,363,27,22,"body",ink,"CENTER"):SetText("BOOK OF")
-    label(f,55,114,363,46,36,"title",ink,"CENTER"):SetText("Grudges")
-    label(f,55,160,363,18,13,"italic",faded,"CENTER"):SetText("A record of wrongs. An oath of reckoning.")
+    link(f,"X",915,15,25,function() f:Hide() end,15,"dark")
+    label(f,55,90,363,60,46,"title",ink,"CENTER"):SetText("Grudges")
+    label(f,55,156,363,18,13,"body",faded,"CENTER"):SetText("Shared guild ledger")
     fill(f,86,190,303,1,faded,.35)
-    label(f,55,205,363,28,23,"title"):SetText("Names in the book")
+    label(f,55,205,363,28,23,"title"):SetText("Enemies")
     for i=1,4 do
         local row=CreateFrame("Button",nil,f);U.rows[i]=row;row:SetPoint("TOPLEFT",55,-(243+(i-1)*52));row:SetSize(363,48)
         row.name=label(row,0,0,308,27,23,"title");row.page=label(row,313,7,50,17,13,"body",faded,"RIGHT")
@@ -114,24 +134,24 @@ function U.Create()
         row:SetScript("OnClick",function(self) if self.key then U.Select(self.key) end end)
     end
     U.emptyIndex=label(f,55,246,363,155,17,"italic",faded)
-    label(f,55,446,238,16,12,"italic",faded):SetText("Seek a name")
-    U.search=field(f,55,463,238,28,false,70)
-    U.search:SetScript("OnTextChanged",function(self) U.query=G.Clean(self:GetText(),70,100);U.indexPage=1;U.Refresh() end)
-    tooltip(U.search,"Seek a name","Filter this character's view of the shared book.")
+    label(f,55,446,238,16,12,"body",faded):SetText("Search enemies")
+    U.search=field(f,55,463,238,30,false,70,"Type a player name")
+    U.search:HookScript("OnTextChanged",function(self) U.query=G.Clean(self:GetText(),70,100);U.indexPage=1;U.Refresh() end)
+    tooltip(U.search,"Search enemies","Filter this character's view of the shared book.")
     U.hide=link(f,"Hide this name",305,463,115,function()
         if U.selected then G.options.hidden[U.selected]=true;U.selected=nil;U.Refresh() end
     end,13)
-    U.prevIndex=link(f,"< Earlier names",55,497,130,function() U.indexPage=math.max(1,U.indexPage-1);U.Refresh() end,13)
+    U.prevIndex=link(f,"< Previous",55,497,130,function() U.indexPage=math.max(1,U.indexPage-1);U.Refresh() end,13)
     U.indexCount=label(f,188,502,105,18,12,"body",faded,"CENTER")
-    U.nextIndex=link(f,"Later names >",299,497,121,function() U.indexPage=U.indexPage+1;U.Refresh() end,13)
+    U.nextIndex=link(f,"Next >",299,497,121,function() U.indexPage=U.indexPage+1;U.Refresh() end,13)
     U.sighting=label(f,55,535,363,37,13,"italic",faded)
     picture(f,"GrudgeSeal",174,569,38,38)
     label(f,181,579,24,22,18,"title",brass,"CENTER"):SetText("G")
-    label(f,219,575,186,27,11,"italic",faded):SetText("Bound by our guild.\nWitnessed by its own.")
+    U.ledgerSummary=label(f,219,575,186,27,12,"body",faded)
     U.status=label(f,48,617,865,17,12,"italic",brass,"CENTER")
     -- Every content mode lives on the facing leaf; no stacked popups over the book.
     U.read=CreateFrame("Frame",nil,f);U.read:SetPoint("TOPLEFT",521,-65);U.read:SetSize(384,535);U.read:EnableMouse(true)
-    label(U.read,0,0,384,16,11,"body",faded,"CENTER"):SetText("CONCERNING THE DEEDS OF")
+    label(U.read,0,0,384,16,11,"body",faded,"CENTER"):SetText("ENEMY")
     U.enemy=label(U.read,0,25,384,65,31,"title",ink,"CENTER")
     U.grievance=label(U.read,0,98,220,20,15,"body",red)
     U.state=label(U.read,224,98,160,20,15,"body",red,"RIGHT")
@@ -142,64 +162,64 @@ function U.Create()
     end
     U.evidence=label(U.read,0,311,384,19,12,"italic",faded)
     U.signature=label(U.read,0,345,384,56,14,"italic",faded)
-    U.seal=picture(U.read,"GrudgeSeal",0,408,48,48)
-    U.sealLetter=label(U.read,12,419,24,25,22,"title",brass,"CENTER")
-    U.avenged=label(U.read,57,408,327,55,15,"italic",red)
-    U.strike=link(U.read,"Strike this grudge",0,462,170,function() U.Confirm("avenge") end)
-    U.add=link(U.read,"Inscribe another",181,462,160,function() U.Mode("inscribe") end)
-    U.withdraw=link(U.read,"Withdraw my entry",0,491,180,function() U.Confirm("withdraw") end,12)
-    U.prev=link(U.read,"< Previous leaf",0,511,139,function() U.Turn(-1) end,13)
-    U.folio=label(U.read,155,516,74,18,12,"body",faded,"CENTER")
-    U.next=link(U.read,"Next leaf >",263,511,121,function() U.Turn(1) end,13)
+    U.seal=picture(U.read,"GrudgeSeal",0,397,48,48)
+    U.sealLetter=label(U.read,12,408,24,25,22,"title",brass,"CENTER")
+    U.avenged=label(U.read,57,397,327,51,14,"italic",red)
+    U.strike=link(U.read,"Mark avenged",0,448,176,function() U.Confirm("avenge") end)
+    U.add=link(U.read,"Add grudge",193,448,191,function() U.Mode("inscribe") end)
+    U.withdraw=link(U.read,"Withdraw my entry",0,478,176,function() U.Confirm("withdraw") end,12)
+    U.prev=link(U.read,"< Previous entry",0,508,139,function() U.Turn(-1) end,13)
+    U.folio=label(U.read,155,513,74,18,12,"body",faded,"CENTER")
+    U.next=link(U.read,"Next entry >",245,508,139,function() U.Turn(1) end,13)
     U.confirm=CreateFrame("Frame",nil,U.read);U.confirm:SetPoint("TOPLEFT",0,-405);U.confirm:SetSize(384,104)
     fill(U.confirm,0,0,384,104,{.63,.53,.38},1)
     fill(U.confirm,0,0,384,1,red,.6)
     U.confirmText=label(U.confirm,8,8,368,55,15,"body",ink)
-    U.accept=link(U.confirm,"Strike the line",8,70,176,U.CommitConfirmation,14)
-    link(U.confirm,"Leave it standing",193,70,180,function() U.confirming=nil;U.Refresh() end,14)
+    U.accept=link(U.confirm,"Mark avenged",8,70,176,U.CommitConfirmation,14)
+    link(U.confirm,"Cancel",193,70,180,function() U.confirming=nil;U.Refresh() end,14)
     U.confirm:Hide()
     U.blank=CreateFrame("Frame",nil,f);U.blank:SetPoint("TOPLEFT",521,-65);U.blank:SetSize(384,535)
-    label(U.blank,0,58,384,45,30,"title",ink,"CENTER"):SetText("Let stone remember")
+    label(U.blank,0,58,384,45,30,"title",ink,"CENTER"):SetText("No grudge selected")
     U.emptyText=label(U.blank,10,137,364,160,18,"italic",faded,"CENTER")
-    link(U.blank,"Inscribe a wrong",98,350,220,function() U.Mode("inscribe") end,18)
+    U.emptyAdd=link(U.blank,"+ Add grudge",90,300,204,function() U.Mode("inscribe") end,17,"primary")
     -- Inscription is deliberately explicit about guild visibility.
     U.compose=CreateFrame("Frame",nil,f);U.compose:SetPoint("TOPLEFT",521,-65);U.compose:SetSize(384,535)
-    label(U.compose,0,15,384,45,31,"title",ink,"CENTER"):SetText("The wrong committed")
-    label(U.compose,0,80,384,23,16,"body",red):SetText("Against whom?")
-    U.name=field(U.compose,0,109,384,38,false,70);U.name:SetMaxBytes(100)
+    label(U.compose,0,15,384,45,31,"title",ink,"CENTER"):SetText("Add a grudge")
+    label(U.compose,0,80,384,23,16,"body",red):SetText("Enemy player")
+    U.name=field(U.compose,0,109,384,38,false,70,"Full character name");U.name:SetMaxBytes(100)
     link(U.compose,"Use hostile target",213,151,170,function()
         local player,attack=C.Call(UnitIsPlayer,"target"),C.Call(UnitCanAttack,"player","target")
         if P.Plain(player) and P.Plain(attack) and player==true and attack==true then
             U.name:SetText(C.UnitName("target") or "")
         else U.notice="Select a hostile player, or write their full name.";U.noticeUntil=GetTime()+8;U.Refresh() end
     end,13)
-    label(U.compose,0,191,384,24,16,"body",red):SetText("What shall the book remember?")
-    U.note=field(U.compose,0,224,384,150,true,160)
-    U.charCount=label(U.compose,250,379,134,18,12,"italic",faded,"RIGHT")
-    U.note:SetScript("OnTextChanged",function(self) local _,n=P.Message(self:GetText(),true,160);U.charCount:SetText(n.." / 160 letters") end)
+    label(U.compose,0,191,384,24,16,"body",red):SetText("Grievance")
+    U.note=field(U.compose,0,224,384,150,true,160,"Describe what happened (up to 160 characters)")
+    U.charCount=label(U.compose,210,379,174,18,12,"italic",faded,"RIGHT")
+    U.note:HookScript("OnTextChanged",function(self) local _,n=P.Message(self:GetText(),true,160);U.charCount:SetText(n.." / 160 characters") end)
     U.composeBy=label(U.compose,0,406,384,42,14,"italic",faded)
     picture(U.compose,"GrudgeSeal",0,464,48,48)
-    U.submit=link(U.compose,"Set the seal",62,471,272,function()
+    U.submit=link(U.compose,"Save to guild ledger",62,471,272,function()
         local e,why=G.Inscribe(U.name:GetText(),U.note:GetText())
         if e then U.selected=P.Identity(e.enemy);U.debt=#G.people[U.selected].debts;U.mode="book";U.name:ClearFocus();U.note:ClearFocus()
         else U.notice=why;U.noticeUntil=GetTime()+12 end
         U.Refresh()
-    end,24)
+    end,17,"primary")
     -- A page of the book's voice, using the approved phrases.
     U.words=CreateFrame("Frame",nil,f);U.words:SetPoint("TOPLEFT",521,-65);U.words:SetSize(384,535)
-    label(U.words,0,15,384,40,31,"title",ink,"CENTER"):SetText("The words of the book")
-    local kinds={{"Incurred","incurred"},{"Sighted","sighted"},{"Avenged","avenged"}}
+    label(U.words,0,15,384,40,31,"title",ink,"CENTER"):SetText("Alert phrases")
+    local kinds={{"Recorded","incurred"},{"Sighted","sighted"},{"Avenged","avenged"}}
     for i,k in ipairs(kinds) do link(U.words,k[1],(i-1)*128,77,122,function() U.phraseKind=k[2];U.Refresh() end) end
     U.phraseKind="incurred"
     for i=1,5 do
         local row=link(U.words,"",0,131+(i-1)*57,384,function() G.options.phrases[U.phraseKind]=i;U.Refresh() end,17)
-        row:SetHeight(52);row.caption:SetHeight(48);U.phraseRows[i]=row
+        row:Resize(52);row.caption:SetHeight(48);U.phraseRows[i]=row
     end
     U.phraseNote=label(U.words,0,432,384,48,14,"italic",faded)
-    link(U.words,"Let the book choose",0,495,198,function() G.options.phrases[U.phraseKind]=nil;U.Refresh() end)
-    link(U.words,"Rehearse",252,495,132,function() U.Notify(G.Phrase(U.phraseKind),"A local rehearsal. No guild message is sent.","preview") end)
+    link(U.words,"Standard wording",0,495,198,function() G.options.phrases[U.phraseKind]=nil;U.Refresh() end)
+    link(U.words,"Preview",252,495,132,function() U.Notify(G.Phrase(U.phraseKind),"Local preview. No guild message is sent.","preview") end)
     U.settings=CreateFrame("Frame",nil,f);U.settings:SetPoint("TOPLEFT",521,-65);U.settings:SetSize(384,535)
-    label(U.settings,0,15,384,40,31,"title",ink,"CENTER"):SetText("The keeper's rules")
+    label(U.settings,0,15,384,40,31,"title",ink,"CENTER"):SetText("Settings")
     U.checks={}
     local rules={
         {"enabled","Use the guild-shared book","Off pauses all grudge sending, receiving and automatic recording."},
@@ -243,25 +263,28 @@ function U.Notify(title,body,kind)
 end
 function U.Refresh()
     if not U.frame or not G.store then return end
+    for mode,tab in pairs(U.tabs) do tab.background:SetColorTexture(.31,.23,.13,U.mode==mode and 1 or .45) end
     local list=G.List(U.query);local pages=math.max(1,math.ceil(#list/4));U.indexPage=math.max(1,math.min(pages,U.indexPage))
     if not U.selected or not G.people[U.selected] or G.options.hidden[U.selected] then U.selected=list[1] and list[1].key;U.debt=1 end
     for i,row in ipairs(U.rows) do
         local p=list[(U.indexPage-1)*4+i];row:SetShown(p~=nil);row.key=p and p.key
         if p then
             row.name:SetText(p.name);row.name:SetTextColor(unpack(p.key==U.selected and red or ink));row.page:SetText(numeral((U.indexPage-1)*4+i))
-            row.detail:SetText(p.open==0 and "The account is balanced" or p.open..(p.open==1 and " wrong yet unanswered" or " wrongs yet unanswered"))
+            row.detail:SetText(p.open==0 and "All avenged" or p.open..(p.open==1 and " unpaid grudge" or " unpaid grudges"))
             for j,t in ipairs(row.tallies) do t:SetShown(j<=math.min(5,#p.debts));row.slashes[j]:SetShown(j<=math.min(5,#p.debts) and j>p.open) end
             row.cut:SetShown(p.open==0);tooltip(row,p.name,#p.debts.." recorded wrongs; "..p.open.." unpaid.")
         end
     end
-    U.emptyIndex:SetShown(#list==0);U.emptyIndex:SetText(U.query and U.query~="" and "No such name is written here." or "No wrongs have yet been entered.\n\nLet the book remember what the guild must not forget.")
+    U.emptyIndex:SetShown(#list==0);U.emptyIndex:SetText(U.query and U.query~="" and "No matching players." or "No grudges recorded.\nAdd an entry or wait for guildmates to sync.")
     U.prevIndex:SetEnabled(U.indexPage>1);U.nextIndex:SetEnabled(U.indexPage<pages);U.indexCount:SetText(U.indexPage.." / "..pages)
     U.hide:SetEnabled(U.selected~=nil)
+    local enemies,entries=0,0;for _,p in pairs(G.people or {}) do enemies=enemies+1;entries=entries+#p.debts end
+    U.ledgerSummary:SetText(enemies.." enemies\n"..entries.." recorded grudges")
     local person=U.Person();local seen=person and G.sightings[person.key]
-    U.sighting:SetText(seen and ("Seen by you in "..seen.where..", "..formatDate(seen.at)..".") or "Sightings are known only when you see the enemy.")
+    U.sighting:SetText(seen and ("Seen by you in "..seen.where..", "..formatDate(seen.at)..".") or "Target or mouse over a recorded enemy to see a sighting.")
     U.read:SetShown(U.mode=="book" and person~=nil);U.blank:SetShown(U.mode=="book" and not person)
     U.compose:SetShown(U.mode=="inscribe");U.words:SetShown(U.mode=="words");U.settings:SetShown(U.mode=="settings")
-    U.emptyText:SetText(G.Active() and "The guild's shared book is waiting.\n\nWrite a wrong upon the next leaf, or wait for a guildmate's pages to arrive." or "Join a guild and enable its shared book in Settings.\n\nSaved pages remain readable while sharing is paused.")
+    U.emptyText:SetText(G.Active() and "Select a player from the index, or add a grudge to share with your guild." or "Join a guild and enable its shared book in Settings.\n\nSaved pages remain readable while sharing is paused.")
     if person then
         U.debt=math.max(1,math.min(#person.debts,U.debt));local r=U.Record();local e=r.entry
         U.enemy:SetText(person.name);U.grievance:SetText("GRIEVANCE "..numeral(U.debt):upper());U.state:SetText(r.seal and "AVENGED" or "UNANSWERED")
@@ -288,18 +311,18 @@ function U.Refresh()
     U.confirm:SetShown(U.confirming~=nil and U.mode=="book")
     if U.confirming then
         local withdraw=U.confirming.kind=="withdraw"
-        U.confirmText:SetText(withdraw and "Withdraw your entry from the shared book? A withdrawal is sent to the guild; received copies cannot be forcibly erased." or "Did you witness this enemy's defeat? One victory settles one debt. The original wrong remains in the book.")
-        U.accept.caption:SetText(withdraw and "Withdraw this entry" or "Strike the line")
+        U.confirmText:SetText(withdraw and "Withdraw your entry from the guild ledger? Received copies cannot be erased." or "Confirm this enemy's defeat? Marks one grudge avenged and keeps the original entry.")
+        U.accept.caption:SetText(withdraw and "Withdraw entry" or "Mark avenged")
     end
-    U.composeBy:SetText("To be inscribed by "..(B.name or "you")..".\nShared with every guildmate using this addon.")
+    U.composeBy:SetText("Recorded by "..(B.name or "you")..".\nShared with guild addon users.")
     U.submit:SetEnabled(G.Active() and true or false)
     local phrases=G.phrases[U.phraseKind];local choice=G.options.phrases[U.phraseKind]
     for i,row in ipairs(U.phraseRows) do row:SetShown(phrases[i]~=nil);if phrases[i] then row.caption:SetText((i==choice and "> " or numeral(i)..". ")..phrases[i]) end end
-    U.phraseNote:SetText(U.phraseKind=="avenged" and 'Only when no debt remains: "The account is balanced."' or choice and "This line will be spoken for this occasion." or "The book rotates through these lines.")
+    U.phraseNote:SetText(choice and "Selected wording for this alert." or "Standard wording: "..G.defaultPhrases[U.phraseKind])
     for k,check in pairs(U.checks) do check:SetChecked(G.options[k]) end
     local hidden=0;for _ in pairs(G.options.hidden) do hidden=hidden+1 end
     U.restore.caption:SetText("Restore hidden names ("..hidden..")");U.restore:SetEnabled(hidden>0)
-    U.status:SetText(U.noticeUntil and GetTime()<U.noticeUntil and U.notice or G.status or "One guild. One book. No wrong forgotten.")
+    U.status:SetText(U.noticeUntil and GetTime()<U.noticeUntil and U.notice or G.status or "Guild ledger ready.")
 end
 function U.Toggle(force)
     if not B.db then return end
@@ -310,6 +333,6 @@ function U.Toggle(force)
 end
 function U.Tick()
     if U.frame and U.frame:IsShown() then
-        U.status:SetText(U.noticeUntil and GetTime()<U.noticeUntil and U.notice or G.status or "One guild. One book. No wrong forgotten.")
+        U.status:SetText(U.noticeUntil and GetTime()<U.noticeUntil and U.notice or G.status or "Guild ledger ready.")
     end
 end

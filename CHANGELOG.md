@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.6.1 — Clearer Grudges controls
+
+- Title the tome **Grudges**, retaining the aged parchment and fantasy lettering.
+- Give editable fields outlines, typing hints and focus highlights. Frame buttons
+  and tabs so actions are visibly clickable; use direct labels for adding, saving
+  and marking a grudge avenged.
+- Remove decorative slogans from the main pages and use concise default notices.
+  Optional themed phrases remain available in Phrases; saved choices are kept.
+- Add public gallery previews with synthetic sample names.
+- Preserve guild-ledger compatibility, saved grievances, flight data and settings.
+- Validate 493 simulated-client checks and the extracted Windows/Linux ZIP.
+
+
 ## 1.6.0 — The guild Book of Grudges
 
 - Integrate an aged, iron-bound ledger into Light the Beacons. Open it from the

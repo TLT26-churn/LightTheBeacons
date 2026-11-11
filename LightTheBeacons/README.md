@@ -1,4 +1,4 @@
-# Light the Beacons 1.6.0
+# Light the Beacons 1.6.1
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -41,7 +41,7 @@ Options contains settings, local previews and the subtle
 
 ## Use
 
-- `/ltb grudges` or **Book of Grudges** on the Rally card: open the shared ledger.
+- `/ltb grudges` or **Grudges** on the Rally card: open the shared ledger.
 - `/ltb` or the brazier beside the minimap: open the card.
 - `/ltb light`: compose a call at your position (or your fallen body).
 - `/ltb clear`: extinguish your beacon.
@@ -177,14 +177,15 @@ exchange beacons normally but do not share background positions.
 is required. Every participating guildmate needs 1.6.0 or later. Older clients
 continue to exchange beacons normally and ignore the separate ledger protocol.
 
-The book has a dark leather binding, stained parchment, legible fantasy titles,
-a name index and one grievance per facing leaf. **Inscribe** accepts the enemy's
+The **Grudges** ledger has a dark leather binding, stained parchment, legible fantasy titles,
+a name index and one grievance per facing leaf. **Add grudge** accepts the enemy's
 full name and up to 160 characters. **Use hostile target** fills a readable player
-name. Every entry is signed with its author, date and zone and is shared with
-guild addon users. **Previous/Next leaf** traverses a debtor's history; the name
+name. Outlined fields include typing hints and a focus highlight; framed buttons
+identify actions clearly. Every entry is signed with its author, date and zone and is shared with
+guild addon users. **Previous/Next entry** traverses a debtor's history; the name
 index is paged and searchable. Hover a page for the complete written record.
 
-Any guildmate can **Strike this grudge** after witnessing the enemy's defeat.
+Any guildmate can **Mark avenged** after witnessing the enemy's defeat.
 The confirmation records one victory against one selected debt, preserves the
 original words, and adds an attributed wax seal. Manual records are identified
 as manually witnessed victories. Only the original scribe can **Withdraw my
@@ -205,9 +206,8 @@ Sightings are local observations of a hostile player you target or mouse over;
 they are not shared or saved as enemy tracking. **Hide this name** suppresses a
 debtor in your index and sightings locally. Restore hidden names in Settings.
 Turning off **Use the guild-shared book** pauses receiving, sending and automatic
-recording and makes saved pages read-only. **The words** chooses a phrase per
-occasion or lets the book rotate through them. “The account is balanced” is
-reserved for a debtor with no unpaid wrongs. Notices use one bottom-screen slot;
+recording and makes saved pages read-only. **Phrases** offers optional themed wording; concise notifications are the default.
+“All grudges avenged” appears only when a debtor has no unpaid entries. Notices use one bottom-screen slot;
 the existing beacon alert mute also suppresses them.
 
 The ledger uses `LTBGR1` on the hidden `GUILD` addon-data channel. It sends no

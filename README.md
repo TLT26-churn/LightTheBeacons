@@ -4,7 +4,8 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
-**[Download the latest addon ZIP](https://github.com/TLT26-churn/LightTheBeacons/releases/latest)** ·
+**[CurseForge](https://www.curseforge.com/wow/addons/light-the-beacons)** ·
+[GitHub downloads](https://github.com/TLT26-churn/LightTheBeacons/releases/latest) ·
 [Full guide](LightTheBeacons/README.md) · [Release notes](CHANGELOG.md)
 
 ## Install on Windows or Linux
@@ -24,6 +25,9 @@ your available flight points; repeat on other continents you use. Every
 participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
+
+- **1.6.1** makes the Grudges ledger clearer: outlined inputs with typing hints,
+  framed action buttons, concise default alerts and a single fantasy title.
 
 - Version 1.6.0 adds a **guild-shared Book of Grudges**. Open it from the Rally
   card or with `/ltb grudges`: an aged, iron-bound ledger with signed grievances,
@@ -64,9 +68,9 @@ hand. **Details** reveals the route, map and responders; answering adds a short
 next-step strip. Your own call offers **Extinguish My Beacon**. The author credit
 is tucked into **Options**, and the original royal brazier ships with the addon.
 
-![Guild Book of Grudges — rendered from the native Lua UI with sample entries](docs/book-of-grudges.png)
+![Grudges ledger — rendered addon UI with fictional sample names](docs/gallery/02-guild-grudges.png)
 
-![Compact Rally card — rendered from the native Lua UI with sample data](docs/compact-rally-card.png)
+![Guild calls and rescue routes — rendered addon UI with fictional sample names](docs/gallery/01-rally-and-routes.png)
 
 **Messages:** choose **Light mine** or `/ltb light`, type an optional message
 (up to 48 characters), or select one of your three saved messages. Click **Save

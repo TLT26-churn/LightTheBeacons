@@ -158,7 +158,7 @@ check(K.entries[k1.id].seal and not K.entries[k2.id].seal,"One confirmed killing
 killer.advance(10);kill[4]="Player-1-Other";killer.B.Client.CombatEvent(unpack(kill))
 check(not K.entries[k2.id].seal,"Party member kills are not falsely credited as your own")
 kill[4]="Player-1-Aldric";killer.B.Client.CombatEvent(unpack(kill));check(K.entries[k2.id].seal,"A later own killing blow settles the next debt")
-check(K.Phrase("avenged",true)=="The account is balanced.","Balanced phrase is reserved for zero debt")
+check(K.Phrase("avenged",true)=="All grudges avenged.","Balanced phrase is reserved for zero debt")
 -- Hostile target/mouseover sightings are local, rate limited, and hideable.
 local watch=client("Aldric","Stoneward");local W=watch.B.Grudges
 assert(W.Inscribe("Doctor Deathjuice","The book knows this one."));watch.s.sent={};watch.networkCursor=0
@@ -188,12 +188,13 @@ watch.B.GrudgeUI.Mode("words");check(watch.B.GrudgeUI.words:IsShown(),"Approved 
 local oldCount=#W.ids;watch.s.time=watch.s.time+W.retention+2;watch.s.now=watch.s.now+61;W.Tick()
 check(oldCount>0 and #W.ids==0 and watch.B.db.known[2],"Retention removes aged ledger records while preserving flight knowledge")
 -- A representative real-widget scene for visual QA.
-local preview=client("Whitebeard","Tinkerton",nil,os.time({year=2026,month=11,day=10,hour=15,min=42}));local V=preview.B.Grudges
-assert(V.Inscribe("Doctor Deathjuice","Fell upon our company at Zoram Strand while our wounded were being tended. Two of our own were slain before the beacon could be answered."));preview.advance(3)
-local paid=assert(V.Inscribe("Doctor Deathjuice","Struck down our healer while the company held the road."));preview.advance(3)
+local preview=client("Sample","Scribe",nil,os.time({year=2026,month=11,day=11,hour=15,min=42}));local V=preview.B.Grudges
+assert(V.Inscribe("Example Enemy","Fell upon our company at Zoram Strand while our wounded were being tended. Two of our own were slain before the beacon could be answered."));preview.advance(3)
+local paid=assert(V.Inscribe("Example Enemy","Struck down our healer while the company held the road."));preview.advance(3)
 assert(V.Avenge(paid.id));preview.advance(3)
-assert(V.Inscribe("Mogrash Ironjaw","Lay in wait upon the road and struck our wounded."));preview.advance(3)
-local settled=assert(V.Inscribe("Vexra Blackthorn","Broke the truce at the river crossing."));preview.advance(3)
+assert(V.Inscribe("Sample Rival","Lay in wait upon the road and struck our wounded."));preview.advance(3)
+local settled=assert(V.Inscribe("Training Foe","Broke the truce at the river crossing."));preview.advance(3)
 assert(V.Avenge(settled.id));preview.B.GrudgeUI.Toggle(true)
-preview.B.GrudgeUI.Select(preview.B.Protocol.Identity("Doctor Deathjuice"))
+preview.B.GrudgeUI.Select(preview.B.Protocol.Identity("Example Enemy"))
+preview.B.GrudgeUI.noticeUntil=nil;preview.B.Grudges.status="Guild ledger ready.";preview.B.GrudgeUI.Refresh()
 return preview
