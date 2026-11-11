@@ -972,7 +972,9 @@ local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 local combinedPreview=assert(loadfile("tests/combined-death.lua"))(client,check)
 assert(loadfile("tests/death-instance-guards.lua"))(client,check)
 local nativePreview=assert(loadfile("tests/death-reliability.lua"))(client,check)
-if arg[2] then
+-- Optional pinned Blizzard source is kept outside the repo and addon package.
+if arg[3] and arg[3]~="" then assert(loadfile("tests/native-death-contract.lua"))(client,check,arg[3]) end
+if arg[2] and arg[2]~="" then
     snapshot(nativePreview,nativePreview.B.DeathUI.frame,arg[2].."-death-client-test.json")
     snapshot(combinedPreview.main,combinedPreview.main.B.DeathUI.frame,arg[2].."-combined-death.json")
     snapshot(combinedPreview.unknown,combinedPreview.unknown.B.DeathUI.frame,arg[2].."-combined-unknown.json")

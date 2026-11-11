@@ -55,6 +55,29 @@ Headless tests validate synthetic data, native-window immutability, docking,
 selection consent, lifecycle and guild protocol behavior. They cannot prove
 live combat attribution or a skinning addon's behavior on the user's client.
 
+## Headless verification
+
+The installed `1.6.3-test.1` addon passed **684 assertions**, including an optional
+test that loads the actual DEATH handlers from a pinned local copy of Blizzard's
+Forever `GameDialogDefs.lua`. This checks release restrictions, countdown labels,
+self-resurrection, recap availability, dismissal and arena spectator behavior
+while LTB runs alongside them. A further **180 layout configurations** cover
+screen sizes, root/native scales and dialog positions without overlapping the
+native controls. The game APIs and frames are simulated; the engine's taint and
+protected-action enforcement are not. Ellesmere itself is not loaded by this test.
+
+From the repository root:
+
+```sh
+luajit tests/light-beacons.lua /path/to/Interface/AddOns/LightTheBeacons '' /path/to/GameDialogDefs.lua
+```
+
+Omit the last two arguments to run the standard 660 checks. An empty second
+argument skips PNG snapshot inputs. The optional test extracts the DEATH table
+from the external file; Blizzard source is not committed or bundled in the addon.
+The reference used for this run has SHA-256
+`8e2b5c8f10d4c72d1e0b5d8d95d8cb415723129946c049bd7bb31c3ce8c06929`.
+
 Primary references reviewed:
 
 - [Forever native death handlers](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_StaticPopup_Game/Mainline/GameDialogDefs.lua)
