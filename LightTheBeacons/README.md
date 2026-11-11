@@ -1,4 +1,4 @@
-# Light the Beacons 1.6.2
+# Light the Beacons 1.6.3
 
 A private guild call for aid for **World of Warcraft: Forever (interface 16001)**.
 Sound the horn, rally guildmates who use the addon, and follow a travel route
@@ -193,17 +193,36 @@ entry**; a withdrawal is a shared tombstone that hides the entry, not a way to
 forcibly erase copies another player has already received.
 
 Book **Settings → After an outdoor PvP death** offers **Ask first** (default),
-**Auto-save**, and **Off**. Ask first opens a small **Add a grudge?** prompt after
-death. A confirmed killer is prefilled; **Review grudge** opens the entry form.
-Nothing is shared until **Save to guild ledger**. The captured death zone stays
-with the entry even if you move before saving. Dismiss skips that death.
+**Auto-save**, and **Off**. Ask first opens one **You have fallen** window with
+the beacon call and grudge actions. **Detected attackers** lists up to 32 hostile
+players whose readable damage reached you in the 30 seconds before death, with
+the confirmed **Killing blow** listed first. This is not a complete roster of
+everyone involved: restricted data, unidentifiable pet owners, healers and
+crowd-control-only participants cannot be inferred. Repeated hits are deduplicated.
 
-When attribution is unavailable, the prompt appears after about three seconds
+Use the checkboxes and **Select all / Clear selection**, then **Inscribe selected**
+to save and share one grudge per selected player. Longer lists have page controls;
+the button counts selections across all pages. Other attackers are explicitly
+recorded as manually confirmed damage before the death, not as killing blows.
+Recorded names are disabled for this incident. **Review / edit entry** reviews a
+single remaining attacker; **Add missing name** lets you enter an additional name.
+The form preserves the other selections and returns to the death window when
+saved. Its **Save to guild ledger** button shares only that reviewed entry.
+
+**Light the Beacons** opens the existing optional-message editor without saving
+any grudges. Sending or cancelling returns to the same selections; a successful
+call shows **Beacon lit**. Saving grudges never lights a beacon. The captured
+death zone stays with entries even if you move before saving. **Dismiss** skips
+the remaining death actions without cancelling an already lit beacon.
+
+When no attackers can be identified, the prompt appears after about three seconds
 and asks whether a player killed you. Enter their full name and review the note;
-this is saved as a manual account. Known lethal NPC/environmental damage suppresses
-the prompt. Unidentified PvE deaths can still show this question—dismiss it.
-Auto-save shares only confirmed killers automatically, using the same manual
-fallback for unknown killers. Confirmation requires readable hostile-player
+this is saved as a manual account. With no detected player attackers, known lethal
+NPC/environmental damage suppresses the grudge section. Unidentified PvE deaths
+can still show this question—dismiss it.
+Auto-save shares only confirmed killers automatically; other detected attackers
+still require selection and confirmation. It uses the same manual fallback when
+no attackers can be identified. Confirmation requires readable hostile-player
 GUID, flags, lethal evidence and name. Changing the prefilled enemy name makes
 the entry manual. Battlegrounds/instances are excluded. Global alert mute hides
 these prompts. Previously disabled death recording stays off after updating;

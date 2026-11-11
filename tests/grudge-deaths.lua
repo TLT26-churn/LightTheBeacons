@@ -6,13 +6,13 @@ local function hit(c,guid,flags)
         "Player-1-Sample","Sample Scribe",0,0,1,"Strike",1,100,0)
 end
 local function death(c) c.s.dead=true;event(c,"PLAYER_DEAD") end
-local function prompt(c) return c.B.GrudgeUI.deathPrompt and c.B.GrudgeUI.deathPrompt:IsShown() end
+local function prompt(c) return c.B.DeathUI.draft and c.B.DeathUI.frame:IsShown() end
 local function fresh() return client("Sample","Scribe") end
 local known=fresh();local G,U=known.B.Grudges,known.B.GrudgeUI
 check(G.options.deathMode=="prompt","New installs ask before sharing a death grudge")
 hit(known);death(known);known.advance(1)
 check(prompt(known) and #G.ids==0 and #G.queue==0,"Confirmed PvP death prompts without saving or queuing guild data")
-check(U.deathText:GetText():find("Example Enemy",1,true),"Confirmed killer appears in the prompt")
+check(known.B.DeathUI.rows[1].name:GetText()=="Example Enemy","Confirmed killer appears in the prompt")
 death(known);known.advance(1);U.deathAction.scripts.OnClick()
 check(U.compose:IsShown() and U.name:GetText()=="Example Enemy" and not prompt(known),"Review opens the prefilled native entry form")
 check(not known.B.UI.deathPrompt:IsShown(),"The separate beacon prompt cannot cover the grudge entry form")
@@ -49,7 +49,7 @@ local recap=fresh();death(recap);recap.advance(1);recap.s.recapLink="new"
 recap.s.recap={{sourceGUID="Player-2-00FF",sourceName="Example Enemy",sourceFlags=0x440,overkill=0,timeBeforeDeath=.1}}
 recap.advance(.9)
 check(prompt(recap) and recap.B.Grudges.pendingDeath.enemy=="Example Enemy","A new public death recap can prefill the killer")
-local nameless=fresh();hit(nameless);nameless.B.killingBlow.name=nil;death(nameless);nameless.advance(3.3)
+local nameless=fresh();hit(nameless);nameless.B.killingBlow.name=nil;nameless.B.Client.ClearAttackers();death(nameless);nameless.advance(3.3)
 check(prompt(nameless) and nameless.B.Grudges.pendingDeath.enemy=="","Player evidence without a readable name still offers manual entry")
 
 local restricted=fresh();restricted.s.combatRestricted=true

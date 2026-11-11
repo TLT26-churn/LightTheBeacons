@@ -1,5 +1,24 @@
 # Release notes
 
+## 1.6.3 — One death window, selectable attackers
+
+- Combine the beacon and grudge prompts in one themed death window with the
+  royal brazier, dark ledger section, individual checkboxes and Select all.
+- List up to 32 detected hostile players who damaged you within 30 seconds of
+  death. Deduplicate hits, mark the confirmed killing blow and page longer lists.
+  Restricted identities, pets without owners and nearby names are not guessed.
+- Inscribe only selected attackers, once per incident, with explicit guild
+  sharing. Preserve the existing protocol; other contributors use manual evidence
+  and a note that they attacked before the death. Auto-save still applies only
+  to the confirmed killer, leaving other names for confirmation.
+- Preserve choices while composing a beacon or reviewing/adding a name. Show
+  Beacon lit and recorded-entry confirmations in the same window. Keep the
+  two actions, their settings and saved records independent.
+- Clear temporary attacker data on resurrection, guild changes or disabling
+  death recording. Keep missing-attribution manual entry and global alert mute.
+- Validate 588 simulated-client checks, native Lua previews and the portable ZIP.
+  Live combat attribution still requires an in-game check.
+
 ## 1.6.2 — Prompt for a grudge after death
 
 - Add the missing post-death grudge prompt. Prefill confirmed killers and let

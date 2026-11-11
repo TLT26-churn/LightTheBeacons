@@ -1,6 +1,7 @@
 local _,B=...
 local P,C=B.Protocol,B.Client
 local G={prefix="LTBGR1",retention=90*86400,limit=1200,pageSize=12};B.Grudges=G
+local deathBatch={}
 G.defaultPhrases={incurred="Grudge recorded.",sighted="Known enemy sighted.",avenged="Grudge avenged."}
 G.phrases={
     incurred={"A debt is entered. Let stone remember.","Ink the wrong. Name the debtor.","Another wrong. Another reckoning.","The ledger grows.","Set this grievance down in iron and ink."},
@@ -88,6 +89,8 @@ function G.GuildChanged()
     G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings={};G.seenAlert={};G.killSeen={}
     G.request=nil;G.offerDue=nil;G.nextQuery=GetTime()+7;G.lastTick=nil;G.deathActive=nil;G.deathSerial=(G.deathSerial or 0)+1
     G.pendingDeath=nil
+    C.ClearAttackers()
+    if B.DeathUI then B.DeathUI.Reset() end
     G.Rebuild();G.status=B.guild=="" and "Join a guild to open its shared book." or "Waiting for guild sync."
     if B.GrudgeUI then B.GrudgeUI.Reset() end
 end
@@ -143,14 +146,14 @@ function G.Notify(kind,e)
     local title=G.Phrase(kind,balanced)
     if B.GrudgeUI then B.GrudgeUI.Notify(title,(enemy or "").." - "..e.author,kind) end
 end
-function G.Merge(e,sender,history)
+function G.Merge(e,sender,history,quiet)
     if not G.Active() or e.guild~=G.scope then return false end
     if not history and P.Identity(e.author)~=sender then return false end
     if G.store.events[e.id] then return false end
     if #G.ids>=G.limit then G.status="The book is full (1,200 records; 90-day retention).";return false end
     local wasOpen=e.kind=="V" and G.entries[e.target] and not G.entries[e.target].seal and not G.deleted[e.target]
     G.store.events[e.id]=e;G.Rebuild()
-    if not history and ((e.kind=="I" and not G.deleted[e.id]) or
+    if not history and not quiet and ((e.kind=="I" and not G.deleted[e.id]) or
         (wasOpen and G.entries[e.target].seal and G.entries[e.target].seal.id==e.id)) then
         G.Notify(e.kind=="I" and "incurred" or "avenged",e)
     end
@@ -175,27 +178,27 @@ function G.Queue(msg,done)
     if #G.queue>=256 then return false end
     G.queue[#G.queue+1]={msg=msg,done=done};return true
 end
-function G.New(kind,enemy,note,target,guid,evidence,where)
+function G.New(kind,enemy,note,target,guid,evidence,where,batch)
     if not G.Active() then return nil,"Enable the shared book and join a guild first." end
     if #G.ids>=G.limit then return nil,"The book is full; older records expire after 90 days." end
-    if (not evidence or evidence=="manual") and G.lastWrite and GetTime()-G.lastWrite<2 then return nil,"Wait two seconds before adding another entry." end
+    if batch~=deathBatch and (not evidence or evidence=="manual") and G.lastWrite and GetTime()-G.lastWrite<2 then return nil,"Wait two seconds before adding another entry." end
     G.store.sequence=(tonumber(G.store.sequence) or 0)+1
     local at=math.floor(C.Now());local id=G.Hash(B.me).."."..at.."."..B.nonce.."."..G.store.sequence
     local e={kind=kind,id=id,author=B.name,at=at,guild=G.scope,enemy=enemy or "",note=note or "",target=target or "",guid=guid or "",where=where or "",evidence=evidence or "manual"}
     local parsed=G.Parse(G.Encode(e),C.Now())
     if not parsed then return nil,"Use a full player name and a short, plain-text grievance." end
-    if not G.Merge(parsed,B.me,false) then return nil,"The entry could not be written." end
+    if not G.Merge(parsed,B.me,false,batch==deathBatch) then return nil,"The entry could not be written." end
     G.store.outbox[id]=true;G.lastWrite=GetTime();G.status="Written. Waiting to share with the guild."
     return parsed
 end
 function G.Place()
     local p=C.Location();return p and G.Clean(C.Zone(p.map),70,100) or "Unknown location"
 end
-function G.Inscribe(enemy,note,guid,evidence,where)
+function G.Inscribe(enemy,note,guid,evidence,where,batch)
     enemy=G.Clean(enemy,70,100);note=G.Clean(note)
     if P.Identity(enemy)==B.me then return nil,"The book records your enemies, not yourself." end
     if B.members[P.Identity(enemy)] then return nil,"This name belongs to your guild." end
-    return G.New("I",enemy,note,nil,guid,evidence,where and G.Clean(where,70,100) or G.Place())
+    return G.New("I",enemy,note,nil,guid,evidence,where and G.Clean(where,70,100) or G.Place(),batch)
 end
 function G.Avenge(id,guid,evidence)
     local r=G.entries[id]
@@ -210,7 +213,7 @@ end
 function G.SetEnabled(value)
     G.options.enabled=value==true;G.queue={};G.queued={};G.pending={};G.request=nil;G.offerDue=nil
     G.nextQuery=GetTime()+2;G.status=value and "Waiting for guild sync." or "Sharing paused. The saved book is read-only."
-    if not value then G.CancelDeathPrompt() end
+    if not value then G.CancelDeathPrompt();C.ClearAttackers() end
     if B.GrudgeUI then B.GrudgeUI.Refresh() end
 end
 local function requestPage(peer,cursor)
@@ -316,18 +319,40 @@ function G.Tick()
 end
 function G.CancelDeathPrompt()
     G.pendingDeath=nil
-    if B.GrudgeUI and B.GrudgeUI.deathPrompt then B.GrudgeUI.deathPrompt:Hide() end
+    if B.DeathUI then B.DeathUI.RemoveGrudge() end
+end
+function G.InscribeDeathSelection(draft)
+    if not draft or draft~=G.pendingDeath or not draft.handled or draft.scope~=G.scope or not G.Active()
+        or G.options.deathMode=="off" then return 0,"This death is no longer available." end
+    local chosen={}
+    for _,entry in ipairs(draft.attackers or {}) do
+        if draft.selected[entry.key] and not draft.saved[entry.key] then chosen[#chosen+1]=entry end
+    end
+    if #chosen==0 then return 0,"Select at least one attacker." end
+    if #G.ids+#chosen>G.limit then return 0,"The book is full; select fewer names or wait for older records to expire." end
+    for _,entry in ipairs(chosen) do
+        if entry.key==B.me or B.members[entry.key] then return 0,"A selected name now belongs to your guild. Deselect it before saving." end
+    end
+    local count=0
+    for _,entry in ipairs(chosen) do
+        local note=(entry.killingBlow and "Killed me in " or "Attacked me before my death in ")..draft.where.."."
+        local saved,why=G.Inscribe(entry.name,note,entry.guid,entry.killingBlow and "pvp" or "manual",draft.where,deathBatch)
+        if not saved then return count,why end
+        draft.saved[entry.key]=saved.id;draft.selected[entry.key]=false;count=count+1
+    end
+    return count
 end
 function G.SetDeathMode(mode)
     if mode~="prompt" and mode~="auto" and mode~="off" then return end
     G.options.deathMode=mode;G.options.autoRecord=mode~="off"
+    if mode=="off" then C.ClearAttackers() end
     G.CancelDeathPrompt()
 end
 function G.OnDeath()
     if G.deathActive or not G.Active() or G.options.deathMode=="off" or not C.IsOutdoor() then return end
     G.deathActive=true
     G.deathSerial=(G.deathSerial or 0)+1;local serial,scope=G.deathSerial,G.scope
-    local draft={serial=serial,scope=scope,where=G.Place(),enemy="",guid="",evidence="manual"}
+    local draft={serial=serial,scope=scope,at=GetTime(),where=G.Place(),enemy="",guid="",evidence="manual",selected={},saved={}}
     G.pendingDeath=draft
     local function attempt(final)
         local dead=C.Call(UnitIsDeadOrGhost,"player")
@@ -335,17 +360,25 @@ function G.OnDeath()
             or not G.Active() or G.options.deathMode=="off" or not C.IsOutdoor()
             or not P.Plain(dead) or dead~=true then return end
         local confirmed,evidence=C.ConfirmedDeath()
-        if confirmed and evidence and nameOK(evidence.name) then
-            draft.enemy=evidence.name;draft.guid=evidence.source;draft.evidence="pvp"
-            draft.note="Killed me in "..draft.where.."."
+        draft.attackers=C.DeathAttackers(draft.at,confirmed and evidence or nil)
+        local first=draft.attackers[1]
+        if first then
+            draft.enemy=first.name;draft.guid=first.guid;draft.evidence=first.killingBlow and "pvp" or "manual"
+            draft.note=(first.killingBlow and "Killed me in " or "Attacked me before my death in ")..draft.where.."."
+            for _,entry in ipairs(draft.attackers) do draft.selected[entry.key]=true end
             if G.options.deathMode=="auto" then
-                local entry=G.Inscribe(draft.enemy,draft.note,draft.guid,"pvp",draft.where)
-                if entry then draft.handled=true;G.pendingDeath=nil;return end
+                if first.killingBlow then
+                    local entry=G.Inscribe(draft.enemy,draft.note,draft.guid,"pvp",draft.where)
+                    if entry then
+                        draft.saved[first.key]=entry.id;draft.selected[first.key]=false
+                        if #draft.attackers==1 then draft.handled=true;G.CancelDeathPrompt();return end
+                    end
+                end
             end
         elseif not confirmed and C.ConfirmedNonPlayerDeath() then
             draft.handled=true;G.CancelDeathPrompt();return
         elseif not final then return end
-        if final or draft.evidence=="pvp" then
+        if final or first then
             draft.handled=true;draft.note=draft.note or "PvP death in "..draft.where.."."
             B.GrudgeUI.PromptDeath(draft)
         end

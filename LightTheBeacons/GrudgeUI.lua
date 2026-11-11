@@ -58,6 +58,7 @@ local function field(parent,x,y,w,h,multi,limit,hint)
     return e
 end
 local function tooltip(frame,title,body) B.UI.Widgets.tip(frame,title,body) end
+U.Widgets={label=label,fill=fill,picture=picture,link=link}
 local function formatDate(at)
     return date and date("%d %b, %H:%M",at) or tostring(at)
 end
@@ -70,7 +71,6 @@ function U.Person() return U.selected and G.people and G.people[U.selected] end
 function U.Record() local p=U.Person();return p and p.debts[U.debt] end
 function U.Reset()
     U.selected=nil;U.indexPage=1;U.debt=1;U.query="";U.confirming=nil;U.deathDraft=nil
-    if U.deathPrompt then U.deathPrompt:Hide() end
     if U.frame then U.search:SetText("");U.name:SetText("");U.note:SetText("");U.Refresh() end
 end
 function U.Mode(mode)
@@ -104,6 +104,7 @@ function U.Create()
     f:SetMovable(true);f:EnableMouse(true);f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart",function(self) self:StartMoving() end)
     f:SetScript("OnDragStop",function(self) self:StopMovingOrSizing() end)
+    f:SetScript("OnHide",function() B.DeathUI.Resume() end)
     f:SetScript("OnShow",function()
         if f.SetScale then f:SetScale(math.min(1,(UIParent:GetWidth()-30)/960,(UIParent:GetHeight()-30)/640)) end
         U.Refresh()
@@ -202,16 +203,24 @@ function U.Create()
     picture(U.compose,"GrudgeSeal",0,464,48,48)
     U.submit=link(U.compose,"Save to guild ledger",62,471,272,function()
         local draft=U.deathDraft
+        local identity=P.Identity(G.Clean(U.name:GetText(),70,100))
+        if draft and draft.incident and draft.incident.saved[identity] then
+            U.notice="This player already has a grudge from this death.";U.noticeUntil=GetTime()+12;U.Refresh();return
+        end
         local verified=draft and draft.scope==G.scope and draft.evidence=="pvp"
-            and P.Identity(G.Clean(U.name:GetText(),70,100))==P.Identity(draft.enemy)
+            and identity==P.Identity(draft.enemy)
         local e,why=G.Inscribe(U.name:GetText(),U.note:GetText(),verified and draft.guid or nil,
             verified and "pvp" or "manual",draft and draft.where)
         if e then
+            if draft and draft.incident then
+                draft.incident.saved[P.Identity(e.enemy)]=e.id;draft.incident.selected[P.Identity(e.enemy)]=false
+                B.DeathUI.message="Grudge saved to the guild ledger."
+            end
             U.selected=P.Identity(e.enemy);U.debt=#G.people[U.selected].debts;U.mode="book";U.deathDraft=nil
             U.name:ClearFocus();U.note:ClearFocus();U.name:SetText("");U.note:SetText("")
         else U.notice=why;U.noticeUntil=GetTime()+12 end
         U.Refresh()
-        if e and G.pendingDeath and G.pendingDeath.handled then U.PromptDeath(G.pendingDeath) end
+        if e and G.pendingDeath and G.pendingDeath.handled then U.PromptDeath(G.pendingDeath);U.frame:Hide() end
     end,17,"primary")
     -- A page of the book's voice, using the approved phrases.
     U.words=CreateFrame("Frame",nil,f);U.words:SetPoint("TOPLEFT",521,-65);U.words:SetSize(384,535)
@@ -273,40 +282,33 @@ function U.Create()
     toast:SetScript("OnClick",function(_,mouse) toast:Hide();if mouse~="RightButton" then U.Toggle(true) end end)
     toast:SetScript("OnUpdate",function() if GetTime()>=(U.toastUntil or 0) then toast:Hide() end end)
     toast:Hide()
-    -- Above the separate call-for-aid prompt, with room between their borders.
-    local d=CreateFrame("Frame",nil,UIParent,"BackdropTemplate");U.deathPrompt=d
-    d:SetSize(460,190);d:SetPoint("CENTER",UIParent,"CENTER",0,8);d:SetFrameStrata("DIALOG");d:EnableMouse(true)
-    d:SetBackdrop({bgFile=B.MediaPaths["UI-DialogBox-Background"],edgeFile=B.MediaPaths["UI-DialogBox-Border"],tile=true,tileSize=32,edgeSize=16})
-    d:SetBackdropColor(.12,.08,.05,1);d:SetBackdropBorderColor(.40,.29,.18,1)
-    picture(d,"GrudgeSeal",19,14,34,34)
-    label(d,64,15,376,32,26,"title",brass):SetText("Add a grudge?")
-    U.deathText=label(d,20,56,420,74,16,"body",brass)
-    U.deathAction=link(d,"Review grudge",20,137,226,U.BeginDeathEntry,16,"dark")
-    U.deathDismiss=link(d,"Dismiss",270,137,170,G.CancelDeathPrompt,16,"dark")
-    label(d,20,170,420,15,11,"body",brass,"CENTER"):SetText("Nothing is shared until you save.")
-    d:Hide();f:Hide()
+    f:Hide()
 end
 function U.PromptDeath(draft)
     if B.db.muteBeacons or not G.Active() or G.options.deathMode=="off" then G.CancelDeathPrompt();return end
     if G.pendingDeath~=draft or draft.scope~=G.scope then return end
-    U.Create()
-    local known=draft.evidence=="pvp"
-    U.deathText:SetText(known and ("Killed by "..draft.enemy..".\nReview the entry before sharing it with your guild.")
-        or "Killed by a player? The client couldn't identify your killer.\nEnter their name to add a grudge to the guild ledger.")
-    U.deathAction.caption:SetText(known and "Review grudge" or "Add grudge")
-    U.deathPrompt:Show()
+    B.DeathUI.Grudge(draft)
 end
 function U.BeginDeathEntry()
-    local draft=G.pendingDeath
-    if not draft or draft.scope~=G.scope or not G.Active() then G.CancelDeathPrompt();return end
-    U.deathPrompt:Hide()
-    if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
+    local incident=G.pendingDeath
+    if not incident or incident.scope~=G.scope or not G.Active() then G.CancelDeathPrompt();return end
+    U.Create();B.DeathUI.Suspend()
     -- Preserve an entry the player was already writing, even if its window is closed.
     if U.mode=="inscribe" and (U.name:GetText()~="" or U.note:GetText()~="") then
         U.Toggle(true);U.notice="Finish your current entry. The death prompt will return after you save, while you are still dead.";U.noticeUntil=GetTime()+12;U.Refresh();return
     end
+    -- A single remaining detected attacker can be reviewed. Otherwise this action
+    -- adds a missing name, while the multi-selection remains suspended and intact.
+    local entry,count=nil,0
+    for _,candidate in ipairs(incident.attackers or {}) do
+        if not incident.saved[candidate.key] then entry=candidate;count=count+1 end
+    end
+    if count~=1 then entry=nil end
+    local draft={scope=incident.scope,where=incident.where,incident=incident,
+        enemy=entry and entry.name or "",guid=entry and entry.guid or "",evidence=entry and entry.killingBlow and "pvp" or "manual"}
+    draft.note=(entry and (entry.killingBlow and "Killed me in " or "Attacked me before my death in ") or "PvP death in ")..draft.where.."."
     U.Toggle(true);U.Mode("inscribe");U.deathDraft=draft
-    U.name:SetText(draft.enemy);U.note:SetText(draft.note);G.CancelDeathPrompt()
+    U.name:SetText(draft.enemy);U.note:SetText(draft.note)
     U.Refresh()
 end
 function U.Notify(title,body,kind)

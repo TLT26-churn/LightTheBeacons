@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.6.2 / 2026-11-11
+Version 1.6.3 / 2026-11-11
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
@@ -52,8 +52,16 @@ writes these changes to disk on its normal save/reload/logout cycle.
 
 The guild Book of Grudges
 The book is enabled by default. Manually inscribed wrongs and recorded vengeance
-are shared with guild addon users. Death grudges default to Ask first: the prompt
-and draft stay local until you save. Auto-save is optional and shares confirmed
+are shared with guild addon users. Death grudges default to Ask first: detected
+attackers and selections stay local until you choose Inscribe selected or save
+a reviewed entry. The addon keeps a bounded session-only cache of up to 32
+readable hostile players who recently damaged you, using their
+names, GUIDs and local timestamps. The cache is not sent or saved as tracking
+history. Entries older than 30 seconds are ignored for new deaths and pruned
+when fresh damage arrives. The cache is cleared on resurrection, guild changes and disabling death
+grudges/sharing. A pending death snapshot remains until dismissed or resolved.
+Other detected attackers require confirmation and are not labelled killing blows.
+Auto-save is optional and shares confirmed
 outdoor PvP deaths with a readable attacker identity; unknown killers require
 manual confirmation. Off disables death prompts and automatic death entries.
 An upgrade preserves a previously disabled death option; previously enabled

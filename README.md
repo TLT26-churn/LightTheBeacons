@@ -26,6 +26,9 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
 
+- **1.6.3** combines the death prompts into one window: call for aid, select
+  detected attackers, and inscribe selected grudges. Confirmed killing blows
+  are distinguished from other attackers; beacon and ledger actions stay independent.
 - **1.6.2** adds the missing post-death grudge prompt. Review a prefilled killer
   when attribution is readable, or enter a name yourself when it is unavailable.
   Grudges → Settings offers **Ask first** (default), **Auto-save**, and **Off**.
@@ -57,6 +60,8 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 - Offers optional automatic PvP death alerts when the client exposes readable
   evidence of a hostile player’s killing blow. Automatic alerts default to off;
   a manual death prompt is available when attribution is restricted.
+
+![Combined death window — actual addon widgets with fictional sample names](docs/combined-death.png)
 
 **1.4.0:** your own call confirms in the Rally card without a popup. Response
 celebrations and incoming alerts no longer overlap. The floating brazier is on

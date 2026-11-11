@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.6.2"
+B.version="1.6.3"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -155,7 +155,7 @@ function B.Light(reason,message)
     B.selected=B.me;B.navigating=false;B.Replan()
     if B.UI.composer and B.UI.composer:IsShown() then B.UI.options=false;B.UI.settingsPage=nil;B.UI.frame:Show() end
     B.UI.Refresh()
-    if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
+    B.DeathUI.BeaconSent()
     if B.UI.composer then B.UI.composer:Hide() end
     return true
 end
@@ -215,9 +215,10 @@ function B.TickRoute()
     end
 end
 function B.Death()
-    B.Grudges.OnDeath()
-    if not C.IsOutdoor() then return end
+    if B.deathActive or not C.IsOutdoor() then return end
+    B.deathActive=true;B.DeathUI.Reset();B.DeathUI.active=true;B.DeathUI.where=B.Grudges.Place()
     B.deathPoint=C.Position() or B.lastLivingPoint
+    B.Grudges.OnDeath()
     B.deathSerial=(B.deathSerial or 0)+1;local serial=B.deathSerial
     local function decide()
         if serial~=B.deathSerial or not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then return end
@@ -371,7 +372,8 @@ frame:SetScript("OnEvent",function(_,event,...)
         B.UI.Refresh()
     elseif event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE" then
         if not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) then
-            B.deathPoint=nil;B.killingBlow=nil;B.nonPlayerDeath=nil;B.deathSerial=(B.deathSerial or 0)+1
+            B.deathPoint=nil;B.killingBlow=nil;B.nonPlayerDeath=nil;B.deathActive=nil;B.deathSerial=(B.deathSerial or 0)+1
+            C.ClearAttackers();B.DeathUI.Reset()
             B.Grudges.deathSerial=(B.Grudges.deathSerial or 0)+1
             B.Grudges.deathActive=nil
             B.Grudges.CancelDeathPrompt()

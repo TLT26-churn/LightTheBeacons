@@ -241,7 +241,7 @@ function U.Create()
     end)
     edit:SetScript("OnEnterPressed",function(self) self:ClearFocus() end)
     edit:SetScript("OnEscapePressed",function() composer:Hide() end)
-    composer:SetScript("OnHide",function() edit:ClearFocus() end)
+    composer:SetScript("OnHide",function() edit:ClearFocus();B.DeathUI.Resume() end)
     text(composer,32,169,556,15,10,muted):SetText("Shown on your allies' alert and beacon card. Leave blank to just sound the horn.")
     text(composer,30,198,560,16,11,gold):SetText("QUICK MESSAGES  -  Saved for this character")
     U.templates={}
@@ -293,13 +293,7 @@ function U.Create()
         self.elapsed=self.elapsed+delta;U.flame:SetAlpha(.88+.12*math.sin(self.elapsed*3))
         if self.elapsed>22 then self:Hide() end
     end)
-    local d=panel(UIParent,"LightTheBeaconsDeathPrompt",410,128);U.deathPrompt=d
-    d:SetPoint("CENTER",UIParent,"CENTER",0,-170);d:SetFrameStrata("DIALOG")
-    texture(d,"RoyalBrazier",23,23,34,34)
-    text(d,77,21,310,25,18,gold):SetText("Call for aid?")
-    U.deathText=text(d,77,49,310,32,12,pale)
-    U.deathCall=button(d,"Light the Beacons",74,87,183,function() B.RequestLight(U.deathConfirmed and "pvp" or "fallen");d:Hide() end)
-    button(d,"Dismiss",266,87,119,function() d:Hide() end);d:Hide()
+    B.DeathUI.Create()
     local h=panel(UIParent,"LightTheBeaconsGuide",350,94);U.hud=h
     h:SetPoint("TOP",UIParent,"TOP",0,-265);h:SetFrameStrata("MEDIUM");draggable(h)
     U.arrow=texture(h,"Arrow",20,30,36,36)
@@ -402,10 +396,7 @@ function U.Alert(b,preview)
     U.banner.elapsed=0;U.banner:Show()
 end
 function U.PromptDeath(confirmed)
-    if B.db.muteBeacons then return end
-    U.deathConfirmed=confirmed
-    U.deathText:SetText(confirmed and "A hostile player struck you down." or "Rally your guildmates to your fallen body.")
-    U.deathPrompt:Show()
+    B.DeathUI.Beacon(confirmed)
 end
 function U.Refresh()
     if not U.frame or not B.db then return end

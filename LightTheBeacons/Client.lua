@@ -311,6 +311,41 @@ function C.NonPlayerSource(guid,flags)
     -- A player-controlled pet is not proof of a PvE death.
     return band and band(flags,0x800)~=0 and band(flags,0x100)==0 or false
 end
+-- A bounded, session-only list of players who actually damaged this character.
+-- Never use nearby names, targets, pets without a readable owner, or restricted data.
+function C.ClearAttackers() B.recentAttackers={} end
+function C.RememberAttacker(guid,name,flags,amount)
+    if not C.HostilePlayer(guid,flags) or not P.Text(name,100) or not P.Number(amount,1,1e12)
+        or not B.Grudges.Active() or B.Grudges.options.deathMode=="off" or not C.IsOutdoor() then return end
+    local now=GetTime();local recent=B.recentAttackers or {};B.recentAttackers=recent
+    local count,oldest=0,nil
+    for key,entry in pairs(recent) do
+        if now-entry.at>30 then recent[key]=nil
+        else count=count+1;if not oldest or entry.at<recent[oldest].at then oldest=key end end
+    end
+    if not recent[guid] and count>=32 then recent[oldest]=nil end
+    recent[guid]={guid=guid,name=name,at=now}
+end
+function C.DeathAttackers(at,killer)
+    local byName={}
+    local function add(guid,name)
+        if not P.Text(name,100) or name~=B.Grudges.Clean(name,70,100)
+            or not P.Text(guid,80) or not guid:match("^Player%-%x+%-%x+$") then return end
+        local key=P.Identity(name)
+        if not key or key==B.me or B.members[key] then return end
+        local lethal=killer and killer.source==guid or false
+        if not byName[key] or lethal then byName[key]={key=key,guid=guid,name=name,killingBlow=lethal} end
+    end
+    for _,entry in pairs(B.recentAttackers or {}) do
+        if entry.at>=at-30 and entry.at<=at+3.2 then add(entry.guid,entry.name) end
+    end
+    if killer then add(killer.source,killer.name) end
+    local list={};for _,entry in pairs(byName) do list[#list+1]=entry end
+    table.sort(list,function(a,b) if a.killingBlow~=b.killingBlow then return a.killingBlow end;return a.key<b.key end)
+    -- Reserve space for a recap-only killer even if the recent cache was full.
+    while #list>32 do table.remove(list) end
+    return list
+end
 function C.CombatEvent(...)
     local e={...}
     if B.Grudges then B.Grudges.Combat(e) end
@@ -323,6 +358,7 @@ function C.CombatEvent(...)
     elseif event=="SPELL_DAMAGE" or event=="SPELL_PERIODIC_DAMAGE" or event=="RANGE_DAMAGE" or event=="DAMAGE_SHIELD" then overkill=e[16] end
     if not P.Plain(overkill) then B.killingBlow=nil;B.nonPlayerDeath=nil;return end
     if overkill~=nil then
+        if P.Number(overkill,-1,1e12) then C.RememberAttacker(e[4],e[5],e[6],event=="SWING_DAMAGE" and e[12] or e[15]) end
         -- Any later non-player damage invalidates a previous candidate.
         B.killingBlow=nil;B.nonPlayerDeath=nil
         if P.Number(overkill,0,1e12) and C.HostilePlayer(e[4],e[6]) then
