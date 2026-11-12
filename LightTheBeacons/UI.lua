@@ -73,9 +73,9 @@ function U.StepTitle(step)
 end
 function U.Cycle(delta)
     if B.preview then return end
-    local list=B.List();if #list<2 then return end
-    local index=1;for i,b in ipairs(list) do if b.owner==B.selected then index=i end end
-    B.Select(list[(index-1+delta)%#list+1])
+    local list=B.Groups();if #list<2 then return end
+    local index=1;for i,g in ipairs(list) do if g.owners[B.selected] then index=i end end
+    B.Select(B.GroupSelection(list[(index-1+delta)%#list+1]))
 end
 local rowPitch,rowWidth,routeHeight=48,368,144
 local paces={[7]="ON FOOT",[11.2]="60% MOUNT",[14]="100% MOUNT"}
@@ -203,13 +203,9 @@ function U.Create()
     U.prompt=check("Offer aid after a PvP death","Requires detected hostile-player damage. Mob-only deaths and unknown attribution stay quiet.",282,"prompt")
     U.pace=button(op,"Auto: On foot",16,356,232,function() B.ToggleTravelMode() end)
     tip(U.pace,"Travel pace","Auto uses your trained riding tier: on foot, 60%, or 100%. Click to switch between Auto and an on-foot override.")
-    button(op,"Test horn",258,356,126,function() B.Sound(true) end)
+    button(op,"Beacon settings",258,356,126,function() U.OpenSettingsPage("beacons") end)
     button(op,"Refresh flights",16,394,175,function() C.RefreshFlights(true) end)
-    button(op,"Preview the rally",201,394,183,function() U.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true) end)
-    button(op,"Quick messages",16,432,175,function() U.Compose() end)
-    U.previewButton=button(op,"Preview a call",201,432,183,function()
-        U.options=false;U.expanded=false;B.Preview()
-    end)
+    button(op,"Quick messages",201,394,183,function() U.Compose() end)
     button(op,"Map & beacon controls",16,470,232,function() U.OpenSettingsPage("controls") end)
     button(op,"Friends & filters",258,470,126,function() U.OpenSettingsPage("filters") end)
     U.status=text(op,16,513,368,34,11,pale)
@@ -338,7 +334,7 @@ function U.Create()
 end
 function U.Answered(name,count,first,beacon,preview)
     if not U.answerBanner then return end
-    if B.db.muteBeacons and not preview then return end
+    if not preview and (B.db.muteBeacons or not B.db.beaconPopups or not C.BeaconsAllowed()) then return end
     local a=U.answerBanner
     if U.banner:IsShown() then
         if U.alertBeacon and U.alertBeacon.owner~=B.me then U.pendingAlert={beacon=U.alertBeacon,preview=U.alertPreview} end
@@ -375,17 +371,32 @@ function U.Compose(reason)
 end
 function U.UpdateAlertMessage(b)
     if U.alertBeacon~=b then return end
-    local message=b.message and b.message~="" and b.message
+    local group=not U.alertPreview and B.GroupFor(b.owner)
+    local message=group and #group.callers>1 and B.GroupText(group) or b.message and b.message~="" and b.message
     U.alertMessage:SetText(message and ('"'..message..'"') or "")
     U.alertMessage:SetShown(message~=nil)
     U.banner:SetHeight(message and 158 or 118)
     U.alertBack:SetHeight(message and 136 or 96)
     U.alertHint:ClearAllPoints();U.alertHint:SetPoint("TOPLEFT",82,message and -134 or -94)
 end
+function U.RefreshAlertGroup()
+    if not U.alertBeacon or U.alertPreview then return end
+    local g=B.GroupFor(U.alertBeacon.owner)
+    if not g and U.alertGroup then
+        for _,b in ipairs(U.alertGroup.callers) do g=B.GroupFor(b.owner);if g then break end end
+    end
+    if not g or g.owners[B.me] then U.banner:Hide();U.alertGroup=nil;return end
+    U.alertGroup=g;U.alertBeacon=g.leader
+    U.alertName:SetText(#g.callers>1 and g.name.."!" or g.leader.name.." calls for aid!")
+    U.UpdateAlertMessage(g.leader)
+    -- Deliberately do not Show(), reset elapsed, or play a sound for joins.
+end
 function U.Alert(b,preview)
     if not U.banner then return end
-    if B.db.muteBeacons and not preview then return end
+    if not preview and (B.db.muteBeacons or not B.db.beaconPopups or not C.BeaconsAllowed()) then return end
     if b.owner==B.me or (not preview and B.BeaconMode(b.owner)~="normal") then return end
+    local group=not preview and B.GroupFor(b.owner)
+    if group and group.owners[B.me] then return end
     if U.answerBanner and U.answerBanner:IsShown() then U.pendingAlert={beacon=b,preview=preview};return end
     U.alertBeacon=b
     U.alertPreview=preview
@@ -393,6 +404,7 @@ function U.Alert(b,preview)
     U.alertHint:SetText("Click to answer the call  -  Right-click to dismiss")
     U.alertZone:SetText((preview and "PREVIEW - " or "")..C.Zone(b.map).."  |  "..(reasons[b.reason] or "Calls for aid"))
     U.UpdateAlertMessage(b)
+    if not preview then U.RefreshAlertGroup() end
     U.banner.elapsed=0;U.banner:Show()
 end
 function U.PromptDeath(confirmed)
@@ -405,9 +417,27 @@ function U.Refresh()
     end
     U.main:SetShown(not U.options);U.optionsPanel:SetShown(U.options and not U.settingsPage and true or false)
     U.optionsButton.label:SetText(U.options and "Back" or "Options")
-    local list=B.preview and {B.preview} or B.List()
+    local list=B.preview and {} or B.Groups()
     local selected=B.Selected()
-    if not selected and #list>0 then B.selected=list[1].owner;B.Replan();selected=B.Selected() end
+    if not selected and B.displayGroup then
+        for _,b in ipairs(B.displayGroup.callers) do
+            if B.session.beacons[b.owner] and B.BeaconMode(b.owner)~="hidden" then B.selected=b.owner;break end
+        end
+        selected=B.Selected()
+        if selected then B.Replan() end
+    end
+    if not selected and #list>0 then B.selected=B.GroupSelection(list[1]).owner;B.Replan();selected=B.Selected() end
+    local group=selected and not B.preview and B.GroupFor(selected.owner)
+    B.displayGroup=group
+    if group and group.owners[B.me] and selected.owner~=B.me then
+        B.selected=B.me;selected=B.Selected();B.navigating=false;B.Replan()
+    end
+    local destinationToken=group and group.leader.owner..":"..group.leader.id
+    if destinationToken~=U.groupDestination then
+        U.groupDestination=destinationToken
+        if group then B.Replan();if B.navigating then B.SetNextWaypoint() end end
+    end
+    local combined=group and #group.callers>1
     local own=selected and selected.owner==B.me
     local navigating=selected and not own and not B.preview and B.navigating
     local guild=IsInGuild and IsInGuild() and true or false
@@ -416,28 +446,28 @@ function U.Refresh()
     U.pace.label:SetText(B.TravelLabel())
     U.mute:SetChecked(B.db.muteBeacons);U.sound:SetChecked(B.db.sound);U.auto:SetChecked(B.db.auto);U.prompt:SetChecked(B.db.prompt)
     U.light.label:SetText(B.own and B.own.expires>C.Now() and "My beacon" or "Light mine")
-    U.light:SetEnabled(guild)
+    U.light:SetEnabled(guild and (B.own~=nil or C.BeaconsAllowed()))
     U.status:SetText(guild and (B.db.flightMasterScanned and
         (C.KnownCount().." confirmed flight points. Open a flight master's map to refresh them.") or
         "Open a flight master's map to confirm your discovered flight points.") or "Join a guild to call for aid.")
-    local names={};if selected then for _,name in pairs(selected.responders or {}) do names[#names+1]=name end end
+    local names={};if selected then for _,name in pairs(group and group.responders or selected.responders or {}) do names[#names+1]=name end end
     table.sort(names)
-    U.destination:SetText(selected and selected.name or "Your guild's watch")
-    tip(U.identity,selected and selected.name or "Your guild's watch",selected and
+    U.destination:SetText(combined and (#group.callers.." allies need aid") or selected and selected.name or "Your guild's watch")
+    tip(U.identity,combined and B.GroupText(group) or selected and selected.name or "Your guild's watch",selected and
         (C.Zone(selected.map).." - "..(reasons[selected.reason] or reasons.aid)) or "No active calls.")
     local allies=#names..(#names==1 and " ally" or " allies")
     U.summary:SetText(selected and ((B.preview and "PREVIEW - " or own and "Beacon lit - " or C.Zone(selected.map).." - ")..
         allies..(own and " coming to you" or " answering")) or U.confirmedClearUntil and U.confirmedClearUntil>GetTime() and "Beacon extinguished" or guild and "No active calls" or "Join a guild to call for aid")
     U.beacon:SetAlpha(selected and 1 or .45)
-    local callMessage=selected and selected.message
+    local callMessage=combined and B.GroupText(group) or selected and selected.message
     local hasMessage=callMessage and callMessage~=""
-    U.callMessage:SetText(hasMessage and ('"'..callMessage..'"') or not selected and "Light a beacon when you need allies at your side." or "")
+    U.callMessage:SetText(hasMessage and (combined and callMessage or ('"'..callMessage..'"')) or not selected and "Light a beacon when you need allies at your side." or "")
     U.callMessage:SetShown(hasMessage or not selected)
     local actionsY=(hasMessage or not selected) and 139 or 107
     position(U.answer,16,actionsY);position(U.expand,310,actionsY);position(U.book,191,actionsY)
     U.answer.label:SetText(not selected and "Light My Beacon" or own and "Extinguish My Beacon" or B.preview and "Preview only" or
         navigating and "On my way" or selected.responders and selected.responders[B.me] and "Resume route" or "Answer the Call")
-    U.answer:SetEnabled(guild and not B.preview and not navigating)
+    U.answer:SetEnabled(guild and not B.preview and not navigating and (own or C.BeaconsAllowed()))
     U.expand.label:SetText(U.expanded and "Less -" or "Details +");U.expand:SetShown(selected~=nil)
     U.map:SetEnabled(selected~=nil and not B.preview)
     U.stop:SetShown(navigating and true or false)
@@ -480,6 +510,35 @@ function U.Refresh()
     position(U.routeNote,16,routeBottom+6)
     U.routeNote:SetText(#steps>0 and ("Estimated travel. Follow roads around obstacles."..(#steps*rowPitch>viewport and " Scroll for more steps." or "")) or "")
     local factsY=routeBottom+(#steps>0 and 40 or 8)
+    if not U.callerScroll then
+        U.callerHeading=text(U.details,16,0,368,20,11,gold)
+        U.callerScroll=CreateFrame("ScrollFrame",nil,U.details);U.callerScroll:SetSize(368,100);U.callerScroll:EnableMouseWheel(true)
+        U.callerChild=CreateFrame("Frame",nil,U.callerScroll);U.callerChild:SetSize(368,100);U.callerScroll:SetScrollChild(U.callerChild)
+        U.callerScroll:SetScript("OnMouseWheel",function(self,delta)
+            self:SetVerticalScroll(math.max(0,math.min(U.callerChild:GetHeight()-self:GetHeight(),(self:GetVerticalScroll() or 0)-delta*36)))
+        end)
+        U.callerRows={}
+    end
+    local callerHeight=0
+    for i=1,math.max(combined and #group.callers or 0,#U.callerRows) do
+        local row=U.callerRows[i]
+        if not row then row=text(U.callerChild,0,0,360,38,11,pale);U.callerRows[i]=row end
+        local b=combined and group.callers[i];row:SetShown(b~=nil and b~=false)
+        if b then
+            position(row,0,callerHeight);row:SetText(b.name..(b.owner==B.me and " (you)" or "")..(b.message and ("\n"..b.message) or ""))
+            local h=b.message and 48 or 24;row:SetHeight(h);callerHeight=callerHeight+h
+        end
+    end
+    U.callerScroll:SetShown(combined and true or false)
+    U.callerHeading:SetShown(combined and true or false)
+    if combined then
+        local viewport=math.min(120,callerHeight)
+        position(U.callerHeading,16,factsY);U.callerHeading:SetText("CALLING FOR AID"..(callerHeight>viewport and " - Scroll for more" or ""))
+        factsY=factsY+24;position(U.callerScroll,16,factsY)
+        U.callerScroll:SetHeight(viewport);U.callerChild:SetHeight(callerHeight)
+        U.callerScroll:SetVerticalScroll(math.min(U.callerScroll:GetVerticalScroll() or 0,callerHeight-viewport))
+        factsY=factsY+viewport+12
+    end
     position(U.location,16,factsY);position(U.age,16,factsY+20);position(U.responderBox,16,factsY+44)
     if selected then
         U.location:SetText(C.Zone(selected.map).." - "..math.floor(selected.px*100+.5)..", "..math.floor(selected.py*100+.5).." - "..(reasons[selected.reason] or reasons.aid))
@@ -502,13 +561,13 @@ function U.Refresh()
     local multi=#list>1 and not B.preview
     U.pager:SetShown(multi)
     if multi then
-        local index=1;for i,b in ipairs(list) do if selected and b.owner==selected.owner then index=i end end
-        U.position:SetText(index.." of "..#list.." active calls")
+        local index=1;for i,g in ipairs(list) do if selected and g.owners[selected.owner] then index=i end end
+        U.position:SetText(index.." of "..#list.." beacons")
         position(U.pager,16,y);y=y+30
     end
     U.details:SetShown(U.expanded and selected~=nil and true or false)
     if U.expanded and selected then position(U.details,0,y);y=y+detailsHeight end
-    local height=U.options and (U.settingsPage=="controls" and 580 or U.settingsPage and 510 or 638) or y+7
+    local height=U.options and (U.settingsPage=="controls" and 580 or U.settingsPage=="beacons" and 638 or U.settingsPage and 510 or 638) or y+7
     U.frame:SetHeight(height);U.frame.surface:SetHeight(height-12)
     U.RefreshControls()
 end
@@ -519,32 +578,45 @@ function U.MapPins()
     end
     local canvas=WorldMapFrame.GetCanvas and WorldMapFrame:GetCanvas() or WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child
     local map=WorldMapFrame.GetMapID and WorldMapFrame:GetMapID()
-    if not canvas or not map then return end
+    if not canvas or not map then
+        for _,pin in ipairs(U.pins or {}) do pin:Hide() end;return
+    end
     U.pins=U.pins or {};local i=0
-    for _,b in ipairs(B.List()) do
-        local p=B.Destination(b);local id,x,y=C.MapPoint(p,map)
+    for _,group in ipairs(C.BeaconsAllowed() and B.Groups(true) or {}) do
+        local b=group.leader
+        local p=B.Destination(b) or b;local id,x,y=C.MapPoint(p,map)
         if id==map and x and y and B.MapVisible(b.owner) then
             i=i+1;local pin=U.pins[i]
             if not pin then
                 pin=CreateFrame("Button",nil,canvas);pin:SetSize(24,24)
                 pin:SetNormalTexture(asset("RoyalBrazier"));pin:SetFrameLevel(canvas:GetFrameLevel()+15)
-                pin:SetScript("OnClick",function(self) if self.beacon then B.Select(self.beacon);U.options=false;U.Refresh();U.frame:Show() end end)
+                pin.count=text(pin,10,12,24,14,10,gold,"CENTER")
+                pin:SetScript("OnClick",function(self) if self.group then B.Select(B.GroupSelection(self.group));U.options=false;U.Refresh();U.frame:Show() end end)
                 pin:SetScript("OnEnter",function(self)
                     if not GameTooltip or not self.beacon then return end
-                    GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:AddLine(self.beacon.name.." calls for aid!",1,.8,.3)
-                    if self.beacon.message then GameTooltip:AddLine(self.beacon.message,.86,.90,.97,true) end
+                    GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:AddLine(self.group.name,1,.8,.3)
+                    for _,caller in ipairs(self.group.callers) do
+                        GameTooltip:AddLine(caller.name,1,.82,.43)
+                        if caller.message then GameTooltip:AddLine(caller.message,.86,.90,.97,true) end
+                    end
                     GameTooltip:AddLine("Click to view the route.",1,1,1);GameTooltip:Show()
                 end)
                 pin:SetScript("OnLeave",function() if GameTooltip then GameTooltip:Hide() end end)
                 U.pins[i]=pin
             end
-            pin.beacon=b;pin:ClearAllPoints();pin:SetPoint("CENTER",canvas,"TOPLEFT",x*canvas:GetWidth(),-y*canvas:GetHeight());pin:Show()
+            pin:SetParent(canvas);pin:SetFrameLevel(canvas:GetFrameLevel()+15)
+            local factor=U.MapIconFactor(canvas);pin:SetSize(24*factor,24*factor)
+            pin.count:SetText(#group.callers>1 and tostring(#group.callers) or "")
+            pin.count:SetFont("Fonts\\FRIZQT__.TTF",10*factor,"");pin.count:SetSize(24*factor,14*factor)
+            pin.count:ClearAllPoints();pin.count:SetPoint("TOPLEFT",10*factor,-12*factor)
+            pin.beacon=b;pin.group=group;pin:ClearAllPoints();pin:SetPoint("CENTER",canvas,"TOPLEFT",x*canvas:GetWidth(),-y*canvas:GetHeight());pin:Show()
         end
     end
     for j=i+1,#U.pins do U.pins[j]:Hide() end
 end
 function U.Tick()
     if not U.frame then return end
+    U.EnforceBeaconContext();U.RefreshAlertGroup()
     if U.frame:IsShown() then U.Refresh() end
     U.RefreshFloating()
     if U.alertBeacon and U.alertBeacon.expires<=C.Now() then U.banner:Hide() end

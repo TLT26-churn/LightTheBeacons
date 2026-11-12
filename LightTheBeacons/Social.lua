@@ -51,8 +51,12 @@ function B.RemovePlayerFilter(key)
     B.db.playerFilters[key]=nil;B.UI.Refresh();B.UI.MapPins()
 end
 function B.InitializeSocial()
-    for key,value in pairs({shareLocation=true,showLocations=true,floatingButton=true,muteBeacons=false,friendsOnly=false}) do
+    for key,value in pairs({shareLocation=true,showLocations=true,floatingButton=true,muteBeacons=false,friendsOnly=false,
+        combineBeacons=true,disableInInstances=true,beaconPopups=true}) do
         if type(B.db[key])~="boolean" then B.db[key]=value end
+    end
+    for key,spec in pairs({mergeDistance={100,25,250},hornCooldown={30,0,120},mapIconScale={75,50,150}}) do
+        if not P.Number(B.db[key],spec[2],spec[3]) then B.db[key]=spec[1] end
     end
     local old=type(B.db.playerFilters)=="table" and B.db.playerFilters or {}
     B.db.playerFilters={};local count=0

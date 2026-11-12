@@ -21,12 +21,26 @@ function U.RefreshFloating()
     local f=U.floating;if not f or not B.db then return end
     f:SetShown(B.db.floatingButton)
     local own=B.own and B.own.expires>C.Now() and B.own
+    f:SetEnabled(own~=nil or C.BeaconsAllowed())
     local cooldown=math.max(0,(B.db.lastSent or 0)+P.cooldown-C.Now())
     f.icon:SetDesaturated(not own);f.icon:SetAlpha(own and 1 or .60)
     f.label:SetText(own and "Lit" or cooldown>0 and (cooldown.."s") or "Light")
     tip(f,own and "Your beacon is lit" or "Light the Beacons",
         (own and ("Expires in "..R.Time(own.expires-C.Now())..".\nLeft-click: extinguish your beacon.") or
         "Left-click: light a beacon now, without a message.").."\nRight-click: open the full card.\nShift-drag: move this button.")
+end
+function U.EnforceBeaconContext()
+    if C.BeaconsAllowed() then return end
+    B.navigating=false;B.answerQueue=nil;U.pendingAlert=nil
+    if U.banner then U.banner:Hide() end
+    if U.answerBanner then U.answerBanner:Hide() end
+    if U.hud then U.hud:Hide() end
+end
+function U.MapIconFactor(canvas)
+    local base=C.Call(UIParent.GetEffectiveScale,UIParent)
+    local scale=C.Call(canvas.GetEffectiveScale,canvas)
+    local ratio=P.Number(base,.01,100) and P.Number(scale,.01,100) and base/scale or 1
+    return (B.db.mapIconScale or 75)/100*ratio
 end
 local function checkbox(parent,label,description,y,fn)
     local c=CreateFrame("CheckButton",nil,parent);c:SetPoint("TOPLEFT",16,-y);c:SetSize(24,24)
@@ -35,6 +49,27 @@ local function checkbox(parent,label,description,y,fn)
     text(parent,47,y+27,335,47,11,pale):SetText(description)
     c:SetScript("OnClick",function(self) fn(self:GetChecked() and true or false);U.Refresh() end)
     return c
+end
+local function slider(parent,label,y,key,minimum,maximum,step,suffix,description)
+    local value=text(parent,16,y,368,20,12,gold)
+    local s=CreateFrame("Slider",nil,parent);s:SetPoint("TOPLEFT",24,-(y+25));s:SetSize(352,22)
+    s:EnableMouse(true);s:SetOrientation("HORIZONTAL");s:SetMinMaxValues(minimum,maximum);s:SetValueStep(step)
+    if s.SetObeyStepOnDrag then s:SetObeyStepOnDrag(true) end
+    fill(s,0,9,352,4,.52,.42,.25,1)
+    local thumb=s:CreateTexture(nil,"OVERLAY");thumb:SetSize(12,22);thumb:SetColorTexture(1,.82,.43,1);s:SetThumbTexture(thumb)
+    text(parent,16,y+51,368,30,11,muted):SetText(description)
+    s:SetScript("OnValueChanged",function(self,v)
+        if self.refreshing then return end
+        v=math.max(minimum,math.min(maximum,math.floor(v/step+.5)*step))
+        B.db[key]=v
+        if key=="mergeDistance" then B.Replan();U.RefreshAlertGroup();if B.navigating then B.SetNextWaypoint() end end
+        U.Refresh();U.MapPins()
+    end)
+    s.Refresh=function(self)
+        self.refreshing=true;self:SetValue(B.db[key]);self.refreshing=nil
+        value:SetText(label..": "..B.db[key]..suffix)
+    end
+    return s
 end
 function U.CreateControls()
     local f=CreateFrame("Button","LightTheBeaconsFloating",UIParent);U.floating=f
@@ -79,6 +114,23 @@ function U.CreateControls()
     end)
     U.locationStatus=text(controls,16,499,368,38,11,pale)
     U.locationCount=text(controls,16,548,368,17,11,muted)
+    local settings=CreateFrame("Frame",nil,U.frame);U.beaconSettings=settings;settings:SetAllPoints();settings:Hide()
+    text(settings,16,60,368,26,17,gold):SetText("Beacon settings")
+    U.combine=checkbox(settings,"Combine nearby beacons",
+        "One card and marker for a nearby group. Joining updates names quietly; each caller keeps their own beacon.",96,function(v) B.db.combineBeacons=v;B.Replan();U.RefreshAlertGroup();U.MapPins() end)
+    U.mergeRange=slider(settings,"Combine within",184,"mergeDistance",25,250,25," yards",
+        "Default: 100 yards. Every caller must be within this range of every other caller.")
+    U.instances=checkbox(settings,"Disable beacons in dungeons and raids",
+        "On by default. Blocks calls, horns, popups and route guidance here. Battlegrounds and arenas always stay disabled.",272,function(v) B.db.disableInInstances=v;U.EnforceBeaconContext();U.MapPins() end)
+    U.popups=checkbox(settings,"Show beacon and response popups",
+        "Calls always remain in the card. Turn this off for fewer interruptions; sound has its own switch.",360,function(v)
+            B.db.beaconPopups=v
+            if not v then U.pendingAlert=nil;U.banner:Hide();U.answerBanner:Hide() end
+        end)
+    U.hornCooldown=slider(settings,"Shared horn cooldown",448,"hornCooldown",0,120,5," sec",
+        "Default: 30 sec. New calls still appear. 0 allows every separate call to sound.")
+    U.markerSize=slider(settings,"Map marker size",536,"mapIconScale",50,150,5,"%",
+        "Default: 75% of the old size. Applies to guildmates, Friends and beacons.")
     local filters=CreateFrame("Frame",nil,U.frame);U.filtersPanel=filters;filters:SetAllPoints();filters:Hide()
     text(filters,16,60,368,26,17,gold):SetText("Friends & filters")
     text(filters,16,96,368,45,12,pale):SetText("Mark Friends for the map filter. Silence keeps calls quiet; Hide removes their beacons. Location hiding is separate.")
@@ -130,6 +182,10 @@ function U.RefreshControls()
     if not U.controlsPanel then return end
     U.controlsPanel:SetShown(U.options and U.settingsPage=="controls")
     U.filtersPanel:SetShown(U.options and U.settingsPage=="filters")
+    U.beaconSettings:SetShown(U.options and U.settingsPage=="beacons")
+    U.combine:SetChecked(B.db.combineBeacons);U.instances:SetChecked(B.db.disableInInstances);U.popups:SetChecked(B.db.beaconPopups)
+    U.mergeRange:Refresh();U.hornCooldown:Refresh();U.markerSize:Refresh()
+    U.mergeRange:EnableMouse(B.db.combineBeacons);U.mergeRange:SetAlpha(B.db.combineBeacons and 1 or .4)
     U.sharing:SetChecked(B.db.shareLocation);U.showLocations:SetChecked(B.db.showLocations);U.floatingCheck:SetChecked(B.db.floatingButton);U.friendsOnly:SetChecked(B.db.friendsOnly)
     U.resetFloating:SetEnabled(B.db.floatingButton)
     U.locationStatus:SetText((not IsInGuild or not IsInGuild()) and "Join a guild to share locations." or B.locationStatus or
@@ -151,7 +207,13 @@ function U.LocationPins()
         U.mapHooked=WorldMapFrame
         WorldMapFrame:HookScript("OnShow",function() U.MapPins() end)
         WorldMapFrame:HookScript("OnHide",function() U.MapPins() end)
-        if hooksecurefunc and WorldMapFrame.SetMapID then C.Call(hooksecurefunc,WorldMapFrame,"SetMapID",function() U.MapPins() end) end
+        if hooksecurefunc and WorldMapFrame.SetMapID then C.Call(hooksecurefunc,WorldMapFrame,"SetMapID",function()
+            U.MapPins()
+            -- Some map skins replace/resize the canvas after SetMapID returns.
+            if C_Timer and not U.mapRefreshPending then
+                U.mapRefreshPending=true;C_Timer.After(0,function() U.mapRefreshPending=nil;U.MapPins() end)
+            end
+        end) end
     end
     local map=WorldMapFrame and WorldMapFrame:IsShown() and WorldMapFrame.GetMapID and WorldMapFrame:GetMapID()
     local canvas=map and ((WorldMapFrame.GetCanvas and WorldMapFrame:GetCanvas()) or WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
@@ -184,12 +246,14 @@ function U.LocationPins()
                 -- texture and geometry so a former Friend's shield never leaks
                 -- onto a regular guildmate's marker.
                 pin.icon:ClearAllPoints()
+                local factor=U.MapIconFactor(canvas)
+                pin:SetSize(20*factor,24*factor)
                 if B.IsFriend(p.owner) then
                     pin.icon:SetTexture(asset("AllianceShield"));pin.icon:SetTexCoord(.125,.875,0,1)
-                    pin.icon:SetSize(18,24);pin.icon:SetPoint("TOPLEFT",1,0)
+                    pin.icon:SetSize(18*factor,24*factor);pin.icon:SetPoint("TOPLEFT",factor,0)
                 else
                     pin.icon:SetTexture(asset("AllianceCrest"));pin.icon:SetTexCoord(.175,.825,.09,.91)
-                    pin.icon:SetSize(20,24);pin.icon:SetPoint("TOPLEFT",0,0)
+                    pin.icon:SetSize(20*factor,24*factor);pin.icon:SetPoint("TOPLEFT",0,0)
                 end
                 pin:SetParent(canvas);pin:SetFrameLevel(canvas:GetFrameLevel()+14)
                 pin.location=p;pin:ClearAllPoints();pin:SetPoint("CENTER",canvas,"TOPLEFT",x*canvas:GetWidth(),-y*canvas:GetHeight());pin:Show()

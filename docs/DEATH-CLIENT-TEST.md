@@ -1,6 +1,6 @@
 # Death-window client test
 
-Branch: `codex/death-client-test` · Build: `1.6.3-test.2`
+Branch: `codex/death-client-test` · Build: `1.6.3-test.3`
 
 This is a local test build, not a GitHub/CurseForge release. Main is unchanged.
 The native-window takeover in the earlier design render is not enabled.
@@ -18,7 +18,7 @@ its dark Alliance/ledger style. Live addon compatibility is not yet verified.
 
 ## After installing
 
-1. Use `/reload`, then `/ltb deathstatus` to check for `1.6.3-test.2`.
+1. Use `/reload`, then `/ltb deathstatus` to check for `1.6.3-test.3`.
 2. On the next outdoor PvP death, verify that the original Release Spirit and
    Death Recap buttons are visible and work normally, with guild actions below
    or beside them. Native timers and any self-resurrection choice should remain.
@@ -43,6 +43,30 @@ side space while keeping native controls clear. Disabling LTB in the AddOns list
 and reloading restores the prior UI immediately; no native settings are changed.
 Keep SavedVariables when returning to the stable addon folder.
 
+## Beacon and map checks for test.3
+
+Open `/ltb settings`. Defaults: combine on / 100 yards, shared horn cooldown
+30 sec, map marker size 75%, popups on, dungeon/raid suppression on.
+
+1. Have two guild addon users light within 100 yards. Confirm one card/marker,
+   both names in Details, and no second horn or popup. Repeat after dismissing
+   the first popup and after waiting 30 seconds; joining must stay quiet.
+2. Have a caller farther away light within 30 seconds of a horn. Their separate
+   beacon and popup should appear without sound. A separate call after 30 seconds
+   should sound. Change the cooldown and repeat; 0 allows separate horns.
+3. Answer a combined beacon: each caller should receive the reply (paced for
+   larger groups) and the count should remain one ally. Extinguishing one caller
+   should leave the remaining beacon. A caller must not be able to answer themselves.
+4. Change grouping/range, popup visibility and marker size; reload and confirm
+   preferences persist. Keep global mute, individual Hide/Silence and Friends
+   filters working independently.
+5. Check the same guildmate on world, continent and matching zone maps. Zoom and
+   switch maps with your normal skin enabled. Marker size should stay consistent.
+6. Enter a dungeon/raid: incoming calls remain in the card but no horn, popup,
+   beacon pin or guidance should appear. Manual calls are blocked by default;
+   an existing own call can be extinguished. The setting can enable manual use.
+   Battlegrounds/arenas and automatic instance death actions remain excluded.
+
 ## Evidence limits
 
 The addon uses readable hostile-player GUIDs/flags and positive damage from the
@@ -61,7 +85,7 @@ live combat attribution or a skinning addon's behavior on the user's client.
 
 ## Headless verification
 
-The `1.6.3-test.2` build passes **715 checks**, including PvE regressions that
+The `1.6.3-test.3` build passes **798 checks**, including PvE regressions that
 require positive PvP evidence and check both beacon and book visibility.
 The optional native-handler test loads the actual DEATH handlers from a pinned
 local copy of Blizzard's Forever `GameDialogDefs.lua`. This checks release restrictions, countdown labels,

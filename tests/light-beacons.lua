@@ -35,6 +35,17 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     function methods:SetScale(v) self.scale=v end
     function methods:GetScale() return self.scale or 1 end
     function methods:GetEffectiveScale() return self:GetScale()*(self.parent and self.parent:GetEffectiveScale() or 1) end
+    function methods:SetOrientation(v) self.orientation=v end
+    function methods:SetMinMaxValues(lo,hi) self.minimum=lo;self.maximum=hi end
+    function methods:SetValueStep(v) self.step=v end
+    function methods:SetObeyStepOnDrag(v) self.obeyStep=v end
+    function methods:SetThumbTexture(v) self.thumb=v end
+    function methods:SetValue(v)
+        local changed=self.value~=v;self.value=v
+        if self.thumb then self.thumb:SetPoint("CENTER",self,"LEFT",self:GetWidth()*(v-self.minimum)/(self.maximum-self.minimum),0) end
+        if changed and self.scripts.OnValueChanged then self.scripts.OnValueChanged(self,v) end
+    end
+    function methods:GetValue() return self.value end
     function methods:SetScript(e,f) self.scripts[e]=f end
     function methods:HookScript(e,f) local old=self.scripts[e];self.scripts[e]=function(...) if old then old(...) end;f(...) end end
     function methods:RegisterEvent(e) assert(validEvents[e],"Unknown Forever event: "..tostring(e));self.events[e]=true end
@@ -308,7 +319,7 @@ local preview=client("Elowen","Dawnwatch");preview.B.Preview()
 check(#preview.s.sent==0 and #preview.s.sounds==0,"Preview never broadcasts or sounds automatically")
 local rallyPreview=client("Aldric","Stoneward")
 rallyPreview.env.SlashCmdList.LIGHTTHEBEACONS("rally")
-check(#rallyPreview.s.sent==0 and #rallyPreview.s.sounds==1 and rallyPreview.s.sounds[1][1]==8173,"Rally test is local and uses the native fanfare")
+check(#rallyPreview.s.sent==0 and #rallyPreview.s.sounds==0 and not rallyPreview.B.UI.answerBanner:IsShown(),"Removed rally command cannot trigger a test fanfare")
 local mutedRally=client("Aldric","Stoneward",{sound=false})
 mutedRally.B.Light();mutedRally.B.Receive("1|R|"..mutedRally.B.own.id.."|"..mutedRally.B.me,"Elowen Dawnwatch","GUILD")
 check(#mutedRally.s.sounds==0 and mutedRally.B.UI.answerBanner:IsShown(),"Mute suppresses both sounds without hiding the celebration")
@@ -656,9 +667,9 @@ do
     check(u.optionsPanel:IsShown() and not u.main:IsShown() and u.frame:GetHeight()==638,"Options replaces the compact contents and reveals the credit")
     u.optionsButton.scripts.OnClick()
     check(u.main:IsShown() and not u.optionsPanel:IsShown() and u.details:IsShown(),"Back restores the expanded card without resetting its state")
-    helper.B.Light()
+    helper.B.db.combineBeacons=false;helper.B.Light()
     check(u.answer.label:GetText()=="Extinguish My Beacon" and not u.eta:IsShown() and not u.routeScroll:IsShown() and not u.brief:IsShown(),"Own card exposes extinguish, with no rescue route or ETA to oneself")
-    check(u.pager:IsShown() and u.position:GetText():find("2 active calls"),"Two beacons expose a compact call pager")
+    check(u.pager:IsShown() and u.position:GetText():find("2 beacons"),"Two beacons expose a compact call pager")
     local own=helper.B.own;u.nextCall.scripts.OnClick()
     check(helper.B.Selected().owner~=helper.B.me and u.eta:IsShown(),"Pager switches to the other caller")
     u.light.scripts.OnClick()
@@ -671,8 +682,8 @@ do
     helper.B.route={steps={},unavailable=true,reason="This map is unsupported."};u.Refresh()
     check(u.eta:GetText()=="No route" and u.empty:GetText()=="This map is unsupported.","Unsupported route retains the map fallback in details")
     helper.env.SlashCmdList.LIGHTTHEBEACONS("options")
-    local before=#helper.s.sent;u.previewButton.scripts.OnClick()
-    check(helper.B.preview and not u.options and u.main:IsShown() and not u.details:IsShown() and not u.answer.enabled,"Settings preview opens a clearly marked compact sample without actionable answers")
+    local before=#helper.s.sent;u.expanded=false;helper.B.Preview()
+    check(helper.B.preview and not u.options and u.main:IsShown() and not u.details:IsShown() and not u.answer.enabled,"Internal render fixture opens a clearly marked compact sample without actionable answers")
     check(#helper.s.sent==before and u.summary:GetText():find("PREVIEW"),"Preview stays private and visibly identified")
     local step=helper.B.route.steps[1];helper.B.route.steps={}
     for i=1,8 do helper.B.route.steps[i]=step end
@@ -689,7 +700,7 @@ do
     local c=client("Aldric","Stoneward");local u=c.B.UI
     c.B.RequestLight();u.messageEdit:SetText("Rally here");u.composeSend.scripts.OnClick()
     check(u.frame:IsShown() and not u.banner:IsShown() and u.summary:GetText():find("Beacon lit"),"Manual light confirms inside the card, never in an own-call popup")
-    local helper=client("Elowen","Dawnwatch");helper.B.Light()
+    local helper=client("Elowen","Dawnwatch");helper.s.pos.px=.3;helper.B.Light()
     local packet=helper.s.sent[#helper.s.sent][2];c.B.Receive(packet,helper.B.name,"GUILD")
     check(u.banner:IsShown(),"An ally call still shows the incoming alert")
     u.Answered("Elowen Dawnwatch",1,true,c.B.own)
@@ -827,7 +838,7 @@ do
     overlap.env.PlaySoundFile=function() handle=handle+1;return true,handle end
     overlap.B.Sound(true);overlap.B.Sound(true);overlap.B.MuteBeacons(true)
     check(overlap.s.stoppedSounds[61] and overlap.s.stoppedSounds[62],"Global mute stops overlapping addon sounds, not just the last horn")
-    caller.B.Light();local packet=caller.s.sent[#caller.s.sent][2]
+    caller.s.pos.px=.3;caller.B.Light();local packet=caller.s.sent[#caller.s.sent][2]
     b.Receive(packet,caller.B.name,"GUILD");u.Answered(caller.B.name,1,true,nil)
     u.PromptDeath(false)
     local sent=#viewer.s.sent;u.mute:SetChecked(true);u.mute.scripts.OnClick(u.mute)
@@ -851,7 +862,7 @@ do
     b.MuteBeacons(false);u.answerBanner:Hide()
     check(not u.banner:IsShown() and not u.pendingAlert,"Unmuting never replays dismissed or queued calls")
     b.MuteBeacons(true);b.Sound(true);u.Answered("Preview",1,true,nil,true)
-    check(#viewer.s.sounds==soundCount+1 and u.answerBanner:IsShown(),"Explicit test/preview buttons still work while live alerts are muted")
+    check(#viewer.s.sounds==soundCount+1 and u.answerBanner:IsShown(),"Internal render fixtures can simulate sounds and celebrations while live alerts are muted")
     b.MuteBeacons(true)
     local before=#viewer.s.sent
     b.SetPlayerFilter(caller.B.name,"silent",true);b.SetFriend("  Aldric   Stoneward  ",true)
@@ -866,7 +877,7 @@ do
     u.OpenSettingsPage("controls");u.friendsOnly:SetChecked(true);u.friendsOnly.scripts.OnClick(u.friendsOnly)
     check(b.db.friendsOnly and #b.Locations()==1 and u.locationPins[1]:IsShown(),"Friends-only control shows a marked friend's world-map location")
     local icon=u.locationPins[1].icon
-    check(icon.file==b.MediaPaths.AllianceShield and icon.coords[1]==.125 and icon.coords[2]==.875 and icon.width==18 and icon.height==24,"Friends use the approved native Alliance shield with the reviewed crop and aspect ratio")
+    check(icon.file==b.MediaPaths.AllianceShield and icon.coords[1]==.125 and icon.coords[2]==.875 and icon.width==13.5 and icon.height==18,"Friends use the approved native Alliance shield with the reviewed crop and aspect ratio")
     b.SetFriend(caller.B.name,false)
     check(#b.Locations()==0 and not u.locationPins[1]:IsShown(),"Removing Friend status immediately hides a location while filtering")
     local function shownBeacons() local n=0;for _,pin in ipairs(u.pins) do if pin:IsShown() then n=n+1;check(pin.beacon.owner==b.me,"Own beacon remains visible under the Friends-only filter") end end;return n end
@@ -891,7 +902,7 @@ do
     b.db.friendsOnly=false
     check(#b.Locations()==1,"Disabling Friends-only restores normal guild map visibility")
     u.MapPins()
-    check(u.locationPins[1].icon==icon and icon.file==b.MediaPaths.AllianceCrest and icon.coords[1]==.175 and icon.coords[2]==.825 and icon.width==20 and icon.height==24 and icon.anchor[4]==0,"Unmarking a Friend resets the reused pin to the original guildmate lion and geometry")
+    check(u.locationPins[1].icon==icon and icon.file==b.MediaPaths.AllianceCrest and icon.coords[1]==.175 and icon.coords[2]==.825 and icon.width==15 and icon.height==18 and icon.anchor[4]==0,"Unmarking a Friend resets the reused pin to the original guildmate lion and geometry")
 end
 
 local perf=os.clock()
@@ -969,6 +980,7 @@ local function snapshot(c,target,path)
     local f=assert(io.open(path,"w"));f:write(json(scene));f:close()
 end
 assert(loadfile("tests/pve-death-guards.lua"))(client,check)
+local groupPreview=assert(loadfile("tests/beacon-settings.lua"))(client,check)
 local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
 local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 local combinedPreview=assert(loadfile("tests/combined-death.lua"))(client,check)
@@ -977,6 +989,12 @@ local nativePreview=assert(loadfile("tests/death-reliability.lua"))(client,check
 -- Optional pinned Blizzard source is kept outside the repo and addon package.
 if arg[3] and arg[3]~="" then assert(loadfile("tests/native-death-contract.lua"))(client,check,arg[3]) end
 if arg[2] and arg[2]~="" then
+    groupPreview.B.db.combineBeacons=true;groupPreview.B.UI.expanded=true;groupPreview.B.UI.Refresh()
+    for _,o in ipairs(groupPreview.objects) do o.box=nil end
+    snapshot(groupPreview,groupPreview.B.UI.frame,arg[2].."-group.json")
+    groupPreview.B.UI.OpenSettingsPage("beacons")
+    for _,o in ipairs(groupPreview.objects) do o.box=nil end
+    snapshot(groupPreview,groupPreview.B.UI.frame,arg[2].."-beacon-settings.json")
     snapshot(nativePreview,nativePreview.B.DeathUI.frame,arg[2].."-death-client-test.json")
     snapshot(combinedPreview.main,combinedPreview.main.B.DeathUI.frame,arg[2].."-combined-death.json")
     snapshot(combinedPreview.unknown,combinedPreview.unknown.B.DeathUI.frame,arg[2].."-combined-unknown.json")

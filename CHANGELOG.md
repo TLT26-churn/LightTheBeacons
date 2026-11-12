@@ -1,5 +1,25 @@
 # Release notes
 
+## 1.6.3-test.3 — Nearby calls, quieter horns and map controls
+
+- Combine nearby calls into one card and brazier by default, within 100 yards.
+  Configure 25–250 yards or turn it off. Every caller must be within range of
+  every other caller; separate fights cannot merge through a chain.
+- Joining updates names/counts silently without restarting or creating a popup.
+  Callers keep their own messages, expiry and extinguish action. Shared details
+  list callers; answering sends compatible, paced replies and deduplicates allies.
+- Add a shared local horn cooldown of 30 seconds (0–120 configurable). Separate
+  calls remain visible during the cooldown. Add an independent popup switch.
+- Shrink map markers to 75% by default, with a 50–150% size slider. Preserve
+  Friend shield/guild lion proportions and displayed size through canvas zoom.
+- Project broader-map positions back into matching zones and reattach both pin
+  types when a map skin replaces the canvas. Reject missing/invalid transforms.
+- Disable beacon calls, notifications, pins and guidance in dungeons/raids by
+  default; allow manual activity with an opt-in setting. Battlegrounds/arenas
+  stay excluded. Background location sharing and ledger use remain independent.
+- Remove player-facing sound tests and sample previews. Keep read-only diagnostics.
+- Local test branch only; retain all death-evidence and native-window safeguards.
+
 ## 1.6.3-test.2 — Keep regular PvE deaths quiet
 
 - Require positive hostile-player damage evidence before showing either the

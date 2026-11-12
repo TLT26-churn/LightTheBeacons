@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.6.3-test.2"
+B.version="1.6.3-test.3"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -9,9 +9,10 @@ function B.Print(message)
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffc55cLight the Beacons:|r "..message) end
 end
 function B.Sound(test,answer)
-    if not test and (not B.db.sound or B.db.muteBeacons) then return end
+    if not test and (not B.db.sound or B.db.muteBeacons or not C.BeaconsAllowed()) then return end
     local key=answer and "lastAnswerSound" or "lastHorn"
-    if not test and B[key] and GetTime()-B[key]<5 then return end
+    local cooldown=answer and 5 or B.db.hornCooldown or 30
+    if not test and B[key] and GetTime()-B[key]<cooldown then return end
     local success,handle,method=C.PlayAlertSound(answer and 569543 or 566064,answer and 8173 or 10843)
     B.lastSoundResult=success and ("Playback accepted (native "..method..").") or "The game did not start the sound."
     if success then
@@ -72,7 +73,8 @@ function B.Replan()
         B.waitingLanding=true;return
     end
     B.waitingLanding=nil
-    local beacon=B.Selected();local start=C.Position();local goal=B.Destination(beacon)
+    local beacon=B.Selected();local group=beacon and B.GroupFor(beacon.owner)
+    local start=C.Position();local goal=B.Destination(group and group.leader or beacon)
     B.route=nil
     if start and goal then B.route=R.Plan(start,goal,B.db.known,C.Faction(),B.TravelSpeed(),nil,B.db.times) end
     B.routeIndex=1;B.transportReady=nil
@@ -90,17 +92,20 @@ function B.Receive(msg,sender,channel)
     elseif event=="beacon" then
         if b.owner==B.me then B.own=b;B.db.active=b end
         if not B.Selected() and B.BeaconMode(b.owner)~="hidden" then B.selected=b.owner;B.Replan() end
-        if sound and B.BeaconMode(b.owner)=="normal" then
+        local group=B.GroupFor(b.owner)
+        local joined=group and #group.callers>1
+        if sound and not joined and B.BeaconMode(b.owner)=="normal" and C.BeaconsAllowed() then
             B.Sound();if b.owner~=B.me then B.UI.Alert(b) end
         end
+        B.UI.RefreshAlertGroup()
         B.UI.Refresh()
     elseif event=="location" then
         B.UI.MapPins()
     elseif event=="message" then
-        B.UI.UpdateAlertMessage(b);B.UI.Refresh()
+        B.UI.RefreshAlertGroup();B.UI.Refresh()
     elseif event=="cancel" then
         if B.selected==b.owner then B.selected=nil;B.navigating=false;B.route=nil end
-        if B.UI.alertBeacon and B.UI.alertBeacon.owner==b.owner then B.UI.banner:Hide() end
+        B.UI.RefreshAlertGroup()
         if B.UI.answerBanner and B.UI.answerBanner.beacon==b then B.UI.answerBanner:Hide() end
         B.UI.Refresh()
     elseif event=="response" then
@@ -125,7 +130,7 @@ function B.SaveTemplate(slot,message)
 end
 function B.Light(reason,message)
     if not B.db then return end
-    if not C.IsOutdoor() then B.Print("Beacons are for the open world. Leave the instance first.");return false end
+    if not C.BeaconsAllowed() then B.Print("Beacons are disabled here. Dungeon/raid use can be enabled in Beacon settings; battlegrounds and arenas stay disabled.");return false end
     if not B.me then B.Print("Your character is still loading.");return false end
     local now=C.Now()
     if B.db.lastSent and now-B.db.lastSent<P.cooldown then
@@ -170,19 +175,16 @@ function B.Answer()
     local b=B.Selected()
     if not b then return end
     if B.preview then B.Print("This is a local preview. No call has been sent.");return end
-    if b.owner==B.me then
+    if not C.BeaconsAllowed() then B.Print("Beacons are disabled in this instance.");return end
+    local group=B.GroupFor(b.owner)
+    if b.owner==B.me or group and group.owners[B.me] then
         B.navigating=false;B.UI.Tick()
         B.Print("This is your beacon. Your guildmates can answer the call.");return
     end
     if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then
         B.Print("Return to life before following a rescue route. You can still view the beacon on your map.");return
     end
-    if not (b.responders and b.responders[B.me]) then
-        local msg="1|R|"..b.id.."|"..b.owner
-        if #msg>250 then return end
-        local ok,why=C.Send(msg);if not ok then B.Print(why);return end
-        B.Receive(msg,B.name,"GUILD")
-    end
+    if B.QueueGroupAnswers(group or {callers={b}})==false then return end
     B.Replan();B.navigating=true;B.routeIndex=1
     B.SetNextWaypoint();B.UI.Refresh()
 end
@@ -201,6 +203,7 @@ function B.SetNextWaypoint()
     local p=B.NextTarget();if p then C.Waypoint(p) end
 end
 function B.TickRoute()
+    if not C.BeaconsAllowed() then B.navigating=false;return end
     if B.waitingLanding and not (UnitOnTaxi and UnitOnTaxi("player")) then
         B.Replan();if B.navigating then B.SetNextWaypoint() end
     end
@@ -283,6 +286,7 @@ function B.GuildChanged()
     if B.guild and B.guild~=guild then
         B.lastLocationAttempt=nil;B.locationShared=false;B.locationStatus=nil
         B.session=P.NewSession();B.selected=nil;B.navigating=false;B.own=nil;B.db.active=nil;B.route=nil
+        B.displayGroup=nil;B.answerQueue=nil;B.UI.pendingAlert=nil;B.UI.alertGroup=nil;B.UI.alertBeacon=nil
         if B.UI.banner then B.UI.banner:Hide() end
         if B.UI.answerBanner then B.UI.answerBanner:Hide() end
     end
@@ -381,6 +385,7 @@ frame:SetScript("OnEvent",function(_,event,...)
         B.UI.Refresh()
     elseif event=="PLAYER_ENTERING_WORLD" then
         C.RefreshFlights();B.GuildChanged()
+        B.UI.EnforceBeaconContext()
         if not C.IsOutdoor() then C.ClearAttackers();B.DeathUI.Dismiss() end
         if B.UpdateTravelPace() then B.Replan();if B.navigating then B.SetNextWaypoint() end end
         B.UI.Refresh()
@@ -395,6 +400,7 @@ frame:SetScript("OnEvent",function(_,event,...)
             if B.UI.deathPrompt then B.UI.deathPrompt:Hide() end
         end
     elseif event=="ZONE_CHANGED_NEW_AREA" then
+        B.UI.EnforceBeaconContext()
         if not C.IsOutdoor() then C.ClearAttackers();B.DeathUI.Dismiss() end
         if not B.navigating then B.Replan() end
     elseif event~="PLAYER_REGEN_ENABLED" then B.GuildChanged() end
@@ -412,17 +418,15 @@ frame:SetScript("OnUpdate",function(_,delta)
         B.lastLivingPoint=C.Position()
         C.CaptureLivingRecap()
     end
-    C.ObserveFlight();B.TickRoute();B.BroadcastLocation();B.UI.Tick();B.GrudgeUI.Tick()
+    C.ObserveFlight();B.TickAnswers();B.TickRoute();B.BroadcastLocation();B.UI.Tick();B.GrudgeUI.Tick()
 end)
 SLASH_LIGHTTHEBEACONS1="/ltb";SLASH_LIGHTTHEBEACONS2="/beacons"
 SlashCmdList.LIGHTTHEBEACONS=function(input)
     local command=(input or ""):lower():match("^%s*(%S*)")
     if command=="light" then B.RequestLight()
     elseif command=="clear" then B.Extinguish()
-    elseif command=="preview" then B.Preview()
-    elseif command=="horn" then B.Sound(true)
-    elseif command=="sound" then B.Print((B.lastSoundResult or "No sound tested this session.").." "..C.AudioSettings())
-    elseif command=="rally" then B.UI.Answered("Elowen Dawnwatch",1,true,nil,true);B.Sound(true,true)
+    elseif command=="sound" then B.Print((B.lastSoundResult or "No alert played this session.").." "..C.AudioSettings())
+    elseif command=="settings" then B.UI.OpenSettingsPage("beacons")
     elseif command=="scan" then C.RefreshFlights(true)
     elseif command=="options" then B.UI.Toggle(true)
     elseif command=="locations" then B.UI.OpenSettingsPage("controls")

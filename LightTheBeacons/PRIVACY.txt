@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.6.3-test.2 / 2026-11-11
+Version 1.6.3-test.3 / 2026-11-11
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
@@ -16,6 +16,10 @@ real-world location. Turn off "Share my location with guildmates" under
 Lighting a beacon shares its ID, timestamp, incident map/coordinates, reason
 (aid, fallen, or PvP), and any optional message you send. Answering shares your
 response and the beacon being answered with the guild, not just the caller.
+Nearby calls are grouped locally for display; no group membership packet is sent.
+Answering a combined call sends paced replies for its current individual callers.
+Grouping, range, horn cooldown, popup and marker-size choices stay local.
+Dungeon/raid beacon suppression does not turn off background location sharing.
 Cancellation and location-withdrawal packets also go to the guild. Automatic
 PvP beacons are off by default; enabling them can send an incident location
 after a qualifying death. Saved message templates are not attached automatically.

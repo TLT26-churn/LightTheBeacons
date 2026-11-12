@@ -118,22 +118,39 @@ function C.MapPoint(p,override)
         if P.Number(map,1,100000) and (not override or map==override) and vec and P.Plain(vec)
             and P.Number(vec.x,0,1) and P.Number(vec.y,0,1) then return map,vec.x,vec.y end
     end
-    -- Azeroth is an atlas of continents, not a single world-coordinate plane.
-    -- Walk the client's map rectangles instead of hardcoding continent offsets.
-    local map,x,y=p.map,p.px,p.py
-    local visited={}
-    for _=1,12 do
-        if not P.Number(map,1,100000) or not P.Number(x,0,1) or not P.Number(y,0,1) or visited[map] then return end
-        if map==override then return map,x,y end
-        visited[map]=true
+    -- Use a common ancestor in the map atlas. The old upward-only fallback
+    -- lost continent/world positions when the viewer opened a zone map.
+    if not P.Number(p.map,1,100000) or not P.Number(override,1,100000)
+        or not P.Number(p.px,0,1) or not P.Number(p.py,0,1) then return end
+    local function edge(map)
         local info=call(C_Map.GetMapInfo,map)
         if type(info)~="table" or not P.Plain(info) or not P.Number(info.parentMapID,1,100000) then return end
-        local parent=info.parentMapID
-        local l,r,t,b=call(C_Map.GetMapRectOnMap,map,parent)
-        -- A child map can extend past its parent's edge; validate the projected
-        -- point on the next iteration rather than rejecting the whole rectangle.
-        if not P.Number(l,-100,100) or not P.Number(r,-100,100) or not P.Number(t,-100,100) or not P.Number(b,-100,100) or l>=r or t>=b then return end
+        -- Floors cannot be projected onto each other through a parent atlas.
+        if Enum and Enum.UIMapType and (info.mapType==Enum.UIMapType.Dungeon or info.mapType==Enum.UIMapType.Micro) then return end
+        local l,r,t,b=call(C_Map.GetMapRectOnMap,map,info.parentMapID)
+        if not P.Number(l,-100,100) or not P.Number(r,-100,100) or not P.Number(t,-100,100)
+            or not P.Number(b,-100,100) or l>=r or t>=b then return end
+        return info.parentMapID,l,r,t,b
+    end
+    local source={};local map,x,y=p.map,p.px,p.py
+    for _=1,12 do
+        if source[map] or not P.Number(x,-100,100) or not P.Number(y,-100,100) then break end
+        source[map]={x=x,y=y}
+        local parent,l,r,t,b=edge(map);if not parent then break end
         map,x,y=parent,l+x*(r-l),t+y*(b-t)
+    end
+    local path,seen={},{};map=override
+    for _=1,12 do
+        if seen[map] then return end;seen[map]=true
+        local point=source[map]
+        if point then
+            x,y=point.x,point.y
+            for i=#path,1,-1 do local e=path[i];x,y=(x-e.l)/(e.r-e.l),(y-e.t)/(e.b-e.t) end
+            if P.Number(x,0,1) and P.Number(y,0,1) then return override,x,y end
+            return
+        end
+        local parent,l,r,t,b=edge(map);if not parent then return end
+        path[#path+1]={l=l,r=r,t=t,b=b};map=parent
     end
 end
 function C.Location()
@@ -157,6 +174,12 @@ end
 function C.IsOutdoor()
     local inInstance,kind=call(IsInInstance)
     return P.Plain(inInstance) and inInstance==false and P.Plain(kind) and kind=="none"
+end
+function C.BeaconsAllowed()
+    if C.IsOutdoor() then return true end
+    local inside,kind=call(IsInInstance)
+    return P.Plain(inside) and inside==true and P.Plain(kind) and
+        (kind=="party" or kind=="raid") and B.db and B.db.disableInInstances==false or false
 end
 function C.Corpse()
     -- Retain the incident position when the player releases at a graveyard.

@@ -2,7 +2,7 @@
 ## Title: Light the Beacons
 ## Notes: Guild calls for aid, shared map positions, discovered-flight routes, and a guild Book of Grudges.
 ## Author: Whitebeard Tinkerton - US PVP
-## Version: 1.6.3-test.2
+## Version: 1.6.3-test.3
 ## X-License: All Rights Reserved with Free Player Use; see LICENSE.txt
 ## SavedVariablesPerCharacter: LightTheBeaconsDB
 ## IconTexture: Interface\AddOns\LightTheBeacons\Media\RoyalBrazier.tga
@@ -13,6 +13,7 @@ Routing.lua
 Client.lua
 DeathEvidence.lua
 Social.lua
+BeaconGroups.lua
 Grudges.lua
 Media.lua
 UI.lua

@@ -1,4 +1,4 @@
-# Light the Beacons 1.6.3-test.2
+# Light the Beacons 1.6.3-test.3
 
 Local client-test build. Guild death actions dock beneath Blizzard's original
 death controls, which retain their normal behavior and existing skin. Readable
@@ -45,7 +45,7 @@ adds a short next-step strip even when Details is collapsed. Long routes scroll;
 hover a step or the responder list for its complete text. **Stop guidance** in
 Details pauses navigation; **Resume route** restarts it without another reply.
 
-Options contains settings, local previews and the subtle
+Options contains settings and the subtle
 **Whitebeard Tinkerton - US PVP** credit. The default card has no credit footer.
 
 ## Use
@@ -54,11 +54,9 @@ Options contains settings, local previews and the subtle
 - `/ltb` or the brazier beside the minimap: open the card.
 - `/ltb light`: compose a call at your position (or your fallen body).
 - `/ltb clear`: extinguish your beacon.
-- `/ltb preview`: show a local sample alert and route. Nothing is transmitted.
-- `/ltb horn`: test the native Horn of Cenarius / Dwarf Horn without sending a beacon.
 - `/ltb sound`: show the last playback result and current audio settings.
-- `/ltb rally`: preview the response celebration and Alliance fanfare locally.
 - `/ltb options`: sound, automatic alerts, death prompts and travel pace.
+- `/ltb settings`: combining, merge distance, horn cooldown, popups and marker size.
 - `/ltb locations`: sharing, map visibility and floating beacon button settings.
 - `/ltb filters`: Friends and individual beacon/location filters.
 - `/ltb button`: show or hide the movable beacon button.
@@ -125,6 +123,46 @@ their beacon. **Hide location** independently hides their background position.
 Remove the filter to restore normal behavior. These choices apply locally and
 are never sent to the guild.
 
+## Nearby calls and notification settings
+
+Open **Options → Beacon settings** or `/ltb settings`. Preferences are saved per
+character; changing them never sends a guild message.
+
+- **Combine nearby beacons: on.** Default range **100 yards**, adjustable from
+  **25–250 yards**. All members must be within the range of every other member;
+  a long chain cannot connect separate fights. Turn combining off for individual calls.
+- The first call can sound and notify. **Joining an active group is always quiet**:
+  no new horn or popup, and no restart of an existing popup. The card and marker
+  update their caller count. Details shows every caller and their optional message.
+- The oldest active call anchors the route and shared map pin. Every caller keeps
+  their own expiry and extinguish action; leaving never cancels anyone else's call.
+  Answering acknowledges the active callers with paced, individual replies. Each
+  responder is counted once. You cannot answer a group containing your own call.
+- **Shared horn cooldown: 30 seconds**, adjustable **0–120 seconds**. This is a
+  local cooldown across all callers, measured from the last successfully started
+  beacon horn. Other beacons still appear immediately. Silent calls do not extend
+  it. **0** removes the cooldown for separate calls; joins remain quiet. The first
+  responder's fanfare is independent and retains its own short repeat guard.
+- **Show beacon and response popups: on.** Turn off to keep calls in the card
+  without popups. Sound and the existing global mute are separate controls.
+- **Map marker size: 75%** of the prior size, adjustable **50–150%**. Applies to
+  guildmate lions, Friend shields and beacon braziers. Icons keep a consistent
+  displayed size while the map canvas zooms.
+- **Disable beacons in dungeons and raids: on.** Blocks new calls, horns, popups,
+  beacon map pins and guidance there. Calls remain available in the card and an
+  existing own beacon can still be extinguished. Turn off to allow manual beacon
+  activity in party/raid instances. Battlegrounds and arenas always stay excluded.
+  Automatic death actions still require outdoor PvP evidence. Background location
+  sharing and manual ledger use retain their independent settings.
+
+Combining happens locally using the client's readable world positions. Unknown
+positions and dungeon floors are never guessed or combined across instance
+copies. Different preferences or older addon versions can display separate
+calls; every client still receives the original, compatible caller records.
+Map projection now supports both directions through the client's map hierarchy,
+so a position sent on a broader map can remain visible in its matching zone.
+Missing transforms fail quietly rather than displaying an invented location.
+
 ## Quiet alerts and Friends
 
 Enable **Options → Mute all beacon alerts** to use guild location sharing without
@@ -133,7 +171,7 @@ fanfare/celebrations, and death prompts. It also dismisses visible/queued alerts
 and stops recently started addon sounds. Calls stay in the card and on the map,
 and response counts still update. Manual calls, your existing automatic-PvP
 choice, sharing preferences and per-player filters are unchanged. Unmuting does
-not replay missed alerts. Explicit Test horn and Preview buttons still work.
+not replay missed alerts. Sound-test and sample-preview controls have been removed.
 The global mute is off by default and is saved per character.
 
 In **Friends & filters**, tick **Friend** beside a player's name. Friend marks

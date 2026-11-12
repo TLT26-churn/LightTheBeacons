@@ -4,7 +4,7 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
-**Local client-test branch: `codex/death-client-test`, version `1.6.3-test.2`.**
+**Local client-test branch: `codex/death-client-test`, version `1.6.3-test.3`.**
 This build is not a public release. It docks guild death actions below the
 original Blizzard death controls and reads both supported public recap timing
 formats. Both death prompts require positive hostile-player evidence; mob-only
@@ -31,6 +31,13 @@ your available flight points; repeat on other continents you use. Every
 participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
+
+- **Local test.3** adds configurable nearby-call combining (100 yards), a shared
+  horn cooldown (30 sec), smaller adjustable map markers (75%), a popup switch,
+  and default dungeon/raid suppression. Joining a group never sounds or creates
+  a new notification. Individual callers retain their own beacon and message.
+  It also fixes descending map projection and removes sound-test/preview controls.
+  Open **Options → Beacon settings** or `/ltb settings`.
 
 - **1.6.3** combines the death prompts into one window: call for aid, select
   detected attackers, and inscribe selected grudges. Confirmed killing blows
@@ -94,7 +101,7 @@ Guildmates need 1.2.0 to see the custom text; earlier versions still receive the
 beacon and route normally.
 
 **1.2.1:** fixes self-navigation from your own alert and plays the deep horn
-directly from WoW's native asset. `/ltb horn` tests it; `/ltb sound` shows diagnostics.
+directly from WoW's native asset. `/ltb sound` shows read-only diagnostics.
 
 ![Message window — rendered preview with sample templates](docs/beacon-messages.png)
 
