@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.6.3-test.3"
+B.version="1.6.3"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"

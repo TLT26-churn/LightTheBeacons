@@ -1,75 +1,31 @@
 # Release notes
 
-## 1.6.3-test.3 — Nearby calls, quieter horns and map controls
+## 1.6.3 — Shared beacons, quieter horns and reliable PvP death actions
 
-- Combine nearby calls into one card and brazier by default, within 100 yards.
-  Configure 25–250 yards or turn it off. Every caller must be within range of
-  every other caller; separate fights cannot merge through a chain.
-- Joining updates names/counts silently without restarting or creating a popup.
-  Callers keep their own messages, expiry and extinguish action. Shared details
-  list callers; answering sends compatible, paced replies and deduplicates allies.
+- Keep Blizzard's Release Spirit, Death Recap, timers and resurrection controls
+  untouched. Dock guild actions below or beside them, with a safe layout fallback.
+- Require confirmed hostile-player involvement for automatic beacon/grudge death
+  prompts. Mob-only, environmental and unknown/restricted deaths stay quiet.
+- Review up to 32 detected attackers, with individual selection and a confirmed
+  killing-blow label. Ask before sharing by default. Retry delayed recap data,
+  reject stale incidents, preserve selections and keep review after spirit release.
+- Combine nearby calls into one card and brazier by default, within 100 yards
+  (25–250 configurable, or off). Joins update silently without creating or
+  restarting a notification. Each caller retains messages, expiry and cancellation.
 - Add a shared local horn cooldown of 30 seconds (0–120 configurable). Separate
   calls remain visible during the cooldown. Add an independent popup switch.
-- Shrink map markers to 75% by default, with a 50–150% size slider. Preserve
-  Friend shield/guild lion proportions and displayed size through canvas zoom.
-- Project broader-map positions back into matching zones and reattach both pin
-  types when a map skin replaces the canvas. Reject missing/invalid transforms.
+- Shrink map markers to 75% by default (50–150 configurable), preserve their
+  displayed size while zooming, project broader-map locations into matching zones,
+  and reattach pins when a map skin replaces the canvas.
 - Disable beacon calls, notifications, pins and guidance in dungeons/raids by
-  default; allow manual activity with an opt-in setting. Battlegrounds/arenas
-  stay excluded. Background location sharing and ledger use remain independent.
-- Remove player-facing sound tests and sample previews. Keep read-only diagnostics.
-- Local test branch only; retain all death-evidence and native-window safeguards.
-
-## 1.6.3-test.2 — Keep regular PvE deaths quiet
-
-- Require positive hostile-player damage evidence before showing either the
-  beacon or grudge death prompt. Mob-only deaths, environmental damage and
-  unknown/restricted attribution stay quiet, including when automatic modes are on.
-- Keep delayed recap retries. A confirmed PvP encounter with an unavailable
-  player name can still offer manual review; absent PvP evidence never does.
-- Capture the recap baseline immediately on resurrection so the next death
-  cannot reuse a previous PvP recap. Manual calls and ledger entries remain available.
-- Add regression coverage for mob deaths, incomplete/unavailable recaps,
-  separate beacon/book settings and repeated deaths. Local test branch only.
-
-## 1.6.3-test.1 — Local client test; not published
-
-- Keep Blizzard's original Release Spirit, Death Recap, timers and resurrection
-  controls untouched. Dock the guild extension below them; use side space when
-  necessary, and hide only the extension if readable layout space is unavailable.
-  The original dialog retains its existing skin. The guild extension retains LTB art.
-- Read hostile-player contributors from fresh public death recaps, supporting
-  relative times and Forever epoch timestamps. Merge readable combat damage by
-  GUID. Reject stale/ambiguous/restricted evidence and keep manual name entry.
-- Retry delayed recap data for 5.5 seconds. Preserve rows and selections during
-  updates; late names remain unchecked. Retain confirmed evidence for the incident.
-- Match abbreviated recap names to subsequent sightings and kills by GUID.
-- Keep pending review after releasing spirit; hide it while Death Recap is open.
-  Exclude battlegrounds/arenas/instances and cancel delayed actions on resurrection.
-- Add `/ltb deathstatus` for local diagnostics without character names, and
-  `/ltb deathdock` to toggle docking beneath the native window.
-- Requires live client verification before merging or publishing.
-
-## 1.6.3 — One death window, selectable attackers
-
-- Combine the beacon and grudge prompts in one themed death window with the
-  royal brazier, dark ledger section, individual checkboxes and Select all.
-- List up to 32 detected hostile players who damaged you within 30 seconds of
-  death. Deduplicate hits, mark the confirmed killing blow and page longer lists.
-  Restricted identities, pets without owners and nearby names are not guessed.
-- Inscribe only selected attackers, once per incident, with explicit guild
-  sharing. Preserve the existing protocol; other contributors use manual evidence
-  and a note that they attacked before the death. Auto-save still applies only
-  to the confirmed killer, leaving other names for confirmation.
-- Preserve choices while composing a beacon or reviewing/adding a name. Show
-  Beacon lit and recorded-entry confirmations in the same window. Keep the
-  two actions, their settings and saved records independent.
-- Clear temporary attacker data on resurrection, guild changes or disabling
-  death recording. Keep missing-attribution manual entry and global alert mute.
-- Explicitly exclude battlegrounds, arenas and uncertain instance states. Cancel
-  pending death actions and close the window when entering an instance.
-- Validate 599 simulated-client checks, native Lua previews and the portable ZIP.
-  Live combat attribution still requires an in-game check.
+  default; allow manual activity with an opt-in setting. Automatic death actions
+  remain outdoor-only; battlegrounds and arenas stay excluded. Location sharing
+  and manual ledger use retain independent settings.
+- Remove player-facing sound tests and sample previews. Open `/ltb settings`
+  for new options; retain read-only diagnostics and `/ltb deathdock`.
+- Preserve character saves and guild protocol compatibility. Validate the same
+  portable Windows/Linux ZIP with 798 headless checks and 180 native death-layout
+  cases. Live combat attribution and third-party skins depend on the game client.
 
 ## 1.6.2 — Prompt for a grudge after death
 

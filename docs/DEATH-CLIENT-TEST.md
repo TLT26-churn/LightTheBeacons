@@ -1,8 +1,7 @@
-# Death-window client test
+# Death-window and beacon validation
 
-Branch: `codex/death-client-test` · Build: `1.6.3-test.3`
+Release: `1.6.3` · Merged from `codex/death-client-test`
 
-This is a local test build, not a GitHub/CurseForge release. Main is unchanged.
 The native-window takeover in the earlier design render is not enabled.
 This implementation keeps Blizzard's real controls and attaches guild actions
 underneath. It never hides, reparents, resizes, skins, replaces callbacks on, or
@@ -18,7 +17,7 @@ its dark Alliance/ledger style. Live addon compatibility is not yet verified.
 
 ## After installing
 
-1. Use `/reload`, then `/ltb deathstatus` to check for `1.6.3-test.3`.
+1. Use `/reload`, then `/ltb deathstatus` to check for `1.6.3`.
 2. On the next outdoor PvP death, verify that the original Release Spirit and
    Death Recap buttons are visible and work normally, with guild actions below
    or beside them. Native timers and any self-resurrection choice should remain.
@@ -43,7 +42,7 @@ side space while keeping native controls clear. Disabling LTB in the AddOns list
 and reloading restores the prior UI immediately; no native settings are changed.
 Keep SavedVariables when returning to the stable addon folder.
 
-## Beacon and map checks for test.3
+## Beacon and map checks for 1.6.3
 
 Open `/ltb settings`. Defaults: combine on / 100 yards, shared horn cooldown
 30 sec, map marker size 75%, popups on, dungeon/raid suppression on.
@@ -85,7 +84,7 @@ live combat attribution or a skinning addon's behavior on the user's client.
 
 ## Headless verification
 
-The `1.6.3-test.3` build passes **798 checks**, including PvE regressions that
+The `1.6.3` build passes **798 checks**, including PvE regressions that
 require positive PvP evidence and check both beacon and book visibility.
 The optional native-handler test loads the actual DEATH handlers from a pinned
 local copy of Blizzard's Forever `GameDialogDefs.lua`. This checks release restrictions, countdown labels,

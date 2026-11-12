@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.6.3-test.3 / 2026-11-11
+Version 1.6.3 / 2026-11-11
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and

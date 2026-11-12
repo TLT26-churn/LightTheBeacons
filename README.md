@@ -4,11 +4,10 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
-**Local client-test branch: `codex/death-client-test`, version `1.6.3-test.3`.**
-This build is not a public release. It docks guild death actions below the
-original Blizzard death controls and reads both supported public recap timing
-formats. Both death prompts require positive hostile-player evidence; mob-only
-deaths and unavailable attribution stay quiet. See the [client test guide](docs/DEATH-CLIENT-TEST.md).
+**Version 1.6.3** adds nearby-call combining, a configurable shared horn cooldown,
+smaller adjustable map markers, and PvP death actions beside Blizzard's original
+controls. Mob-only deaths and unknown attribution stay quiet.
+See the [validation guide](docs/DEATH-CLIENT-TEST.md).
 
 **[CurseForge](https://www.curseforge.com/wow/addons/light-the-beacons)** ·
 [GitHub downloads](https://github.com/TLT26-churn/LightTheBeacons/releases/latest) ·
@@ -32,14 +31,14 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
 
-- **Local test.3** adds configurable nearby-call combining (100 yards), a shared
+- **1.6.3** adds configurable nearby-call combining (100 yards), a shared
   horn cooldown (30 sec), smaller adjustable map markers (75%), a popup switch,
   and default dungeon/raid suppression. Joining a group never sounds or creates
   a new notification. Individual callers retain their own beacon and message.
   It also fixes descending map projection and removes sound-test/preview controls.
   Open **Options → Beacon settings** or `/ltb settings`.
 
-- **1.6.3** combines the death prompts into one window: call for aid, select
+- **1.6.3** combines guild death actions beside the original death window: call for aid, select
   detected attackers, and inscribe selected grudges. Confirmed killing blows
   are distinguished from other attackers; beacon and ledger actions stay independent.
 - **1.6.2** adds the missing post-death grudge prompt. Review a prefilled killer
@@ -121,6 +120,13 @@ Routes are estimates rather than terrain-aware GPS. The addon does not account
 for hearthstones, teleports or summons, and never moves your character for you.
 Automatic PvP attribution, guild delivery and shared map positions still require live multiplayer
 verification; simulated-client checks cannot establish those live behaviors.
+
+## Beacon settings
+
+Open `/ltb settings` to adjust combining, range, horn cooldown, map marker size,
+popup visibility and dungeon/raid behavior. Preferences are saved per character.
+
+![Beacon settings — rendered from addon widgets](docs/beacon-settings.png)
 
 ## Development
 
