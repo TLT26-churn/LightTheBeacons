@@ -131,6 +131,17 @@ function U.CreateControls()
         "Default: 30 sec. New calls still appear. 0 allows every separate call to sound.")
     U.markerSize=slider(settings,"Map marker size",536,"mapIconScale",50,150,5,"%",
         "Default: 75% of the old size. Applies to guildmates, Friends and beacons.")
+    local chat=CreateFrame("Frame",nil,U.frame);U.chatPanel=chat;chat:SetAllPoints();chat:Hide()
+    text(chat,16,60,368,26,17,gold):SetText("Chat notices")
+    U.chatBeacons=checkbox(chat,"Beacon activity",
+        "Who lights or extinguishes a beacon, who answers yours, and confirmation when you answer a call.",100,function(v) B.db.chatBeacons=v end)
+    U.chatJoins=checkbox(chat,"Nearby beacon joins",
+        "Off by default. Adds a chat line when someone joins a shared beacon. Joins still have no new horn or popup.",194,function(v) B.db.chatJoins=v end)
+    U.chatGrudges=checkbox(chat,"Grudge activity",
+        "Who records, avenges or withdraws a grudge. Syncing older guild history stays quiet.",288,function(v) B.db.chatGrudges=v end)
+    U.chatSightings=checkbox(chat,"Enemy sightings",
+        "Off by default. Adds target and mouseover warnings to chat. Requires sighting warnings in Grudges settings.",382,function(v) B.db.chatSightings=v end)
+    text(chat,16,474,368,28,11,muted):SetText("Only in your chat window. Global mute and player filters apply. Nothing is posted to guild chat.")
     local filters=CreateFrame("Frame",nil,U.frame);U.filtersPanel=filters;filters:SetAllPoints();filters:Hide()
     text(filters,16,60,368,26,17,gold):SetText("Friends & filters")
     text(filters,16,96,368,45,12,pale):SetText("Mark Friends for the map filter. Silence keeps calls quiet; Hide removes their beacons. Location hiding is separate.")
@@ -183,6 +194,10 @@ function U.RefreshControls()
     U.controlsPanel:SetShown(U.options and U.settingsPage=="controls")
     U.filtersPanel:SetShown(U.options and U.settingsPage=="filters")
     U.beaconSettings:SetShown(U.options and U.settingsPage=="beacons")
+    U.chatPanel:SetShown(U.options and U.settingsPage=="chat")
+    U.chatBeacons:SetChecked(B.db.chatBeacons);U.chatJoins:SetChecked(B.db.chatJoins)
+    U.chatGrudges:SetChecked(B.db.chatGrudges);U.chatSightings:SetChecked(B.db.chatSightings)
+    U.chatJoins:SetEnabled(B.db.chatBeacons)
     U.combine:SetChecked(B.db.combineBeacons);U.instances:SetChecked(B.db.disableInInstances);U.popups:SetChecked(B.db.beaconPopups)
     U.mergeRange:Refresh();U.hornCooldown:Refresh();U.markerSize:Refresh()
     U.mergeRange:EnableMouse(B.db.combineBeacons);U.mergeRange:SetAlpha(B.db.combineBeacons and 1 or .4)

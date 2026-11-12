@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.6.3"
+B.version="1.6.4-test.1"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -94,6 +94,7 @@ function B.Receive(msg,sender,channel)
         if not B.Selected() and B.BeaconMode(b.owner)~="hidden" then B.selected=b.owner;B.Replan() end
         local group=B.GroupFor(b.owner)
         local joined=group and #group.callers>1
+        if sound then B.Chat.Beacon(b,joined) end
         if sound and not joined and B.BeaconMode(b.owner)=="normal" and C.BeaconsAllowed() then
             B.Sound();if b.owner~=B.me then B.UI.Alert(b) end
         end
@@ -104,6 +105,7 @@ function B.Receive(msg,sender,channel)
     elseif event=="message" then
         B.UI.RefreshAlertGroup();B.UI.Refresh()
     elseif event=="cancel" then
+        B.Chat.Cancel(b)
         if B.selected==b.owner then B.selected=nil;B.navigating=false;B.route=nil end
         B.UI.RefreshAlertGroup()
         if B.UI.answerBanner and B.UI.answerBanner.beacon==b then B.UI.answerBanner:Hide() end
@@ -111,10 +113,13 @@ function B.Receive(msg,sender,channel)
     elseif event=="response" then
         if b.owner==B.me then
             local count=0;for _ in pairs(b.responders) do count=count+1 end
+            B.Chat.Response(b,sender,count)
             local first=B.db.answeredBeaconID~=b.id
             B.db.answeredBeaconID=b.id
             if first then B.Sound(false,true) end
             B.UI.Answered(sender,count,first,b)
+        elseif P.Identity(sender)==B.me then
+            B.Chat.Response(b,sender)
         end
         B.UI.Refresh()
     end
@@ -287,6 +292,7 @@ function B.GuildChanged()
         B.lastLocationAttempt=nil;B.locationShared=false;B.locationStatus=nil
         B.session=P.NewSession();B.selected=nil;B.navigating=false;B.own=nil;B.db.active=nil;B.route=nil
         B.displayGroup=nil;B.answerQueue=nil;B.UI.pendingAlert=nil;B.UI.alertGroup=nil;B.UI.alertBeacon=nil
+        B.Chat.Reset()
         if B.UI.banner then B.UI.banner:Hide() end
         if B.UI.answerBanner then B.UI.answerBanner:Hide() end
     end
@@ -333,7 +339,7 @@ function B.Initialize()
     if not P.Number(B.db.lastSent,0,C.Now()) then B.db.lastSent=nil end
     B.session=P.NewSession();B.nonce=math.random(100000,999999)
     C.CaptureLivingRecap()
-    B.me,B.name=C.Me();B.GuildChanged();B.InitializeSocial();B.Grudges.Initialize()
+    B.me,B.name=C.Me();B.GuildChanged();B.InitializeSocial();B.Chat.Initialize();B.Grudges.Initialize()
     if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
         C.Call(C_ChatInfo.RegisterAddonMessagePrefix,P.prefix)
         C.Call(C_ChatInfo.RegisterAddonMessagePrefix,B.Grudges.prefix)
@@ -427,6 +433,7 @@ SlashCmdList.LIGHTTHEBEACONS=function(input)
     elseif command=="clear" then B.Extinguish()
     elseif command=="sound" then B.Print((B.lastSoundResult or "No alert played this session.").." "..C.AudioSettings())
     elseif command=="settings" then B.UI.OpenSettingsPage("beacons")
+    elseif command=="chat" then B.UI.OpenSettingsPage("chat")
     elseif command=="scan" then C.RefreshFlights(true)
     elseif command=="options" then B.UI.Toggle(true)
     elseif command=="locations" then B.UI.OpenSettingsPage("controls")

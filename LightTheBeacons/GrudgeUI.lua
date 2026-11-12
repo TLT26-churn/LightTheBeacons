@@ -243,7 +243,7 @@ function U.Create()
         {"deathMode","After an outdoor PvP death","Requires hostile-player evidence. Mob deaths stay quiet."},
         {"autoAvenge","Record my confirmed victories","Your readable killing blow settles one oldest unpaid debt."},
         {"sightingAlerts","Warn when a debtor is seen","Only a hostile player you target or mouse over. No shared tracking."},
-        {"notices","Show grudge notices","One notice at a time. Beacon alert mute also silences these notices."},
+        {"notices","Show grudge popups","One popup at a time. Chat notices have their own switches in beacon Options."},
     }
     for i,item in ipairs(rules) do
         local y=70+(i-1)*68

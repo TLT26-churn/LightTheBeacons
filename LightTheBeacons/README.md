@@ -1,4 +1,4 @@
-# Light the Beacons 1.6.3
+# Light the Beacons 1.6.4-test.1
 
 Guild death actions dock beneath Blizzard's original
 death controls, which retain their normal behavior and existing skin. Readable
@@ -166,12 +166,38 @@ Missing transforms fail quietly rather than displaying an invented location.
 
 Enable **Options → Mute all beacon alerts** to use guild location sharing without
 beacon interruptions. This suppresses incoming and own-call horns, response
-fanfare/celebrations, and death prompts. It also dismisses visible/queued alerts
+fanfare/celebrations, activity chat notices, and death prompts. It also dismisses visible/queued alerts
 and stops recently started addon sounds. Calls stay in the card and on the map,
 and response counts still update. Manual calls, your existing automatic-PvP
 choice, sharing preferences and per-player filters are unchanged. Unmuting does
 not replay missed alerts. Sound-test and sample-preview controls have been removed.
 The global mute is off by default and is saved per character.
+
+## Local chat notices
+
+Open **Options → Chat notices** or **`/ltb chat`**. These notices appear only in
+your own chat window; they never post to guild chat or send additional addon
+messages. Preferences are saved per character.
+
+- **Beacon activity: on.** Names who lights a beacon and where, who extinguishes
+  a previously announced call, and who answers your call. Answering a shared
+  beacon gives you one confirmation for the whole group.
+- **Nearby beacon joins: off.** Optionally add a chat line for a new caller
+  joining an existing beacon. Requires Beacon activity. Joins still do not play
+  a new horn or create a new popup.
+- **Grudge activity: on.** Names who records, avenges or withdraws a grudge.
+  Your own entries say they are queued for guild sharing; bulk death selections
+  produce one summary. Manual vengeance is distinguished from a detected kill.
+- **Enemy sightings: off.** Optionally show target/mouseover sightings in chat,
+  at most once per minute per enemy. Also requires sighting warnings in Grudges
+  settings. Hidden enemies remain quiet.
+
+The horn cooldown and popup switches do not suppress chat notices. Global alert
+mute suppresses all four categories. Individual beacon Silence/Hide filters and
+instance restrictions suppress beacon chat; hidden grudge enemies suppress
+grudge chat. History syncing, duplicate packets, older beacon query replies and
+delayed grudge announcements stay quiet. Turning a switch on does not replay
+events that were suppressed while it was off.
 
 In **Friends & filters**, tick **Friend** beside a player's name. Friend marks
 are private to this character and are not sent to the guild or linked to Battle.net

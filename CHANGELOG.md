@@ -1,5 +1,20 @@
 # Release notes
 
+## 1.6.4-test.1 — Local chat activity notices
+
+- Add local chat notices for beacon lighting/extinguishing, answers to your
+  beacon, and your own response to a call. A shared beacon gets one answer
+  confirmation, even while acknowledgements are sent to each caller.
+- Add attributed notices for recorded, avenged and withdrawn grudges. Saving
+  several selected death attackers produces one short summary.
+- Add four per-character switches under Options → Chat notices (`/ltb chat`).
+  Beacon and grudge activity default on; nearby joins and sightings default off.
+- Respect global mute, beacon Silence/Hide and instance settings, and hidden
+  grudge enemies. History syncing and duplicate traffic do not replay notices.
+  Chat output is local only, with no public chat or extra network messages.
+- Keep horn cooldowns and popup preferences independent. An opted-in nearby
+  join chat line still does not create another horn or popup.
+
 ## 1.6.3 — Shared beacons, quieter horns and reliable PvP death actions
 
 - Keep Blizzard's Release Spirit, Death Recap, timers and resurrection controls

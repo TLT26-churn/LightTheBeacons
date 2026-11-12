@@ -4,9 +4,10 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
-**Version 1.6.3** adds nearby-call combining, a configurable shared horn cooldown,
-smaller adjustable map markers, and PvP death actions beside Blizzard's original
-controls. Mob-only deaths and unknown attribution stay quiet.
+**Local test build 1.6.4-test.1** adds configurable local chat notices for beacon
+activity and guild grudges. Nearby joins and sightings stay quiet by default.
+The current public release is **1.6.3**, with nearby-call combining, a shared horn
+cooldown, smaller map markers and PvP death actions beside Blizzard's controls.
 See the [validation guide](docs/DEATH-CLIENT-TEST.md).
 
 **[CurseForge](https://www.curseforge.com/wow/addons/light-the-beacons)** ·
@@ -30,6 +31,11 @@ your available flight points; repeat on other continents you use. Every
 participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
+
+- **1.6.4-test.1** adds local chat notices naming beacon callers, responders and
+  grudge authors. Four switches under **Options → Chat notices** (`/ltb chat`)
+  control beacon activity, nearby joins, grudge activity and enemy sightings.
+  Global mute and personal filters apply; nothing is posted to guild chat.
 
 - **1.6.3** adds configurable nearby-call combining (100 yards), a shared
   horn cooldown (30 sec), smaller adjustable map markers (75%), a popup switch,

@@ -142,6 +142,7 @@ function G.Notify(kind,e)
     local r=e.kind=="I" and G.entries[e.id] or G.entries[e.target]
     local enemy=r and r.entry.enemy or e.enemy;local key=enemy and P.Identity(enemy)
     if not key or G.options.hidden[key] then return end
+    B.Chat.Grudge(kind,e,enemy)
     local balanced=kind=="avenged" and G.people[key] and G.people[key].open==0
     local title=G.Phrase(kind,balanced)
     if B.GrudgeUI then B.GrudgeUI.Notify(title,(enemy or "").." - "..e.author,kind) end
@@ -151,11 +152,16 @@ function G.Merge(e,sender,history,quiet)
     if not history and P.Identity(e.author)~=sender then return false end
     if G.store.events[e.id] then return false end
     if #G.ids>=G.limit then G.status="The book is full (1,200 records; 90-day retention).";return false end
-    local wasOpen=e.kind=="V" and G.entries[e.target] and not G.entries[e.target].seal and not G.deleted[e.target]
+    local previous=G.entries[e.target]
+    local wasVisible=previous and not G.deleted[e.target]
+    local wasOpen=e.kind=="V" and wasVisible and not previous.seal
     G.store.events[e.id]=e;G.Rebuild()
     if not history and not quiet and ((e.kind=="I" and not G.deleted[e.id]) or
         (wasOpen and G.entries[e.target].seal and G.entries[e.target].seal.id==e.id)) then
         G.Notify(e.kind=="I" and "incurred" or "avenged",e)
+    end
+    if e.kind=="D" and not history and not quiet and wasVisible and G.deleted[e.target] then
+        B.Chat.Grudge("withdrawn",e,previous.entry.enemy)
     end
     if B.GrudgeUI then B.GrudgeUI.Refresh() end
     return true
@@ -333,14 +339,15 @@ function G.InscribeDeathSelection(draft)
     for _,entry in ipairs(chosen) do
         if entry.key==B.me or B.members[entry.key] then return 0,"A selected name now belongs to your guild. Deselect it before saving." end
     end
-    local count=0
+    local count,recorded=0,{}
     for _,entry in ipairs(chosen) do
         local note=(entry.killingBlow and "Killed me in " or "Attacked me before my death in ")..draft.where.."."
         local saved,why=G.Inscribe(entry.name,note,entry.guid,entry.killingBlow and "pvp" or "manual",draft.where,deathBatch)
-        if not saved then return count,why end
+        if not saved then B.Chat.GrudgeBatch(recorded);return count,why end
+        recorded[#recorded+1]=saved
         draft.saved[entry.key]=saved.id;draft.selected[entry.key]=false;count=count+1
     end
-    return count
+    B.Chat.GrudgeBatch(recorded);return count
 end
 function G.SetDeathMode(mode)
     if mode~="prompt" and mode~="auto" and mode~="off" then return end
@@ -450,6 +457,7 @@ function G.ObserveUnit(unit)
     G.sightings[key]={where=G.Place(),at=C.Now()}
     if G.options.sightingAlerts and (not G.seenAlert[key] or GetTime()-G.seenAlert[key]>60) then
         G.seenAlert[key]=GetTime()
+        B.Chat.Sighted(name,G.sightings[key].where,person.open)
         if B.GrudgeUI then B.GrudgeUI.Notify(G.Phrase("sighted"),name.." - "..person.open.." debts unpaid","sighted") end
     end
     if B.GrudgeUI then B.GrudgeUI.Refresh() end

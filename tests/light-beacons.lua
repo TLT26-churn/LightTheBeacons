@@ -13,7 +13,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     local env=setmetatable({}, {__index=_G});env._G=env
     env.LightTheBeaconsDB=saved
     local B,objects,frames={},{},{}
-    local state={now=1000,time=startTime or 2000000000,dead=false,ghost=false,guild=true,sent={},sounds={},soundFiles={},timers={},
+    local state={now=1000,time=startTime or 2000000000,dead=false,ghost=false,guild=true,sent={},sounds={},soundFiles={},timers={},messages={},
         pos={map=1429,px=.1,py=.45},outdoor=true,sendResult=0,known={[2]=true,[5]=true},recapLink="old"}
     local methods={}
     local function obj(name,parent,kind)
@@ -99,7 +99,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     env.UIParent=obj("UIParent");env.UIParent:SetSize(1440,1000)
     env.Minimap=obj("Minimap",env.UIParent);env.Minimap:SetSize(180,180);env.Minimap:SetPoint("TOPRIGHT",env.UIParent,"TOPRIGHT",-20,-20)
     env.GameTooltip=obj("GameTooltip",env.UIParent);env.GameTooltip:Hide()
-    env.UISpecialFrames={};env.SlashCmdList={};env.DEFAULT_CHAT_FRAME={AddMessage=function(_,m) state.lastMessage=m end}
+    env.UISpecialFrames={};env.SlashCmdList={};env.DEFAULT_CHAT_FRAME={AddMessage=function(_,m) state.lastMessage=m;state.messages[#state.messages+1]=m end}
     env.GetTime=function() return state.now end;env.GetServerTime=function() return state.time end
     env.date=os.date
     env.IsShiftKeyDown=function() return state.shift==true end
@@ -981,6 +981,7 @@ local function snapshot(c,target,path)
 end
 assert(loadfile("tests/pve-death-guards.lua"))(client,check)
 local groupPreview=assert(loadfile("tests/beacon-settings.lua"))(client,check)
+assert(loadfile("tests/chat-notices.lua"))(client,check)
 local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
 local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 local combinedPreview=assert(loadfile("tests/combined-death.lua"))(client,check)
@@ -1034,6 +1035,10 @@ if arg[2] and arg[2]~="" then
     preview.B.UI.options=true;preview.B.UI.Refresh()
     for _,o in ipairs(preview.objects) do o.box=nil end
     snapshot(preview,preview.B.UI.frame,arg[2].."-options.json")
+    preview.B.UI.OpenSettingsPage("chat")
+    for _,o in ipairs(preview.objects) do o.box=nil end
+    snapshot(preview,preview.B.UI.frame,arg[2].."-chat.json")
+    preview.B.UI.settingsPage=nil
     preview.B.db.messages={"Three Horde at the cave. Need a healer!","Escort needed to the flight master.","Rally here. We ride together!"}
     preview.B.UI.Compose();preview.B.UI.templates[1].use.scripts.OnClick()
     for _,o in ipairs(preview.objects) do o.box=nil end
