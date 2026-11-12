@@ -1,6 +1,6 @@
 # Release notes
 
-## 1.6.4-test.1 — Local chat activity notices
+## 1.6.4 — Local chat activity notices
 
 - Add local chat notices for beacon lighting/extinguishing, answers to your
   beacon, and your own response to a call. A shared beacon gets one answer

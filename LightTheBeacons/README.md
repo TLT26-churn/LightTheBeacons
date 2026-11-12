@@ -1,4 +1,4 @@
-# Light the Beacons 1.6.4-test.1
+# Light the Beacons 1.6.4
 
 Guild death actions dock beneath Blizzard's original
 death controls, which retain their normal behavior and existing skin. Readable
