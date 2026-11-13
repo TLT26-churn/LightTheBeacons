@@ -49,6 +49,35 @@ do
 end
 
 do
+    local c=client("Elowen","Dawnwatch",{hornCooldown=45,mapIconScale=85},nil,nil,nil,true)
+    for _,spec in ipairs({{"hornCooldown"," sec",45,0,120},{"mapIconScale","%",85,50,150}}) do
+        local item=c.B.Settings.settings[spec[1]];local display
+        for _,control in ipairs(c.env.Settings.controls) do
+            if control.item==item then display=control.items.formatters[c.env.MinimalSliderWithSteppersMixin.Label.Right] end
+        end
+        check(display and display(item:GetValue())==spec[3]..spec[2],"Native slider shows its saved value and units")
+        for _,value in ipairs({spec[4],spec[5]}) do
+            item:SetValue(value)
+            check(display(item:GetValue())==value..spec[2] and c.B.db[spec[1]]==value,
+                "Native slider displays endpoint values without changing their saved meaning")
+        end
+    end
+    local B,S=c.B,c.B.Settings;local canvas=S.categories.filters.canvas
+    canvas.edit:SetText("");canvas.add.scripts.OnClick()
+    check(canvas.status:GetText()=="Enter another player's full character name.","Add-player validation stays visible after refreshing the list")
+    canvas.edit:SetText("Sample Scout");canvas.add.scripts.OnClick()
+    check(canvas.status:GetText():find("^Player added%.") and canvas.edit:GetText()=="" and #canvas.rows==1,
+        "Successful add keeps confirmation visible and clears the input")
+    B.SetPlayerFilter("Sample Scout","hidden",true,true)
+    canvas.edit:SetText("  SAMPLE   SCOUT  ");canvas.add.scripts.OnClick()
+    local player=B.Filter(B.Protocol.Identity("Sample Scout"))
+    check(player.friend and player.hideLocation and player.beacons=="hidden" and player.name=="Sample Scout",
+        "Re-adding a name with different case or spacing preserves all existing choices")
+    check(canvas.status:GetText():find("^Player already listed%.") and #canvas.rows==1,
+        "Duplicate add explains that the existing entry is unchanged")
+end
+
+do
     local c=client("Elowen","Dawnwatch")
     c.B.Theme.Apply("horde");c.B.Print("Theme check")
     check(c.B.db.theme=="horde" and c.B.UI.crest.file==c.B.MediaPaths.HordeCrest,"Horde theme updates existing addon windows")

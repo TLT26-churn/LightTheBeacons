@@ -47,8 +47,8 @@ local function makeFiltersCanvas()
     help:SetText("Friend marks and filters are private to this character. Silence keeps calls visible without alerts; Hide removes beacons. Location visibility is separate.")
     local edit=CreateFrame("EditBox",nil,f,"InputBoxTemplate");f.edit=edit;edit:SetPoint("TOPLEFT",22,-96);edit:SetSize(310,28);edit:SetAutoFocus(false);edit:SetMaxBytes(150)
     edit:SetScript("OnEnterPressed",function(self) self:ClearFocus() end);edit:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
-    local add=CreateFrame("Button",nil,f,"UIPanelButtonTemplate");add:SetPoint("LEFT",edit,"RIGHT",12,0);add:SetSize(110,26);add:SetText("Add player")
-    local status=f:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall");status:SetPoint("TOPLEFT",22,-132);status:SetSize(630,22);status:SetJustifyH("LEFT")
+    local add=CreateFrame("Button",nil,f,"UIPanelButtonTemplate");f.add=add;add:SetPoint("LEFT",edit,"RIGHT",12,0);add:SetSize(110,26);add:SetText("Add player")
+    local status=f:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall");f.status=status;status:SetPoint("TOPLEFT",22,-132);status:SetSize(630,22);status:SetJustifyH("LEFT")
     local scroll=CreateFrame("ScrollFrame",nil,f);scroll:SetPoint("TOPLEFT",18,-164);scroll:SetSize(650,320);scroll:EnableMouseWheel(true)
     local child=CreateFrame("Frame",nil,scroll);child:SetSize(650,320);scroll:SetScrollChild(child);f.child=child
     local rows={};f.rows=rows
@@ -81,9 +81,15 @@ local function makeFiltersCanvas()
         if S.pendingFilter then edit:SetText(S.pendingFilter);edit:SetFocus();S.pendingFilter=nil end
     end
     add:SetScript("OnClick",function()
+        local name=(edit:GetText() or ""):gsub("%s+"," "):match("^%s*(.-)%s*$")
+        local key=B.Protocol.Identity(name)
+        if key and B.Filter(key) then
+            S.RefreshFilters();status:SetText("Player already listed. Their existing choices are unchanged.");return
+        end
         local ok,why=B.SetPlayerFilter(edit:GetText(),"normal",false,false)
+        S.RefreshFilters()
         if ok then edit:SetText("");edit:ClearFocus();status:SetText("Player added. Choose their Friend, beacon, and location options below.")
-        else status:SetText(why or "That player could not be added.") end;S.RefreshFilters()
+        else status:SetText(why or "That player could not be added.") end
     end)
     scroll:SetScript("OnMouseWheel",function(self,delta)
         self:SetVerticalScroll(math.max(0,math.min(child:GetHeight()-320,(self:GetVerticalScroll() or 0)-delta*44)))
@@ -124,8 +130,10 @@ function S.Initialize()
         function(value) return string.format("%.0f yards",value) end)
     check(beacons,B.db,"disableInInstances","Disable beacons in dungeons and raids",true,"Blocks calls, popups, pins, and guidance in party and raid instances.",function() B.UI.EnforceBeaconContext();refreshUI() end)
     check(beacons,B.db,"beaconPopups","Show beacon and response popups",true,"Calls remain in the Rally card when popups are disabled.",function(value) if not value then B.UI.pendingAlert=nil;B.UI.banner:Hide();B.UI.answerBanner:Hide() end end)
-    slider(beacons,B.db,"hornCooldown","Shared horn cooldown (seconds)",30,0,120,5,"Separate calls remain visible while the horn is cooling down.")
-    slider(beacons,B.db,"mapIconScale","Map marker size (percent)",75,50,150,5,"Scales guildmate, Friend, and beacon markers.",refreshUI)
+    slider(beacons,B.db,"hornCooldown","Shared horn cooldown (seconds)",30,0,120,5,"Separate calls remain visible while the horn is cooling down. Set 0 for no cooldown.",nil,
+        function(value) return string.format("%.0f sec",value) end)
+    slider(beacons,B.db,"mapIconScale","Map marker size (percent)",75,50,150,5,"Scales guildmate, Friend, and beacon markers.",refreshUI,
+        function(value) return string.format("%.0f%%",value) end)
 
     local chat=Settings.RegisterVerticalLayoutSubcategory(root,"Chat notifications");S.categories.chat=chat
     check(chat,B.db,"chatEnabled","Enable chat notifications",true,"Master switch for all Light the Beacons activity lines in your local chat window.")
