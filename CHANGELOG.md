@@ -1,6 +1,6 @@
 # Release notes
 
-## 1.8.0-test.1 — Guild ledger permissions and UI fixes
+## 1.8.0 — Guild ledger permissions and UI fixes
 
 - Add guild-rank permissions for editing and deleting other members' entries.
   The top two ranks (Guild Master and Officer by default) start enabled; only
@@ -20,7 +20,7 @@
   and fall back to Forever's native book parchment or quest texture if needed.
 - Preserve the parchment atlas crop when mirroring the left page and move the
   title/navigation below the native top border.
-- Prerelease for client testing: 973 headless checks with native death handlers
+- Validation: 973 headless checks with native death handlers
   and 180 layout cases passed. Live-client visual verification remains pending.
 
 ## 1.7.0 — Native settings, attributed chat and themes

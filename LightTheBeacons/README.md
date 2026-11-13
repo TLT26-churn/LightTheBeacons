@@ -1,4 +1,4 @@
-# Light the Beacons 1.8.0-test.1
+# Light the Beacons 1.8.0
 
 All configuration is available under **Escape → Options → AddOns → Light the
 Beacons**. Existing per-character choices carry over automatically. Native
