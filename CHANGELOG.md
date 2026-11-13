@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.7.1-test.1 — Local settings and parchment fixes
+
+- Show the current combine distance in yards beside the native settings slider,
+  including the saved value when reopening settings.
+- Draw ledger parchment above the opaque window shell. Check atlas availability
+  and fall back to Forever's native book parchment or quest texture if needed.
+- Preserve the parchment atlas crop when mirroring the left page.
+- Local test build only; not published to GitHub or CurseForge.
+
 ## 1.7.0 — Native settings, attributed chat and themes
 
 - Move the complete per-character configuration into WoW Forever's native

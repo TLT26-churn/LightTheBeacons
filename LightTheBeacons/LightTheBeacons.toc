@@ -2,7 +2,7 @@
 ## Title: Light the Beacons
 ## Notes: Guild calls for aid, shared map positions, discovered-flight routes, and a guild Book of Grudges.
 ## Author: Whitebeard Tinkerton - US PVP
-## Version: 1.7.0
+## Version: 1.7.1-test.1
 ## X-License: All Rights Reserved with Free Player Use; see LICENSE.txt
 ## OptionalDeps: ElvUI, EllesmereUI
 ## SavedVariablesPerCharacter: LightTheBeaconsDB

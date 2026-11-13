@@ -174,18 +174,27 @@ function U.Create()
 
     U.shell=CreateFrame("Frame",nil,f);U.shell:SetAllPoints(f)
     fill(U.shell,0,0,1000,640,B.Theme.colors.panel,1);fill(U.shell,0,0,1000,52,B.Theme.colors.header,1);border(U.shell,0,0,1000,640,B.Theme.colors.border,1)
-    U.pagePanel=CreateFrame("Frame",nil,f);U.pagePanel:SetPoint("TOPLEFT",20,-62);U.pagePanel:SetSize(960,558)
+    -- Keep parchment above the opaque shell on every renderer. Sibling frames
+    -- at the same level do not guarantee a texture drawing order.
+    U.pagePanel=CreateFrame("Frame",nil,U.shell);U.pagePanel:SetPoint("TOPLEFT",20,-62);U.pagePanel:SetSize(960,558)
     local function pageTexture(x,mirror)
         local t=U.pagePanel:CreateTexture(nil,"BACKGROUND");t:SetPoint("TOPLEFT",x,0);t:SetSize(475,558)
-        if t.SetAtlas then
-            t:SetAtlas("Book-bg",false)
-            -- The four-coordinate form treats descending bounds as an empty
-            -- rectangle. Eight-corner mapping performs a real horizontal flip.
-            if mirror then t:SetTexCoord(1,0,1,1,0,0,0,1) end
-        else
-            t:SetTexture("Interface\\QuestFrame\\QuestBG")
-            if mirror then t:SetTexCoord(.586,.02,.586,.655,0,.02,0,.655) else t:SetTexCoord(0,.586,.02,.655) end
+        local atlas,info
+        if t.SetAtlas and C_Texture and C_Texture.GetAtlasInfo then
+            for _,candidate in ipairs({"Book-bg","QuestBG-Parchment"}) do
+                info=C_Texture.GetAtlasInfo(candidate)
+                if info then atlas=candidate;break end
+            end
         end
+        local left,right,top,bottom=0,.586,.02,.655
+        if atlas then
+            t:SetAtlas(atlas,false)
+            left,right,top,bottom=info.leftTexCoord,info.rightTexCoord,info.topTexCoord,info.bottomTexCoord
+        else t:SetTexture("Interface\\QuestFrame\\QuestBG") end
+        -- Mirror only this atlas region, not the whole texture sheet. The
+        -- eight-corner form preserves the crop while reversing the left leaf.
+        if mirror then t:SetTexCoord(right,top,right,bottom,left,top,left,bottom)
+        else t:SetTexCoord(left,right,top,bottom) end
         return t
     end
     U.pageBg=pageTexture(0,true);U.pageBgRight=pageTexture(485,false)

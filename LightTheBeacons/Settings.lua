@@ -26,9 +26,11 @@ local function dropdown(category,scope,key,label,default,rows,tooltip,callback)
     local item=setting(category,scope,key,type(default)=="number" and Settings.VarType.Number or Settings.VarType.String,label,default,tooltip,callback)
     Settings.CreateDropdown(category,item,options(rows),tooltip);return item
 end
-local function slider(category,scope,key,label,default,minimum,maximum,step,tooltip,callback)
+local function slider(category,scope,key,label,default,minimum,maximum,step,tooltip,callback,formatValue)
     local item=setting(category,scope,key,Settings.VarType.Number,label,default,tooltip,callback)
-    Settings.CreateSlider(category,item,Settings.CreateSliderOptions(minimum,maximum,step),tooltip);return item
+    local sliderOptions=Settings.CreateSliderOptions(minimum,maximum,step)
+    if formatValue then sliderOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right,formatValue) end
+    Settings.CreateSlider(category,item,sliderOptions,tooltip);return item
 end
 local function action(layout,label,buttonText,callback,tooltip)
     if not CreateSettingsButtonInitializer then return end
@@ -118,7 +120,8 @@ function S.Initialize()
 
     local beacons,beaconLayout=Settings.RegisterVerticalLayoutSubcategory(root,"Beacons");S.categories.beacons=beacons
     check(beacons,B.db,"combineBeacons","Combine nearby beacons",true,"Display nearby calls as one group while preserving each caller.",function() B.Replan();B.UI.RefreshAlertGroup();refreshUI() end)
-    slider(beacons,B.db,"mergeDistance","Combine distance (yards)",100,25,250,25,"Every caller in a group must be within this range of every other caller.",function() B.Replan();B.UI.RefreshAlertGroup();refreshUI() end)
+    slider(beacons,B.db,"mergeDistance","Combine distance (yards)",100,25,250,25,"Every caller in a group must be within this range of every other caller.",function() B.Replan();B.UI.RefreshAlertGroup();refreshUI() end,
+        function(value) return string.format("%.0f yards",value) end)
     check(beacons,B.db,"disableInInstances","Disable beacons in dungeons and raids",true,"Blocks calls, popups, pins, and guidance in party and raid instances.",function() B.UI.EnforceBeaconContext();refreshUI() end)
     check(beacons,B.db,"beaconPopups","Show beacon and response popups",true,"Calls remain in the Rally card when popups are disabled.",function(value) if not value then B.UI.pendingAlert=nil;B.UI.banner:Hide();B.UI.answerBanner:Hide() end end)
     slider(beacons,B.db,"hornCooldown","Shared horn cooldown (seconds)",30,0,120,5,"Separate calls remain visible while the horn is cooling down.")

@@ -15,6 +15,11 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi,nativeSet
     local B,objects,frames={},{},{}
     local state={now=1000,time=startTime or 2000000000,dead=false,ghost=false,guild=true,sent={},sounds={},soundFiles={},timers={},messages={},
         pos={map=1429,px=.1,py=.45},outdoor=true,sendResult=0,known={[2]=true,[5]=true},recapLink="old"}
+    local atlases=uiSuites and uiSuites.atlases or {
+        ["Book-bg"]={file="native-book",leftTexCoord=.125,rightTexCoord=.75,topTexCoord=.25,bottomTexCoord=.875},
+        ["QuestBG-Parchment"]={file="native-parchment",leftTexCoord=0,rightTexCoord=.6,topTexCoord=.02,bottomTexCoord=.7},
+    }
+    env.C_Texture={GetAtlasInfo=function(name) return atlases[name] end}
     local methods={}
     local function obj(name,parent,kind)
         local o=setmetatable({name=name,parent=parent,kind=kind or "Frame",shown=true,scripts={},events={},id=#objects+1,
@@ -66,7 +71,10 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi,nativeSet
     function methods:SetVertexColor(...) self.vertexColor={...} end
     function methods:SetColorTexture(...) self.solid={...} end
     function methods:SetTexture(v) self.file=v end
-    function methods:SetAtlas(v) self.atlas=v;self.coords={0,1,0,1} end
+    function methods:SetAtlas(v)
+        local info=atlases[v];if not info then return end
+        self.atlas=v;self.file=info.file;self.coords={info.leftTexCoord,info.rightTexCoord,info.topTexCoord,info.bottomTexCoord}
+    end
     function methods:SetTexCoord(...) self.coords={...} end
     function methods:SetAlpha(v) self.alpha=v end
     function methods:SetDesaturated(v) self.desaturated=v end
@@ -237,7 +245,11 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi,nativeSet
         settings.CreateCheckbox=function(category,item,tooltip) settings.controls[#settings.controls+1]={kind="check",category=category,item=item,tooltip=tooltip} end
         settings.CreateDropdown=function(category,item,items,tooltip) settings.controls[#settings.controls+1]={kind="dropdown",category=category,item=item,items=items,tooltip=tooltip} end
         settings.CreateSlider=function(category,item,items,tooltip) settings.controls[#settings.controls+1]={kind="slider",category=category,item=item,items=items,tooltip=tooltip} end
-        settings.CreateSliderOptions=function(minimum,maximum,step) return {minimum=minimum,maximum=maximum,step=step} end
+        env.MinimalSliderWithSteppersMixin={Label={Left=1,Right=2,Top=3,Min=4,Max=5}}
+        settings.CreateSliderOptions=function(minimum,maximum,step)
+            return {minimum=minimum,maximum=maximum,step=step,formatters={},
+                SetLabelFormatter=function(self,label,formatter) self.formatters[label]=formatter end}
+        end
         settings.CreateControlTextContainer=function()
             return {rows={},Add=function(self,value,label,tooltip) self.rows[#self.rows+1]={value,label,tooltip} end,GetData=function(self) return self.rows end}
         end

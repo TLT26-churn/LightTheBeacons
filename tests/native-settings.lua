@@ -35,6 +35,20 @@ do
 end
 
 do
+    local c=client("Elowen","Dawnwatch",{mergeDistance=175},nil,nil,nil,true)
+    local item=c.B.Settings.settings.mergeDistance
+    local control
+    for _,candidate in ipairs(c.env.Settings.controls) do if candidate.item==item then control=candidate end end
+    local display=control.items.formatters[c.env.MinimalSliderWithSteppersMixin.Label.Right]
+    check(display and display(item:GetValue())=="175 yards","Combine-distance slider displays the saved value with yards")
+    for _,value in ipairs({25,100,250}) do
+        item:SetValue(value)
+        check(display(item:GetValue())==value.." yards" and c.B.db.mergeDistance==value,
+            "Combine-distance label follows the selected value and preserves the setting")
+    end
+end
+
+do
     local c=client("Elowen","Dawnwatch")
     c.B.Theme.Apply("horde");c.B.Print("Theme check")
     check(c.B.db.theme=="horde" and c.B.UI.crest.file==c.B.MediaPaths.HordeCrest,"Horde theme updates existing addon windows")
@@ -49,8 +63,12 @@ do
     B.GrudgeUI.Toggle(true)
     check(B.GrudgeUI.frame:GetWidth()==1000 and B.GrudgeUI.pageBg:IsShown() and B.GrudgeUI.pageBgRight:IsShown() and not B.GrudgeUI.elvSkinned,
         "Alliance keeps a native two-page parchment spread even when ElvUI is installed")
-    check(B.GrudgeUI.pageBg.coords[1]>B.GrudgeUI.pageBg.coords[2] and B.GrudgeUI.pageBgRight.coords[1]<B.GrudgeUI.pageBgRight.coords[2]
+    check(B.GrudgeUI.pageBg.coords[1]==.75 and B.GrudgeUI.pageBg.coords[5]==.125
+        and B.GrudgeUI.pageBg.coords[2]==.25 and B.GrudgeUI.pageBg.coords[4]==.875
+        and B.GrudgeUI.pageBgRight.coords[1]==.125 and B.GrudgeUI.pageBgRight.coords[2]==.75
         and c.s.portraitHidden and not B.GrudgeUI.frame.PortraitContainer:IsShown(),"The left leaf uses reversed atlas coordinates and Blizzard's portrait helper removes the empty medallion")
+    check(B.GrudgeUI.pagePanel:GetFrameLevel()>B.GrudgeUI.shell:GetFrameLevel(),
+        "Parchment draws above the opaque shell instead of competing at the same frame level")
     B.Theme.Apply("dark")
     check(B.UI.frame.backdrop.edgeFile==B.MediaPaths.FlatBlank and B.UI.frame.backdrop.edgeSize==.75,
         "ElvUI Dark uses the bundled primitive with ElvUI's live pixel scale")
@@ -64,4 +82,21 @@ do
         "EllesmereUI theme consumes its public live skin accent and panel values")
     check(B.UI.destination.font=="EllesmereSkinFont" and B.Theme.ChatColor()=="ff4fb894",
         "EllesmereUI theme inherits the public skin font and chat accent")
+end
+
+do
+    local parchment={file="native-parchment",leftTexCoord=.1,rightTexCoord=.7,topTexCoord=.2,bottomTexCoord=.8}
+    local c=client("Elowen","Dawnwatch",nil,nil,nil,nil,true,{atlases={["QuestBG-Parchment"]=parchment}})
+    c.B.GrudgeUI.Toggle(true)
+    local U=c.B.GrudgeUI
+    check(U.pageBg.atlas=="QuestBG-Parchment" and U.pageBgRight.atlas=="QuestBG-Parchment",
+        "Missing Book-bg falls back to the parchment used by Forever's native book reader")
+    check(U.pageBg.coords[1]==.7 and U.pageBg.coords[5]==.1 and U.pageBg.coords[2]==.2 and U.pageBg.coords[4]==.8,
+        "Fallback parchment mirrors only its atlas crop")
+    local legacy=client("Elowen","Dawnwatch",nil,nil,nil,nil,true,{atlases={}})
+    legacy.B.GrudgeUI.Toggle(true)
+    local L=legacy.B.GrudgeUI
+    check(L.pageBg.file=="Interface\\QuestFrame\\QuestBG" and L.pageBgRight.file==L.pageBg.file
+        and L.pageBg.coords[1]==.586 and L.pageBg.coords[5]==0,
+        "Missing parchment atlases fall back to the native quest texture on both leaves")
 end
