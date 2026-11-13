@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.6.3 / 2026-11-11
+Version 1.7.0 / 2026-11-12
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
@@ -11,7 +11,7 @@ Background location sharing is ON BY DEFAULT. About every 10 seconds while
 you are in a guild, the addon sends a timestamp, map ID and in-game coordinates,
 even when you have not lit a beacon. These are game positions, not GPS or your
 real-world location. Turn off "Share my location with guildmates" under
-/ltb locations (Options > Map & beacon controls) to stop background sharing.
+/ltb locations (Options > AddOns > Light the Beacons > Map & controls) to stop background sharing.
 
 Lighting a beacon shares its ID, timestamp, incident map/coordinates, reason
 (aid, fallen, or PvP), and any optional message you send. Answering shares your
@@ -33,6 +33,8 @@ only changes your display; it does not prevent that guildmate receiving your
 broadcasts. Friend marks and Friends-only filtering are local display choices;
 they do not make your location visible exclusively to Friends. Global beacon
 mute suppresses local notifications, not outgoing beacons or background sharing.
+The separate chat-notification master switch and its activity switches affect
+only the local chat window. They do not create, suppress or alter guild packets.
 Your discovered flights, Friend marks, filters, saved templates and travel timings
 are not transmitted. Templates are sent only when used in a beacon.
 
@@ -79,7 +81,7 @@ Off disables death prompts and automatic death entries.
 An upgrade preserves a previously disabled death option; previously enabled
 recording moves to Ask first. Automatic recording of your own confirmed killing
 blows against recorded enemies is enabled by default. These book options do not
-enable automatic beacon calls. Change them independently in Grudges > Settings.
+enable automatic beacon calls. Change them independently in the native Grudges AddOns subcategory.
 Turning off "Use the guild-shared book" pauses all ledger transmission,
 reception and automatic recording; the saved book becomes read-only.
 
@@ -88,8 +90,11 @@ enemy's full character name, optional player GUID, zone, written grievance,
 evidence type and references to avenged/withdrawn entries. The zone of a newly
 written incident can reveal where its scribe was; this does not depend on the
 separate background location-sharing option. No exact coordinates are included
-in ledger records. Sighting warnings are local target/mouseover observations,
-not transmitted or saved enemy location history.
+in ledger records. Sighting warnings are local target/mouseover observations
+and are never transmitted. The latest observed zone and server timestamp for
+a recorded enemy are saved only on this character for up to 90 days so the
+book can display "Last seen by you." This local history is pruned with the
+ledger entry or on expiry.
 
 The current guild's ledger and unsent changes are saved per character, capped
 at 1,200 records and 90 days. Guildmates exchange cached history to recover
@@ -99,7 +104,8 @@ Changing guild discards the old guild's cache and queued ledger packets.
 Withdrawal hides an entry with a shared tombstone; its original record remains
 in caches until expiry and cannot be forcibly erased from another client.
 Hiding a debtor affects your view and sighting warnings only. Local book options,
-hidden names and phrase choices are not transmitted.
+hidden names, last-seen observations, phrase choices and the selected visual
+theme are not transmitted.
 
 Other players' beacons and background locations (unlike ledger history) are kept in session memory,
 not saved as location history. Location records expire after 45 seconds and

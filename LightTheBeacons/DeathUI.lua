@@ -1,9 +1,18 @@
 local _,B=...
 local D,C,G,P={page=1,rows={}},B.Client,B.Grudges,B.Protocol;B.DeathUI=D
 local W=B.GrudgeUI.Widgets
-local gold={.92,.76,.45};local pale={.84,.81,.73};local muted={.62,.59,.53}
+local T=B.Theme
+local gold,pale,muted=T.colors.gold,T.colors.pale,T.colors.muted
 local function label(parent,x,y,w,h,size,face,color,align)
-    return W.label(parent,x,y,w,h,size,face or "body",color or pale,align)
+    local t=W.label(parent,x,y,w,h,size,face or "body",color or pale,align)
+    T.TrackFont(t,size,nil,"",true);return t
+end
+local function link(parent,caption,x,y,w,fn,size,style)
+    local b=W.link(parent,caption,x,y,w,fn,size,style)
+    T.Track(b.background,T.colors.button,"fill")
+    for _,edge in ipairs(b.edges or {}) do T.Track(edge,T.colors.controlBorder,"fill") end
+    T.Track(b.hover,T.colors.value,"fill",.2);T.Track(b.caption,gold,"text")
+    T.TrackFont(b.caption,size or 14,nil,"",true);return b
 end
 local function position(frame,x,y) frame:ClearAllPoints();frame:SetPoint("TOPLEFT",x,-y) end
 function D.Hide()
@@ -49,27 +58,27 @@ function D.Create()
     if D.frame then return end
     local f=B.UI.Widgets.panel(UIParent,"LightTheBeaconsDeathPrompt",560,440);D.frame=f
     f:SetPoint("CENTER",UIParent,"CENTER",0,20);f:SetFrameStrata("DIALOG");f:SetClampedToScreen(true);f:EnableMouse(true)
-    f:SetBackdropColor(.10,.09,.07,1);f:SetBackdropBorderColor(.65,.52,.30,1)
-    f.surface:SetColorTexture(.025,.035,.055,1)
+    T.Track(f,T.colors.panel,"backdrop");T.Track(f,T.colors.border,"border")
+    T.Track(f.surface,T.colors.panel,"fill")
     f:SetScript("OnHide",function() if not D.transition and D.active and not D.dismissed then D.Dismiss() end end)
     UISpecialFrames[#UISpecialFrames+1]="LightTheBeaconsDeathPrompt"
     W.picture(f,"RoyalBrazier",23,19,48,48)
     D.title=label(f,85,20,407,40,31,"title",gold);D.title:SetText("You have fallen")
     D.place=label(f,86,60,410,20,14,"body",muted)
-    W.link(f,"X",510,20,25,D.Dismiss,15,"dark")
+    link(f,"X",510,20,25,D.Dismiss,15,"dark")
     D.aid=CreateFrame("Frame",nil,f);D.aid:SetPoint("TOPLEFT",22,-82);D.aid:SetSize(516,58)
-    W.fill(D.aid,0,0,516,58,{.055,.105,.19},1)
+    W.fill(D.aid,0,0,516,58,T.colors.band,1)
     label(D.aid,13,7,290,26,21,"title",gold):SetText("Call for aid")
     D.aidText=label(D.aid,13,34,295,19,13)
-    D.call=W.link(D.aid,"Light the Beacons",321,14,183,function()
+    D.call=link(D.aid,"Light the Beacons",321,14,183,function()
         if not C.IsOutdoor() then D.Dismiss();return end
         D.Suspend();B.RequestLight(D.confirmed and "pvp" or "fallen")
     end,16,"dark")
-    D.call.background:SetColorTexture(.07,.16,.30,1)
+    T.Track(D.call.background,T.colors.button,"fill")
     D.ledger=CreateFrame("Frame",nil,f);D.ledger:SetSize(516,260)
     W.picture(D.ledger,"GrudgeSeal",0,0,30,30)
     label(D.ledger,40,2,300,28,23,"title",gold):SetText("Record a grudge")
-    D.all=W.link(D.ledger,"Select all",396,1,120,function()
+    D.all=link(D.ledger,"Select all",396,1,120,function()
         local draft=D.draft;if not draft then return end
         local all=true
         for _,entry in ipairs(draft.attackers) do if not draft.saved[entry.key] and not draft.selected[entry.key] then all=false end end
@@ -79,8 +88,8 @@ function D.Create()
     D.explanation=label(D.ledger,0,36,516,34,13,"body",muted)
     for i=1,4 do
         local row=CreateFrame("Frame",nil,D.ledger);D.rows[i]=row;row:SetSize(516,37);row:SetPoint("TOPLEFT",0,-(74+(i-1)*39))
-        W.fill(row,0,0,516,37,{.16,.125,.085},.9)
-        W.fill(row,0,36,516,1,{.43,.34,.22},.7)
+        W.fill(row,0,0,516,37,T.colors.band,.9)
+        W.fill(row,0,36,516,1,T.colors.border,.7)
         local check=CreateFrame("CheckButton",nil,row);row.check=check;check:SetSize(22,22);check:SetPoint("TOPLEFT",9,-8)
         check:SetNormalTexture(B.MediaPaths["UI-CheckBox-Up"]);check:SetCheckedTexture(B.MediaPaths["UI-CheckBox-Check"])
         check:SetScript("OnClick",function(self)
@@ -90,14 +99,14 @@ function D.Create()
         row.role=label(row,356,12,148,20,12,"body",gold,"RIGHT")
         B.UI.Widgets.tip(row,"Detected attacker","Only readable hostile-player damage to you in the 30 seconds before death is listed. The client may not expose every attacker.")
     end
-    D.previous=W.link(D.ledger,"<",0,260,35,function() D.page=D.page-1;D.Refresh() end,15,"dark")
+    D.previous=link(D.ledger,"<",0,260,35,function() D.page=D.page-1;D.Refresh() end,15,"dark")
     D.pageText=label(D.ledger,45,266,426,20,13,"body",muted,"CENTER")
-    D.next=W.link(D.ledger,">",481,260,35,function() D.page=D.page+1;D.Refresh() end,15,"dark")
-    D.inscribe=W.link(D.ledger,"Inscribe selected",0,300,239,D.Inscribe,17,"primary")
-    D.manual=W.link(D.ledger,"Edit / add a name",251,300,265,function() B.GrudgeUI.BeginDeathEntry() end,15,"dark")
+    D.next=link(D.ledger,">",481,260,35,function() D.page=D.page+1;D.Refresh() end,15,"dark")
+    D.inscribe=link(D.ledger,"Inscribe selected",0,300,239,D.Inscribe,17,"primary")
+    D.manual=link(D.ledger,"Edit / add a name",251,300,265,function() B.GrudgeUI.BeginDeathEntry() end,15,"dark")
     D.privacy=label(D.ledger,0,337,516,20,13,"body",muted,"CENTER")
     D.status=label(f,22,400,367,36,14,"body",gold)
-    D.dismiss=W.link(f,"Hide guild actions",401,400,137,D.Dismiss,15,"dark")
+    D.dismiss=link(f,"Hide guild actions",401,400,137,D.Dismiss,15,"dark")
     -- Keep existing callers pointed at the same physical window.
     B.UI.deathPrompt=f;B.UI.deathCall=D.call
     B.GrudgeUI.deathPrompt=f;B.GrudgeUI.deathAction=D.manual;B.GrudgeUI.deathDismiss=D.dismiss;B.GrudgeUI.deathText=D.explanation

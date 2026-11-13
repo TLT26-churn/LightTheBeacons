@@ -9,7 +9,7 @@ for name in ("PLAYER_LOGIN ADDON_LOADED CHAT_MSG_ADDON GUILD_ROSTER_UPDATE PLAYE
     "CLUB_MEMBER_UPDATED CLUB_MEMBER_ADDED CLUB_MEMBER_REMOVED PLAYER_ENTERING_WORLD TAXIMAP_OPENED TAXIMAP_CLOSED "..
     "TAXI_NODE_STATUS_CHANGED PLAYER_DEAD PLAYER_UNGHOST PLAYER_ALIVE PLAYER_REGEN_ENABLED "..
     "ZONE_CHANGED_NEW_AREA SKILL_LINES_CHANGED SPELLS_CHANGED COMBAT_LOG_EVENT_UNFILTERED PLAYER_TARGET_CHANGED UPDATE_MOUSEOVER_UNIT"):gmatch("%S+") do validEvents[name]=true end
-local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
+local function client(first,surname,saved,startTime,coldLogin,skipTaxi,nativeSettings,uiSuites)
     local env=setmetatable({}, {__index=_G});env._G=env
     env.LightTheBeaconsDB=saved
     local B,objects,frames={},{},{}
@@ -66,6 +66,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
     function methods:SetVertexColor(...) self.vertexColor={...} end
     function methods:SetColorTexture(...) self.solid={...} end
     function methods:SetTexture(v) self.file=v end
+    function methods:SetAtlas(v) self.atlas=v;self.coords={0,1,0,1} end
     function methods:SetTexCoord(...) self.coords={...} end
     function methods:SetAlpha(v) self.alpha=v end
     function methods:SetDesaturated(v) self.desaturated=v end
@@ -95,7 +96,16 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
         end
         methods["Get"..stateName.."Texture"]=function(self) return self[stateName.."Texture"] end
     end
-    env.CreateFrame=function(kind,name,parent,template) local f=obj(name,parent,kind);f.template=template;frames[#frames+1]=f;return f end
+    env.CreateFrame=function(kind,name,parent,template)
+        local f=obj(name,parent,kind);f.template=template;frames[#frames+1]=f
+        if template=="ButtonFrameTemplate" then
+            f.PortraitContainer=obj(nil,f,"Frame");f.CloseButton=obj(nil,f,"Button")
+        end
+        return f
+    end
+    env.ButtonFrameTemplate_HidePortrait=function(frame)
+        state.portraitHidden=true;if frame.PortraitContainer then frame.PortraitContainer:Hide() end
+    end
     env.UIParent=obj("UIParent");env.UIParent:SetSize(1440,1000)
     env.Minimap=obj("Minimap",env.UIParent);env.Minimap:SetSize(180,180);env.Minimap:SetPoint("TOPRIGHT",env.UIParent,"TOPRIGHT",-20,-20)
     env.GameTooltip=obj("GameTooltip",env.UIParent);env.GameTooltip:Hide()
@@ -174,6 +184,68 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi)
         else state.hook=fn end
     end;env.TakeTaxiNode=function() end
     env.issecretvalue=function(v) return type(v)=="table" and rawget(v,"secret")==true end
+    if uiSuites and uiSuites.elvui then
+        local skins={}
+        skins.AddCallbackForAddon=function(_,addon,name,callback) state.elvCallback={addon,name};callback() end
+        for _,method in ipairs({"HandleCloseButton","HandleButton","HandleNextPrevButton","HandleEditBox"}) do
+            skins[method]=function() state.elvHandled=(state.elvHandled or 0)+1 end
+        end
+        local engine={media={blankTex="ElvUIBlank",backdropcolor={.20,.21,.22},backdropfadecolor={.08,.09,.10},
+            bordercolor={.30,.31,.32},rgbvaluecolor={.11,.52,.82}},Media={Fonts={Expressway="ElvExpressway"}},
+            private={skins={parchmentRemoverEnable=true}},Scale=function(_,value) return value*.75 end,
+            GetModule=function(_,name) return name=="Skins" and skins end}
+        env.ElvUI={engine}
+    end
+    if uiSuites and uiSuites.ellesmere then
+        local EUI={ELLESMERE_GREEN={r=.31,g=.72,b=.58},GetFontPath=function() return "EllesmereFont" end}
+        EUI.RegisterSkin=function(name,callback)
+            state.ellesmereSkinName=name
+            callback({GetAccentColor=function() return .31,.72,.58 end,
+                GetPanelColor=function() return .071,.061,.051,.96 end,
+                GetFont=function() return "EllesmereSkinFont","" end})
+        end
+        env.EllesmereUI=EUI
+    end
+    if nativeSettings then
+        local settings={VarType={Boolean="boolean",String="string",Number="number"},Default={True=true,False=false},categories={},controls={}}
+        local function layout() return {initializers={},AddInitializer=function(self,item) self.initializers[#self.initializers+1]=item end} end
+        local function category(name,parent,canvas)
+            local c={name=name,parent=parent,canvas=canvas,id=#settings.categories+1};settings.categories[#settings.categories+1]=c
+            function c:GetID() return self.id end;function c:SetShouldSortAlphabetically(value) self.sorted=value end
+            return c,layout()
+        end
+        settings.RegisterVerticalLayoutCategory=function(name) return category(name) end
+        settings.RegisterVerticalLayoutSubcategory=function(parent,name) return category(name,parent) end
+        settings.RegisterCanvasLayoutSubcategory=function(parent,frame,name) return category(name,parent,frame) end
+        local function settingObject(scope,key,varType,getter,setter,default)
+            if scope and scope[key]==nil then scope[key]=default end
+            local item={scope=scope,key=key,varType=varType,getter=getter,setter=setter,default=default}
+            function item:SetValueChangedCallback(fn) self.callback=fn end
+            function item:GetValue() return self.getter and self.getter() or self.scope[self.key] end
+            function item:SetValue(value)
+                if self.setter then self.setter(value) else self.scope[self.key]=value end
+                if self.callback then self.callback(self,value) end
+            end
+            return item
+        end
+        settings.RegisterAddOnSetting=function(categoryValue,variable,key,scope,varType,labelValue,default)
+            local item=settingObject(scope,key,varType,nil,nil,default);settings[variable]=item;return item
+        end
+        settings.RegisterProxySetting=function(categoryValue,variable,varType,labelValue,default,getter,setter)
+            local item=settingObject(nil,nil,varType,getter,setter,default);settings[variable]=item;return item
+        end
+        settings.CreateCheckbox=function(category,item,tooltip) settings.controls[#settings.controls+1]={kind="check",category=category,item=item,tooltip=tooltip} end
+        settings.CreateDropdown=function(category,item,items,tooltip) settings.controls[#settings.controls+1]={kind="dropdown",category=category,item=item,items=items,tooltip=tooltip} end
+        settings.CreateSlider=function(category,item,items,tooltip) settings.controls[#settings.controls+1]={kind="slider",category=category,item=item,items=items,tooltip=tooltip} end
+        settings.CreateSliderOptions=function(minimum,maximum,step) return {minimum=minimum,maximum=maximum,step=step} end
+        settings.CreateControlTextContainer=function()
+            return {rows={},Add=function(self,value,label,tooltip) self.rows[#self.rows+1]={value,label,tooltip} end,GetData=function(self) return self.rows end}
+        end
+        settings.RegisterAddOnCategory=function(c) settings.registered=c end
+        settings.OpenToCategory=function(id) state.settingsCategory=id end
+        env.Settings=settings
+        env.CreateSettingsButtonInitializer=function(name,label,callback,tooltip) return {name=name,label=label,callback=callback,tooltip=tooltip} end
+    end
     for line in io.lines(root.."/LightTheBeacons.toc") do
         if line:match("%.lua$") then local chunk=assert(loadfile(root.."/"..line));setfenv(chunk,env);chunk("LightTheBeacons",B) end
     end
@@ -982,6 +1054,7 @@ end
 assert(loadfile("tests/pve-death-guards.lua"))(client,check)
 local groupPreview=assert(loadfile("tests/beacon-settings.lua"))(client,check)
 assert(loadfile("tests/chat-notices.lua"))(client,check)
+assert(loadfile("tests/native-settings.lua"))(client,check)
 local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
 local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 local combinedPreview=assert(loadfile("tests/combined-death.lua"))(client,check)
@@ -1013,12 +1086,9 @@ if arg[2] and arg[2]~="" then
     grudgePreview.B.GrudgeUI.name:SetText("")
     for _,o in ipairs(grudgePreview.objects) do o.box=nil end
     snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-fields.json")
-    grudgePreview.B.GrudgeUI.Mode("words")
+    grudgePreview.B.GrudgeUI.Mode("index")
     for _,o in ipairs(grudgePreview.objects) do o.box=nil end
-    snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-phrases.json")
-    grudgePreview.B.GrudgeUI.Mode("settings")
-    for _,o in ipairs(grudgePreview.objects) do o.box=nil end
-    snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-settings.json")
+    snapshot(grudgePreview,grudgePreview.B.GrudgeUI.frame,arg[2].."-grudges-index.json")
     local emptyBook=client("Sample","Scribe");emptyBook.B.GrudgeUI.Toggle(true)
     snapshot(emptyBook,emptyBook.B.GrudgeUI.frame,arg[2].."-grudges-empty.json")
     snapshot(preview,preview.B.UI.frame,arg[2].."-window.json")

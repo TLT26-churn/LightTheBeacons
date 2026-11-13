@@ -4,10 +4,14 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
-**Version 1.6.4** adds configurable local chat notices for beacon
-activity and guild grudges. Nearby joins and sightings stay quiet by default.
-It includes nearby-call combining, a shared horn cooldown, smaller map markers
-and PvP death actions beside Blizzard's controls.
+**Version 1.7.0** moves configuration into WoW Forever's native
+**Options → AddOns → Light the Beacons** screen, expands attributed chat
+reporting, and adds Alliance, Horde, ElvUI Dark and EllesmereUI themes. Existing per-character
+settings carry over automatically. The dark skin uses flat charcoal panels,
+thin gray borders and square controls, and references ElvUI's installed
+font when available without copying its media. The EllesmereUI option likewise
+uses its live accent, panel and font choices. It retains nearby-call combining, a shared
+horn cooldown, adjustable map markers and PvP death actions beside Blizzard's controls.
 See the [validation guide](docs/DEATH-CLIENT-TEST.md).
 
 **[CurseForge](https://www.curseforge.com/wow/addons/light-the-beacons)** ·
@@ -32,8 +36,14 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 
 ## What it does
 
+- **1.7.0** replaces the Rally card's settings pages with native AddOns options.
+  Beacon and grudge activity can be retained in local chat after a popup fades;
+  vengeance names the avenger, original scribe, enemy and zone. Alliance, Horde
+  and ElvUI Dark themes update the addon immediately.
+
 - **1.6.4** adds local chat notices naming beacon callers, responders and
-  grudge authors. Four switches under **Options → Chat notices** (`/ltb chat`)
+  grudge authors. A master switch and four activity switches under
+  **Options → AddOns → Light the Beacons → Chat notifications** (`/ltb chat`)
   control beacon activity, nearby joins, grudge activity and enemy sightings.
   Global mute and personal filters apply; nothing is posted to guild chat.
 
@@ -42,7 +52,7 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
   and default dungeon/raid suppression. Joining a group never sounds or creates
   a new notification. Individual callers retain their own beacon and message.
   It also fixes descending map projection and removes sound-test/preview controls.
-  Open **Options → Beacon settings** or `/ltb settings`.
+  Open the native **Beacons** AddOns subcategory or `/ltb settings`.
 
 - **1.6.3** combines guild death actions beside the original death window: call for aid, select
   detected attackers, and inscribe selected grudges. Confirmed killing blows
@@ -53,10 +63,10 @@ participating guildmate needs the addon. Keep your SavedVariables when updating.
 - **1.6.1** makes the Grudges ledger clearer: outlined inputs with typing hints,
   framed action buttons, concise default alerts and a single fantasy title.
 
-- Version 1.6.0 adds a **guild-shared Book of Grudges**. Open it from the Rally
-  card or with `/ltb grudges`: an aged, iron-bound ledger with signed grievances,
-  scratched tallies, page turning and wax seals for avenged debts. Guildmates
-  synchronize missed history when they are online together.
+- Version 1.6.0 adds a **guild-shared Book of Grudges**. In 1.7.0 its reader is
+  rebuilt from Blizzard's native book UI, with a newest-first enemy index and a
+  dedicated chronological folio for every enemy. ElvUI can skin it through its
+  public helpers. Guildmates synchronize missed history when they are online together.
 - Version 1.5.0 adds **Mute all beacon alerts**, private **Friend** marks,
   and **Show only Friends on the map**. Friends use the native Alliance shield;
   regular guildmates keep the existing Alliance lion. These controls leave guild
@@ -129,7 +139,8 @@ verification; simulated-client checks cannot establish those live behaviors.
 
 ## Beacon settings
 
-Open `/ltb settings` to adjust combining, range, horn cooldown, map marker size,
+Press Escape and open **Options → AddOns → Light the Beacons → Beacons**, or use
+`/ltb settings`, to adjust combining, range, horn cooldown, map marker size,
 popup visibility and dungeon/raid behavior. Preferences are saved per character.
 
 ![Beacon settings — rendered from addon widgets](docs/beacon-settings.png)

@@ -1,13 +1,15 @@
 local _,B=...
 local U,C,P,R=B.UI,B.Client,B.Protocol,B.Routing
+local T=B.Theme
 local W=U.Widgets
 local text,texture,fill,button,tip=W.text,W.texture,W.fill,W.button,W.tip
 local function asset(name) return assert(B.MediaPaths[name], "Unknown media: "..tostring(name)) end
-local gold,pale,muted={1,.82,.43},{.86,.90,.97},{.60,.66,.76}
+local gold,pale,muted=T.colors.gold,T.colors.pale,T.colors.muted
 local modes={normal="Normal",silent="Silence",hidden="Hide"}
 local nextMode={normal="silent",silent="hidden",hidden="normal"}
 
 function U.OpenSettingsPage(page)
+    if B.Settings and B.Settings.Open and B.Settings.Open(page) then return end
     if not U.frame then return end
     U.settingsPage=page;U.options=true;U.frame:Show();U.Refresh()
 end
@@ -147,10 +149,12 @@ function U.CreateControls()
     text(filters,16,96,368,45,12,pale):SetText("Mark Friends for the map filter. Silence keeps calls quiet; Hide removes their beacons. Location hiding is separate.")
     text(filters,16,148,368,16,11,gold):SetText("FULL CHARACTER NAME  (including surname)")
     local field=CreateFrame("Frame",nil,filters,"BackdropTemplate");field:SetPoint("TOPLEFT",16,-171);field:SetSize(244,28)
-    field:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),edgeSize=8,insets={left=3,right=3,top=3,bottom=3}})
-    field:SetBackdropColor(.035,.09,.21,1);field:SetBackdropBorderColor(.80,.65,.38,1)
+    local fieldBackdrop={bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),edgeSize=8,insets={left=3,right=3,top=3,bottom=3}}
+    field:SetBackdrop(fieldBackdrop);T.TrackBackdrop(field,fieldBackdrop,true)
+    T.Track(field,T.colors.panel,"backdrop");T.Track(field,T.colors.controlBorder,"border")
     local edit=CreateFrame("EditBox",nil,field);U.filterName=edit;edit:SetPoint("TOPLEFT",7,-5);edit:SetSize(230,20)
-    edit:SetFont("Fonts\\FRIZQT__.TTF",12,"");edit:SetTextColor(unpack(pale));edit:SetAutoFocus(false);edit:SetMaxBytes(150)
+    edit:SetFont("Fonts\\FRIZQT__.TTF",12,"");T.TrackFont(edit,12,"Fonts\\FRIZQT__.TTF","",false)
+    edit:SetTextColor(unpack(pale));edit:SetAutoFocus(false);edit:SetMaxBytes(150)
     edit:SetScript("OnEnterPressed",function(self) self:ClearFocus() end)
     edit:SetScript("OnEscapePressed",function(self) self:ClearFocus() end)
     U.addFilter=button(filters,"Add player",270,171,114,function()
@@ -244,7 +248,9 @@ function U.LocationPins()
                     pin:RegisterForClicks("LeftButtonUp","RightButtonUp")
                     pin:SetScript("OnClick",function(self,mouse)
                         local pos=self.location;if not pos or pos.expires<=C.Now() then return end
-                        if mouse=="RightButton" then U.OpenSettingsPage("filters");U.filterName:SetText(pos.name);U.filterName:SetFocus()
+                        if mouse=="RightButton" then
+                            if B.Settings and B.Settings.Open and B.Settings.Open("filters",pos.name) then return end
+                            U.OpenSettingsPage("filters");U.filterName:SetText(pos.name);U.filterName:SetFocus()
                         else C.OpenMap(pos) end
                     end)
                     pin:SetScript("OnEnter",function(self)
@@ -264,10 +270,10 @@ function U.LocationPins()
                 local factor=U.MapIconFactor(canvas)
                 pin:SetSize(20*factor,24*factor)
                 if B.IsFriend(p.owner) then
-                    pin.icon:SetTexture(asset("AllianceShield"));pin.icon:SetTexCoord(.125,.875,0,1)
+                    T.ApplyIcon(pin.icon,"shield")
                     pin.icon:SetSize(18*factor,24*factor);pin.icon:SetPoint("TOPLEFT",factor,0)
                 else
-                    pin.icon:SetTexture(asset("AllianceCrest"));pin.icon:SetTexCoord(.175,.825,.09,.91)
+                    T.ApplyIcon(pin.icon,"crest")
                     pin.icon:SetSize(20*factor,24*factor);pin.icon:SetPoint("TOPLEFT",0,0)
                 end
                 pin:SetParent(canvas);pin:SetFrameLevel(canvas:GetFrameLevel()+14)

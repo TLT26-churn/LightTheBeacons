@@ -1,42 +1,53 @@
 local _,B=...
 local U,C,R,P={},B.Client,B.Routing,B.Protocol;B.UI=U
+local T=B.Theme
 local function asset(name) return assert(B.MediaPaths[name], "Unknown media: "..tostring(name)) end
-local gold={1,.82,.43};local pale={.86,.90,.97};local ink={.24,.15,.08}
-local brass={.80,.65,.38};local muted={.60,.66,.76}
+local gold,pale,muted=T.colors.gold,T.colors.pale,T.colors.muted
+local ink={.24,.15,.08};local brass=T.colors.value
 local function text(parent,x,y,w,h,size,color,align)
     local f=parent:CreateFontString(nil,"OVERLAY")
     f:SetFont("Fonts\\FRIZQT__.TTF",size or 13,"")
+    T.TrackFont(f,size or 13,"Fonts\\FRIZQT__.TTF","",color~=ink)
     f:SetPoint("TOPLEFT",x,-y);f:SetSize(w,h)
     f:SetJustifyH(align or "LEFT");f:SetJustifyV("TOP");f:SetWordWrap(true)
-    f:SetTextColor(unpack(color or pale))
+    color=color or pale;f:SetTextColor(unpack(color));T.Track(f,color,"text")
     if color~=ink then f:SetShadowColor(0,0,0,.9);f:SetShadowOffset(1,-1) end
     return f
 end
 local function texture(parent,name,x,y,w,h,layer)
     local t=parent:CreateTexture(nil,layer or "ARTWORK")
-    t:SetTexture(asset(name));t:SetPoint("TOPLEFT",x,-y);t:SetSize(w,h);return t
+    if name=="ThemeCrest" then T.TrackIcon(t,"crest")
+    elseif name=="ThemeGlow" then T.TrackIcon(t,"glow")
+    else t:SetTexture(asset(name)) end
+    t:SetPoint("TOPLEFT",x,-y);t:SetSize(w,h);return t
 end
 local function fill(parent,x,y,w,h,r,g,b,a,layer)
+    local color,alpha
+    if type(r)=="table" then color,alpha,layer=r,g,b end
     local t=parent:CreateTexture(nil,layer or "BACKGROUND")
-    t:SetColorTexture(r,g,b,a or 1);t:SetPoint("TOPLEFT",x,-y);t:SetSize(w,h);return t
+    if color then T.Track(t,color,"fill",alpha)
+    else t:SetColorTexture(r,g,b,a or 1) end
+    t:SetPoint("TOPLEFT",x,-y);t:SetSize(w,h);return t
 end
 local function panel(parent,name,w,h)
     local f=CreateFrame("Frame",name,parent,"BackdropTemplate")
     f:SetSize(w,h)
-    f:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
-        tile=true,tileSize=32,edgeSize=30,insets={left=8,right=8,top=8,bottom=8}})
-    f:SetBackdropColor(.12,.24,.50,.99);f:SetBackdropBorderColor(.92,.76,.41,1)
-    f.surface=fill(f,10,10,w-20,h-20,.025,.065,.145,.97)
+    local backdrop={bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
+        tile=true,tileSize=32,edgeSize=30,insets={left=8,right=8,top=8,bottom=8}}
+    f:SetBackdrop(backdrop);T.TrackBackdrop(f,backdrop)
+    T.Track(f,T.colors.banner,"backdrop",.99);T.Track(f,T.colors.border,"border")
+    f.surface=fill(f,10,10,w-20,h-20,T.colors.panel,.97)
     return f
 end
 local function button(parent,label,x,y,w,fn)
     local b=CreateFrame("Button",nil,parent,"BackdropTemplate")
     b:SetPoint("TOPLEFT",x,-y);b:SetSize(w,28)
-    b:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
-        tile=true,tileSize=32,edgeSize=10,insets={left=3,right=3,top=3,bottom=3}})
-    b:SetBackdropColor(.12,.31,.72,1);b:SetBackdropBorderColor(.94,.76,.40,1)
-    fill(b,5,5,w-10,18,.07,.20,.47,.92)
-    b.label=text(b,5,6,w-10,18,12,gold,"CENTER");b.label:SetText(label)
+    local backdrop={bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
+        tile=true,tileSize=32,edgeSize=10,insets={left=3,right=3,top=3,bottom=3}}
+    b:SetBackdrop(backdrop);T.TrackBackdrop(b,backdrop,true)
+    T.Track(b,T.colors.button,"backdrop");T.Track(b,T.colors.controlBorder,"border")
+    b.label=text(b,4,5,w-8,18,12,gold,"CENTER");b.label:ClearAllPoints();b.label:SetPoint("CENTER",b,"CENTER",0,0)
+    b.label:SetJustifyV("MIDDLE");b.label:SetText(label)
     b:SetScript("OnClick",fn)
     b:SetScript("OnEnable",function() b.label:SetTextColor(unpack(gold)) end)
     b:SetScript("OnDisable",function() b.label:SetTextColor(.5,.48,.42) end)
@@ -56,10 +67,10 @@ local function draggable(f)
     f:SetScript("OnDragStop",function(self) self:StopMovingOrSizing() end)
 end
 local function closeButton(parent,x,y,callback)
-    local b=CreateFrame("Button",nil,parent);b:SetPoint("TOPLEFT",x,-y);b:SetSize(28,28)
-    b:SetNormalTexture(asset("UI-Panel-MinimizeButton-Up"))
-    b:SetPushedTexture(asset("UI-Panel-MinimizeButton-Down"))
-    b:SetHighlightTexture(asset("UI-Panel-MinimizeButton-Highlight"),"ADD")
+    local b=CreateFrame("Button",nil,parent,"BackdropTemplate");b:SetPoint("TOPLEFT",x,-y);b:SetSize(24,24)
+    T.TrackBackdrop(b,nil,true);T.Track(b,T.colors.button,"backdrop");T.Track(b,T.colors.controlBorder,"border")
+    b.label=text(b,0,0,24,18,14,pale,"CENTER");b.label:ClearAllPoints();b.label:SetPoint("CENTER",b,"CENTER",0,0)
+    b.label:SetJustifyV("MIDDLE");b.label:SetText("X")
     b:SetScript("OnClick",callback);return b
 end
 U.Widgets={text=text,texture=texture,fill=fill,panel=panel,button=button,tip=tip}
@@ -109,30 +120,33 @@ end
 function U.Create()
     if U.frame then return end
     local f=panel(UIParent,"LightTheBeaconsWindow",400,180);U.frame=f
-    f:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
-        tile=true,tileSize=32,edgeSize=12,insets={left=4,right=4,top=4,bottom=4}})
+    local mainBackdrop={bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
+        tile=true,tileSize=32,edgeSize=12,insets={left=4,right=4,top=4,bottom=4}}
+    f:SetBackdrop(mainBackdrop);T.TrackBackdrop(f,mainBackdrop)
     f.surface:ClearAllPoints();f.surface:SetPoint("TOPLEFT",6,-6);f.surface:SetSize(388,168)
     f:SetPoint("TOP",UIParent,"CENTER",0,120);f:SetFrameStrata("DIALOG");draggable(f)
     UISpecialFrames[#UISpecialFrames+1]="LightTheBeaconsWindow"
-    fill(f,6,6,388,38,.045,.12,.27,1)
+    fill(f,6,6,388,38,T.colors.header,1)
     fill(f,6,44,388,1,.80,.65,.38,.7)
-    texture(f,"AllianceCrest",16,12,22,27):SetTexCoord(.175,.825,.09,.91)
-    text(f,44,15,187,22,16,gold):SetText("Light the Beacons")
+    U.crest=texture(f,"ThemeCrest",16,12,22,27)
+    text(f,44,15,176,22,16,gold):SetText("Light the Beacons")
     local function link(parent,label,x,y,w,fn)
-        local b=CreateFrame("Button",nil,parent);b:SetPoint("TOPLEFT",x,-y);b:SetSize(w,28)
-        b.label=text(b,0,7,w,18,11,gold,"CENTER");b.label:SetText(label)
+        local b=CreateFrame("Button",nil,parent,"BackdropTemplate");b:SetPoint("TOPLEFT",x,-y);b:SetSize(w,28)
+        T.TrackBackdrop(b,nil,true);T.Track(b,T.colors.button,"backdrop");T.Track(b,T.colors.controlBorder,"border")
+        b.label=text(b,4,5,w-8,18,11,gold,"CENTER");b.label:ClearAllPoints();b.label:SetPoint("CENTER",b,"CENTER",0,0)
+        b.label:SetJustifyV("MIDDLE");b.label:SetWordWrap(false);b.label:SetText(label)
         b:SetScript("OnClick",fn)
         b:SetScript("OnEnable",function() b.label:SetTextColor(unpack(gold)) end)
         b:SetScript("OnDisable",function() b.label:SetTextColor(unpack(muted)) end)
         return b
     end
-    U.light=link(f,"Light mine",236,12,61,function()
+    U.light=link(f,"Light mine",226,12,72,function()
         if B.own and B.own.expires>C.Now() then B.Select(B.own);U.options=false;U.Refresh()
         else B.RequestLight() end
     end)
-    U.optionsButton=link(f,"Options",303,12,48,function()
-        if U.settingsPage then U.settingsPage=nil;U.options=true else U.options=not U.options end
-        U.Refresh()
+    U.optionsButton=link(f,"Options",302,12,55,function()
+        if B.Settings and B.Settings.Open and B.Settings.Open("general") then return end
+        if U.settingsPage then U.settingsPage=nil;U.options=true else U.options=not U.options end;U.Refresh()
     end)
     tip(U.optionsButton,"Options","Sound, automatic calls, travel pace, quick messages and credits.")
     closeButton(f,365,10,function() f:Hide() end)
@@ -217,7 +231,7 @@ function U.Create()
     local composer=panel(UIParent,"LightTheBeaconsComposer",620,418);U.composer=composer
     composer:SetPoint("CENTER");composer:SetFrameStrata("FULLSCREEN_DIALOG");draggable(composer)
     UISpecialFrames[#UISpecialFrames+1]="LightTheBeaconsComposer"
-    texture(composer,"AllianceCrest",25,17,58,70):SetTexCoord(.175,.825,.09,.91)
+    texture(composer,"ThemeCrest",25,17,58,70)
     text(composer,99,30,448,28,22,gold):SetText("Rally your allies")
     text(composer,101,63,450,16,11,pale):SetText("Give your guildmates a reason to ride.")
     closeButton(composer,565,23,function() composer:Hide() end)
@@ -225,10 +239,12 @@ function U.Create()
     U.messageCount=text(composer,500,103,88,14,10,muted,"RIGHT")
     local field=CreateFrame("Frame",nil,composer,"BackdropTemplate")
     field:SetPoint("TOPLEFT",30,-123);field:SetSize(560,38)
-    field:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),tile=true,tileSize=32,edgeSize=10,insets={left=3,right=3,top=3,bottom=3}})
-    field:SetBackdropColor(.035,.09,.21,1);field:SetBackdropBorderColor(.80,.65,.38,1)
+    local fieldBackdrop={bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),tile=true,tileSize=32,edgeSize=10,insets={left=3,right=3,top=3,bottom=3}}
+    field:SetBackdrop(fieldBackdrop);T.TrackBackdrop(field,fieldBackdrop,true)
+    T.Track(field,T.colors.panel,"backdrop");T.Track(field,T.colors.controlBorder,"border")
     local edit=CreateFrame("EditBox",nil,field);U.messageEdit=edit
     edit:SetPoint("TOPLEFT",10,-8);edit:SetSize(540,22);edit:SetFont("Fonts\\FRIZQT__.TTF",13,"")
+    T.TrackFont(edit,13,"Fonts\\FRIZQT__.TTF","",false)
     edit:SetTextColor(unpack(pale));edit:SetAutoFocus(false);edit:SetMultiLine(false)
     edit:SetMaxLetters(P.messageLimit);edit:SetMaxBytes(P.messageLimit*4)
     edit:SetScript("OnTextChanged",function(self)
@@ -263,10 +279,11 @@ function U.Create()
     -- A compact click-to-answer toast, with no oversized action-button row.
     local a=CreateFrame("Button","LightTheBeaconsAlert",UIParent,"BackdropTemplate");U.banner=a
     a:SetSize(520,118)
-    a:SetBackdrop({bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
-        tile=true,tileSize=32,edgeSize=24,insets={left=10,right=10,top=10,bottom=10}})
-    a:SetBackdropColor(.12,.25,.55,1);a:SetBackdropBorderColor(.95,.78,.43,1)
-    U.alertBack=fill(a,11,11,498,96,.035,.11,.27,.97)
+    local alertBackdrop={bgFile=asset("UI-DialogBox-Background"),edgeFile=asset("UI-DialogBox-Border"),
+        tile=true,tileSize=32,edgeSize=24,insets={left=10,right=10,top=10,bottom=10}}
+    a:SetBackdrop(alertBackdrop);T.TrackBackdrop(a,alertBackdrop)
+    T.Track(a,T.colors.banner,"backdrop");T.Track(a,T.colors.border,"border")
+    U.alertBack=fill(a,11,11,498,96,T.colors.header,.97)
     a:SetPoint("TOP",UIParent,"TOP",0,-125);a:SetFrameStrata("DIALOG")
     U.flame=texture(a,"RoyalBrazier",20,29,53,53)
     U.alertTitle=text(a,81,20,401,26,20,gold);U.alertTitle:SetText("The beacons are lit!")
@@ -307,11 +324,10 @@ function U.Create()
     -- First responder earns the full rally; later allies update a shorter pulse.
     local answer=panel(UIParent,"LightTheBeaconsAnswer",560,148);U.answerBanner=answer
     answer:SetPoint("TOP",UIParent,"TOP",0,-120);answer:SetFrameStrata("DIALOG")
-    answer:SetBackdropBorderColor(1,.84,.45,1)
+    T.Track(answer,T.colors.border,"border")
     fill(answer,23,17,514,1,.95,.74,.31,.65)
-    U.answerGlow=texture(answer,"AllianceGlow",17,17,98,114);U.answerGlow:SetAlpha(.55);U.answerGlow:SetVertexColor(1,.70,.22)
-    U.answerGlow:SetTexCoord(.175,.825,.09,.91)
-    texture(answer,"AllianceCrest",24,24,84,98):SetTexCoord(.175,.825,.09,.91)
+    U.answerGlow=texture(answer,"ThemeGlow",17,17,98,114);U.answerGlow:SetAlpha(.55);U.answerGlow:SetVertexColor(1,.70,.22)
+    texture(answer,"ThemeCrest",24,24,84,98)
     U.answerTitle=text(answer,121,24,415,28,21,gold)
     U.answerName=text(answer,123,60,410,23,16,pale);U.answerName:SetWordWrap(false)
     text(answer,123,86,410,20,13,pale):SetText("is coming to your aid.")
@@ -341,8 +357,10 @@ function U.Answered(name,count,first,beacon,preview)
         if U.alertBeacon and U.alertBeacon.owner~=B.me then U.pendingAlert={beacon=U.alertBeacon,preview=U.alertPreview} end
         U.banner:Hide()
     end
-    U.answerTitle:SetText(preview and "RALLY PREVIEW" or first and "THE ALLIANCE ANSWERS!" or "REINFORCEMENTS INBOUND")
+    local rally=T.current=="horde" and "THE HORDE ANSWERS!" or T.current=="alliance" and "THE ALLIANCE ANSWERS!" or "THE GUILD ANSWERS!"
+    U.answerTitle:SetText(preview and "RALLY PREVIEW" or first and rally or "REINFORCEMENTS INBOUND")
     U.answerTitle:SetFont("Fonts\\FRIZQT__.TTF",first and 21 or 18,"")
+    T.TrackFont(U.answerTitle,first and 21 or 18,"Fonts\\FRIZQT__.TTF","",true)
     U.answerName:SetText(name)
     U.answerCount:SetText(count..(count==1 and " ALLY ON THE WAY" or " ALLIES ON THE WAY"))
     a.beacon=beacon;a.elapsed=.18;a.duration=first and 7 or 4
@@ -351,6 +369,7 @@ end
 function U.Toggle(options)
     if not U.frame then return end
     B.preview=nil
+    if options and B.Settings and B.Settings.Open and B.Settings.Open("general") then return end
     if options then U.options=true;U.settingsPage=nil;U.frame:Show()
     else U.frame:SetShown(not U.frame:IsShown()) end
     if U.frame:IsShown() and not B.navigating then B.Replan() end
@@ -608,7 +627,8 @@ function U.MapPins()
             pin:SetParent(canvas);pin:SetFrameLevel(canvas:GetFrameLevel()+15)
             local factor=U.MapIconFactor(canvas);pin:SetSize(24*factor,24*factor)
             pin.count:SetText(#group.callers>1 and tostring(#group.callers) or "")
-            pin.count:SetFont("Fonts\\FRIZQT__.TTF",10*factor,"");pin.count:SetSize(24*factor,14*factor)
+            pin.count:SetFont("Fonts\\FRIZQT__.TTF",10*factor,"");T.TrackFont(pin.count,10*factor,"Fonts\\FRIZQT__.TTF","",true)
+            pin.count:SetSize(24*factor,14*factor)
             pin.count:ClearAllPoints();pin.count:SetPoint("TOPLEFT",10*factor,-12*factor)
             pin.beacon=b;pin.group=group;pin:ClearAllPoints();pin:SetPoint("CENTER",canvas,"TOPLEFT",x*canvas:GetWidth(),-y*canvas:GetHeight());pin:Show()
         end

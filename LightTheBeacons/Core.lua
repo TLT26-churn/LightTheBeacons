@@ -1,12 +1,12 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.6.4"
+B.version="1.7.0"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
 function B.Print(message)
-    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffc55cLight the Beacons:|r "..message) end
+    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|c"..B.Theme.ChatColor().."Light the Beacons:|r "..message) end
 end
 function B.Sound(test,answer)
     if not test and (not B.db.sound or B.db.muteBeacons or not C.BeaconsAllowed()) then return end
@@ -339,12 +339,13 @@ function B.Initialize()
     if not P.Number(B.db.lastSent,0,C.Now()) then B.db.lastSent=nil end
     B.session=P.NewSession();B.nonce=math.random(100000,999999)
     C.CaptureLivingRecap()
-    B.me,B.name=C.Me();B.GuildChanged();B.InitializeSocial();B.Chat.Initialize();B.Grudges.Initialize()
+    B.me,B.name=C.Me();B.GuildChanged();B.InitializeSocial();B.Chat.Initialize();B.Grudges.Initialize();B.Theme.Initialize()
     if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
         C.Call(C_ChatInfo.RegisterAddonMessagePrefix,P.prefix)
         C.Call(C_ChatInfo.RegisterAddonMessagePrefix,B.Grudges.prefix)
     end
     B.UI.Create()
+    B.Settings.Initialize()
     C.RefreshFlights()
     if hooksecurefunc and TakeTaxiNode then hooksecurefunc("TakeTaxiNode",C.TaxiTaken) end
     if C_Timer then

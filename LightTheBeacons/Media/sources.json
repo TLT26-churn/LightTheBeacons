@@ -14,6 +14,17 @@
       "description": "Original royal blue and gold brazier, generated for Light the Beacons. Transparent RGBA texture."
     },
     {
+      "file": "FlatBlank.tga",
+      "kind": "original-procedural",
+      "source": "ffmpeg lavfi color=c=white:s=8x8, uncompressed BGRA Targa",
+      "size": [
+        8,
+        8
+      ],
+      "sha256": "309f909263412d18cd5838763f8eee0da9fc5e678407e3fe0dbe1837e84b8af5",
+      "description": "Original solid-white primitive tinted at runtime for flat panels, one-pixel borders, controls and dividers."
+    },
+    {
       "file": "GrudgeTome.tga",
       "kind": "original",
       "source": "art/GrudgeTome.png",
@@ -160,6 +171,27 @@
       "sha256": "0f35827613ddb8fda55c6bbf741807c70c1c573a2264892f4ee1702ef5720c82",
       "nativePath": "Interface\\WorldStateFrame\\AllianceIcon",
       "usage": "Friends location markers; native texture only, never bundled."
+    },
+    {
+      "file": "HordeCrest.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/Horde-Logo.PNG",
+      "sha256": "79b87c258c592091a63e9242f8fb93c90bf0c6b0e8e6002af3bc82ae787026c7",
+      "nativePath": "Interface\\Timer\\Horde-Logo",
+      "usage": "Horde theme crest; native texture only, never bundled."
+    },
+    {
+      "file": "HordeGlow.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/Timer/HordeGlow-Logo.PNG",
+      "sha256": "99f201fe6fbded240643528479b57a8773fcea85fd87307e5b24572f0afbba59",
+      "nativePath": "Interface\\Timer\\HordeGlow-Logo",
+      "usage": "Horde theme response glow; native texture only, never bundled."
+    },
+    {
+      "file": "HordeShield.tga",
+      "source": "https://raw.githubusercontent.com/Gethe/wow-ui-textures/312a6e61bab69370c65ccc0a08f1075d62196294/WorldStateFrame/HordeIcon.PNG",
+      "sha256": "470fc3f8faa447bc6207b3051121e5a2ec3b55af21d929e9dd6a2b901519b94a",
+      "nativePath": "Interface\\WorldStateFrame\\HordeIcon",
+      "usage": "Horde theme Friend marker; native texture only, never bundled."
     }
   ],
   "nativeTexturePolicy": "Pinned source URLs and converted hashes identify local preview fixtures only. The distributable uses nativePath references and includes no Blizzard texture copies."

@@ -18,5 +18,9 @@ B.MediaPaths = {
     ["AllianceShield"]="Interface\\WorldStateFrame\\AllianceIcon",
     ["AllianceCloth"]="Interface\\Glues\\CHARACTERCREATE\\AlliedRacesAllianceandHordeBanner",
     ["AllianceGlow"]="Interface\\Timer\\AllianceGlow-Logo",
+    ["HordeCrest"]="Interface\\Timer\\Horde-Logo",
+    ["HordeShield"]="Interface\\WorldStateFrame\\HordeIcon",
+    ["HordeGlow"]="Interface\\Timer\\HordeGlow-Logo",
+    FlatBlank="Interface\\AddOns\\LightTheBeacons\\Media\\FlatBlank.tga",
     RoyalBrazier="Interface\\AddOns\\LightTheBeacons\\Media\\RoyalBrazier.tga",
 }

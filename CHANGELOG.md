@@ -1,5 +1,51 @@
 # Release notes
 
+## 1.7.0 — Native settings, attributed chat and themes
+
+- Move the complete per-character configuration into WoW Forever's native
+  **Options → AddOns → Light the Beacons** screen. Existing saved choices are
+  used in place; no reset or conversion is required. Keep native subcategories
+  for beacons, chat, map controls, grudges, phrases and player filters.
+- Route `/ltb options`, `/ltb settings`, `/ltb chat`, `/ltb locations`,
+  `/ltb filters`, the Rally card Options button, minimap right-click and the
+  ledger's Options action to the native Grudges AddOns page; phrase choices
+  remain in the native Phrases subcategory.
+- Add a master chat-notification switch. Report beacon calls and cancellations
+  with zones, and report grudge inscriptions, withdrawals and vengeance with
+  the acting player and location. Vengeance now names both the avenger and the
+  original scribe for every live addon recipient.
+- Add Alliance, Horde and ElvUI-inspired dark themes. The dark skin uses flat
+  charcoal panels, one-pixel gray borders, square controls, yellow labels and
+  restrained blue accents, with ElvUI's installed Expressway font when present
+  and a built-in WoW fallback. No ElvUI media is copied or bundled. Apply the
+  selected skin, faction crest, map markers, alerts and chat-prefix color
+  immediately.
+- Rebuild the Book of Grudges as a private, facing two-page Blizzard-style book using
+  the game's `Book-bg` atlas, Friz/Morpheus fonts, spellbook page arrows,
+  standard close button and standard action controls. ElvUI skins that private
+  reader through its public skin helpers and honors its parchment-removal
+  preference; the global Blizzard item-text window is never hijacked.
+- Keep Alliance and Horde books on their selected faction-colored shell and
+  native parchment even when ElvUI is installed. Invoke ElvUI's destructive
+  parchment skin only when the ElvUI Dark theme is actually selected.
+- Open on a searchable enemy index ordered by unavenged status and newest
+  entry. Give every enemy a dedicated folio listing all entered grievances,
+  their scribes, dates and zones, plus attributed vengeance details. Persist
+  the player's local last-seen observation for 90 days without broadcasting it.
+- Add a separate EllesmereUI theme using the suite's public live skin values
+  for its current accent, panel color, font and border treatment. Both flat UI
+  themes render from Light the Beacons' own original 8x8 tintable primitive;
+  no ElvUI or EllesmereUI artwork is copied into the addon.
+- Register both integrations through their documented public skin callbacks so
+  their live profile media is ready before the selected theme is painted.
+- Replace compressed dialog slices on faction-theme buttons with flat one-pixel
+  controls, vertically center their labels, and widen the Rally header actions
+  so Horde text no longer clips, wraps or collapses into an ellipsis.
+- Preserve the `LTB1` and `LTBGR1` guild protocols, privacy behavior, saved
+  ledgers, discovered flights and compatibility with older clients. Validate
+  876 simulated-client checks, including native category routing and a
+  three-client attributed-vengeance exchange.
+
 ## 1.6.4 — Local chat activity notices
 
 - Add local chat notices for beacon lighting/extinguishing, answers to your

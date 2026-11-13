@@ -1,4 +1,12 @@
-# Light the Beacons 1.6.4
+# Light the Beacons 1.7.0
+
+All configuration is available under **Escape → Options → AddOns → Light the
+Beacons**. Existing per-character choices carry over automatically. Native
+subcategories cover general behavior, beacons, chat notifications, map controls,
+the guild ledger, phrases and player filters. Alliance, Horde, ElvUI Dark and
+EllesmereUI themes apply immediately. The flat themes use this addon's own
+original tintable primitive. When the matching UI suite is installed, its live
+profile supplies colors, scaling and font without copying third-party artwork.
 
 Guild death actions dock beneath Blizzard's original
 death controls, which retain their normal behavior and existing skin. Readable
@@ -44,7 +52,7 @@ adds a short next-step strip even when Details is collapsed. Long routes scroll;
 hover a step or the responder list for its complete text. **Stop guidance** in
 Details pauses navigation; **Resume route** restarts it without another reply.
 
-Options contains settings and the subtle
+WoW's native AddOns options contain the settings and the subtle
 **Whitebeard Tinkerton - US PVP** credit. The default card has no credit footer.
 
 ## Use
@@ -54,7 +62,7 @@ Options contains settings and the subtle
 - `/ltb light`: compose a call at your position (or your fallen body).
 - `/ltb clear`: extinguish your beacon.
 - `/ltb sound`: show the last playback result and current audio settings.
-- `/ltb options`: sound, automatic alerts, death prompts and travel pace.
+- `/ltb options`: open the native AddOns settings category.
 - `/ltb settings`: combining, merge distance, horn cooldown, popups and marker size.
 - `/ltb locations`: sharing, map visibility and floating beacon button settings.
 - `/ltb filters`: Friends and individual beacon/location filters.
@@ -73,7 +81,7 @@ The same window holds **three quick-message slots**, saved per character. Type a
 message and choose **Save current** beside a slot. Click a saved message to use
 it, edit and save again to replace it, or choose **Clear** to remove it. Templates
 are private until you use one in a call. You can also manage them through
-**Options → Quick messages**. Opening a new call starts with an empty draft.
+**Options → AddOns → Light the Beacons → Quick messages**. Opening a new call starts with an empty draft.
 
 An incoming call shows **“The beacons are lit! <Name> calls for aid!”** in a
 compact WoW-style banner. Left-click the banner to answer and start guidance;
@@ -107,14 +115,14 @@ longer needed.
 ## Movable beacon button and player filters
 
 The movable beacon button is **on by default**. Hide it with **Show movable
-beacon button** under **Options → Map & beacon controls**, or toggle it with
+beacon button** under the native **Map & controls** AddOns subcategory, or toggle it with
 `/ltb button`. The small royal brazier shows whether your beacon is lit.
 Left-click to ignite immediately without a message, or extinguish an active call.
 Right-click opens the full card. **Shift-drag** moves the icon; its position and
 visibility are saved per character. Reset its position from the same settings page.
 The normal message composer remains available through the card and `/ltb light`.
 
-Under **Options → Friends & filters**, add a player's full character name including
+Under **Options → AddOns → Light the Beacons → Friends & filters**, add a player's full character name including
 surname. Click their beacon mode to cycle **Normal → Silence → Hide**. Silence
 removes their beacon horn and popup while keeping their call in the list and on
 the map. Hide also removes their calls and beacon pins, and stops guidance to
@@ -124,7 +132,7 @@ are never sent to the guild.
 
 ## Nearby calls and notification settings
 
-Open **Options → Beacon settings** or `/ltb settings`. Preferences are saved per
+Open the native **Beacons** AddOns subcategory or `/ltb settings`. Preferences are saved per
 character; changing them never sends a guild message.
 
 - **Combine nearby beacons: on.** Default range **100 yards**, adjustable from
@@ -164,7 +172,7 @@ Missing transforms fail quietly rather than displaying an invented location.
 
 ## Quiet alerts and Friends
 
-Enable **Options → Mute all beacon alerts** to use guild location sharing without
+Enable **Options → AddOns → Light the Beacons → Mute all alerts** to use guild location sharing without
 beacon interruptions. This suppresses incoming and own-call horns, response
 fanfare/celebrations, activity chat notices, and death prompts. It also dismisses visible/queued alerts
 and stops recently started addon sounds. Calls stay in the card and on the map,
@@ -175,7 +183,7 @@ The global mute is off by default and is saved per character.
 
 ## Local chat notices
 
-Open **Options → Chat notices** or **`/ltb chat`**. These notices appear only in
+Open the native **Chat notifications** AddOns subcategory or **`/ltb chat`**. These notices appear only in
 your own chat window; they never post to guild chat or send additional addon
 messages. Preferences are saved per character.
 
@@ -193,7 +201,7 @@ messages. Preferences are saved per character.
   settings. Hidden enemies remain quiet.
 
 The horn cooldown and popup switches do not suppress chat notices. Global alert
-mute suppresses all four categories. Individual beacon Silence/Hide filters and
+mute suppresses all chat categories. Individual beacon Silence/Hide filters and
 instance restrictions suppress beacon chat; hidden grudge enemies suppress
 grudge chat. History syncing, duplicate packets, older beacon query replies and
 delayed grudge announcements stay quiet. Turning a switch on does not replay
@@ -223,7 +231,7 @@ markers; active beacons use royal braziers. Both appear on **zone, continent and
 the full Azeroth world map**, using the client's map transforms. The addon does
 not guess positions when a transform or player position is unavailable.
 
-Open **Options → Map & beacon controls** or `/ltb locations` to turn off **Share
+Open the native **Map & controls** AddOns subcategory or `/ltb locations` to turn off **Share
 my location with guildmates**. Turning it off stops background position sends
 and withdraws your marker. A lit beacon still shares the incident location you
 called from. If the game delays a withdrawal, old markers expire within **45
@@ -249,13 +257,18 @@ exchange beacons normally but do not share background positions.
 is required. Every participating guildmate needs 1.6.0 or later. Older clients
 continue to exchange beacons normally and ignore the separate ledger protocol.
 
-The **Grudges** ledger has a dark leather binding, stained parchment, legible fantasy titles,
-a name index and one grievance per facing leaf. **Add grudge** accepts the enemy's
+The **Grudges** ledger is a private, facing two-page Blizzard-style book built from the
+game's native book background, fonts, close button and spellbook page arrows.
+ElvUI skins the reader and its controls through its public skin helpers when installed;
+Light the Beacons never takes over the game's one global readable-item window.
+The opening page is a searchable enemy index: names with grudges not yet avenged
+come first, newest entries sort ahead of older ones, and fully avenged names fall last.
+Each enemy opens a dedicated folio containing their complete chronological ledger.
+**Add grudge** accepts the enemy's
 full name and up to 160 characters. **Use hostile target** fills a readable player
-name. Outlined fields include typing hints and a focus highlight; framed buttons
-identify actions clearly. Every entry is signed with its author, date and zone and is shared with
-guild addon users. **Previous/Next entry** traverses a debtor's history; the name
-index is paged and searchable. Hover a page for the complete written record.
+name. Every entry shows its author, date, zone and whether it is not yet avenged or
+avenged; an avenged entry also shows the avenger, date and zone. Index and folio
+pages use the book's native page arrows.
 
 Any guildmate can **Mark avenged** after witnessing the enemy's defeat.
 The confirmation records one victory against one selected debt, preserves the
@@ -264,7 +277,7 @@ as manually witnessed victories. Only the original scribe can **Withdraw my
 entry**; a withdrawal is a shared tombstone that hides the entry, not a way to
 forcibly erase copies another player has already received.
 
-Book **Settings → After an outdoor PvP death** offers **Ask first** (default),
+Native **Options → AddOns → Light the Beacons → Grudges → After an outdoor PvP death** offers **Ask first** (default),
 **Auto-save**, and **Off**. Ask first opens one **You have fallen** window with
 the beacon call and grudge actions. **Detected attackers** lists up to 32 hostile
 players whose readable damage reached you in the 30 seconds before death, with
@@ -312,10 +325,12 @@ oldest unpaid debt, and repeated evidence is deduplicated. If the game restricts
 attribution, use manual inscription/vengeance. No secure/internal combat API is used.
 
 Sightings are local observations of a hostile player you target or mouse over;
-they are not shared or saved as enemy tracking. **Hide this name** suppresses a
+they are never shared. The most recent zone and server time are saved locally for
+up to 90 days so the index and enemy folio can show **Last seen by you**.
+**Hide this enemy** suppresses a
 debtor in your index and sightings locally. Restore hidden names in Settings.
 Turning off **Use the guild-shared book** pauses receiving, sending and automatic
-recording and makes saved pages read-only. **Phrases** offers optional themed wording; concise notifications are the default.
+recording and makes saved pages read-only. The native **Phrases** subcategory offers optional themed wording; concise notifications are the default.
 “All grudges avenged” appears only when a debtor has no unpaid entries. Notices use one bottom-screen slot;
 the existing beacon alert mute also suppresses them.
 

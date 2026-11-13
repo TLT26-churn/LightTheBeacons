@@ -112,9 +112,9 @@ check(migrated.B.Grudges.options.deathMode=="prompt","Existing enabled death rec
 migration.B.Grudges.options.deathMode=nil;migration.B.Grudges.options.autoRecord=false
 local stayedOff=client("Sample","Scribe",migration.B.db,migration.s.time)
 check(stayedOff.B.Grudges.options.deathMode=="off","An existing disabled death option stays disabled")
-auto.B.GrudgeUI.Toggle(true);auto.B.GrudgeUI.Mode("settings");auto.B.GrudgeUI.deathModes.prompt.scripts.OnClick()
-check(auto.B.Grudges.options.deathMode=="prompt","The native settings control selects Ask first")
-auto.B.GrudgeUI.deathModes.auto.scripts.OnClick()
+auto.B.Grudges.SetDeathMode("prompt")
+check(auto.B.Grudges.options.deathMode=="prompt","The shared setting selects Ask first")
+auto.B.Grudges.SetDeathMode("auto")
 local autoReloaded=client("Sample","Scribe",auto.B.db,auto.s.time)
 check(autoReloaded.B.Grudges.options.deathMode=="auto","An explicit Auto-save choice survives reload")
 

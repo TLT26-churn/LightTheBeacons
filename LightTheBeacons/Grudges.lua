@@ -56,6 +56,7 @@ end
 function G.Active() return G.store and G.options.enabled and P.Text(B.me) and P.Text(B.name,100) and not B.guildPending and B.guild and B.guild~="" and IsInGuild and IsInGuild() end
 function G.Initialize()
     B.db.grudgeOptions=plainTable(B.db.grudgeOptions) and B.db.grudgeOptions or {}
+    B.db.grudgeSightings=plainTable(B.db.grudgeSightings) and B.db.grudgeSightings or {}
     G.options=B.db.grudgeOptions
     for k,v in pairs({enabled=true,autoRecord=true,autoAvenge=true,sightingAlerts=true,notices=true}) do
         if type(G.options[k])~="boolean" then G.options[k]=v end
@@ -86,7 +87,16 @@ function G.GuildChanged()
         end
     end
     old.events=clean;for id in pairs(old.outbox) do if not clean[id] or P.Identity(clean[id].author)~=B.me then old.outbox[id]=nil end end
-    G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings={};G.seenAlert={};G.killSeen={}
+    local savedSightings=plainTable(B.db.grudgeSightings[B.guild]) and B.db.grudgeSightings[B.guild] or {}
+    local sightings={}
+    for key,seen in pairs(savedSightings) do
+        if P.Text(key,100) and plainTable(seen) and P.Text(seen.where,100) and
+            integer(seen.at,C.Now()-G.retention,C.Now()+60) then
+            sightings[key]={where=G.Clean(seen.where,70,100),at=seen.at}
+        end
+    end
+    B.db.grudgeSightings[B.guild]=sightings
+    G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings=sightings;G.seenAlert={};G.killSeen={}
     G.request=nil;G.offerDue=nil;G.nextQuery=GetTime()+7;G.lastTick=nil;G.deathActive=nil;G.deathSerial=(G.deathSerial or 0)+1
     G.pendingDeath=nil
     C.ClearAttackers()
@@ -121,7 +131,11 @@ function G.Rebuild()
         if not person then person={key=key,name=r.entry.enemy,debts={},open=0};people[key]=person end
         person.debts[#person.debts+1]=r;if not r.seal then person.open=person.open+1 end
     end end
-    for _,p in pairs(people) do table.sort(p.debts,function(a,b) if a.entry.at~=b.entry.at then return a.entry.at<b.entry.at end;return a.entry.id<b.entry.id end) end
+    for _,p in pairs(people) do
+        table.sort(p.debts,function(a,b) if a.entry.at~=b.entry.at then return a.entry.at<b.entry.at end;return a.entry.id<b.entry.id end)
+        p.firstAt=p.debts[1] and p.debts[1].entry.at
+        p.latestAt=p.debts[#p.debts] and p.debts[#p.debts].entry.at
+    end
     G.entries,G.people,G.log=entries,people,log;G.deleted=deleted
     local ids={};for _,e in ipairs(log) do ids[#ids+1]=e.id end;table.sort(ids)
     G.ids=ids;G.digest=G.Hash(table.concat(ids,","))
@@ -129,7 +143,11 @@ end
 function G.List(query)
     local out={};query=(query or ""):lower()
     for key,p in pairs(G.people or {}) do if not G.options.hidden[key] and (query=="" or p.name:lower():find(query,1,true)) then out[#out+1]=p end end
-    table.sort(out,function(a,b) if (a.open>0)~=(b.open>0) then return a.open>0 end;return a.name<b.name end)
+    table.sort(out,function(a,b)
+        if (a.open>0)~=(b.open>0) then return a.open>0 end
+        if a.latestAt~=b.latestAt then return (a.latestAt or 0)>(b.latestAt or 0) end
+        return a.name<b.name
+    end)
     return out
 end
 function G.Phrase(kind,balanced)
@@ -142,7 +160,7 @@ function G.Notify(kind,e)
     local r=e.kind=="I" and G.entries[e.id] or G.entries[e.target]
     local enemy=r and r.entry.enemy or e.enemy;local key=enemy and P.Identity(enemy)
     if not key or G.options.hidden[key] then return end
-    B.Chat.Grudge(kind,e,enemy)
+    B.Chat.Grudge(kind,e,enemy,r and r.entry)
     local balanced=kind=="avenged" and G.people[key] and G.people[key].open==0
     local title=G.Phrase(kind,balanced)
     if B.GrudgeUI then B.GrudgeUI.Notify(title,(enemy or "").." - "..e.author,kind) end
@@ -161,7 +179,7 @@ function G.Merge(e,sender,history,quiet)
         G.Notify(e.kind=="I" and "incurred" or "avenged",e)
     end
     if e.kind=="D" and not history and not quiet and wasVisible and G.deleted[e.target] then
-        B.Chat.Grudge("withdrawn",e,previous.entry.enemy)
+        B.Chat.Grudge("withdrawn",e,previous.entry.enemy,previous.entry)
     end
     if B.GrudgeUI then B.GrudgeUI.Refresh() end
     return true
@@ -297,6 +315,9 @@ function G.Tick()
     if not G.lastPrune or now-G.lastPrune>60 then
         G.lastPrune=now;local changed=false
         for id,e in pairs(G.store.events) do if e.at<C.Now()-G.retention then G.store.events[id]=nil;G.store.outbox[id]=nil;changed=true end end
+        for key,seen in pairs(G.sightings) do
+            if not G.people[key] or seen.at<C.Now()-G.retention then G.sightings[key]=nil end
+        end
         if changed then G.Rebuild();if B.GrudgeUI then B.GrudgeUI.Refresh() end end
     end
     if not G.request and now>=(G.nextQuery or 0) then G.Sync() end
