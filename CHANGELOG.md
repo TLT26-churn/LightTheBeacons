@@ -20,7 +20,8 @@
   and fall back to Forever's native book parchment or quest texture if needed.
 - Preserve the parchment atlas crop when mirroring the left page and move the
   title/navigation below the native top border.
-- Local test build only; not published to GitHub or CurseForge.
+- Prerelease for client testing: 973 headless checks with native death handlers
+  and 180 layout cases passed. Live-client visual verification remains pending.
 
 ## 1.7.0 — Native settings, attributed chat and themes
 
