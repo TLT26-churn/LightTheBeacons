@@ -1076,6 +1076,7 @@ assert(loadfile("tests/chat-notices.lua"))(client,check)
 assert(loadfile("tests/native-settings.lua"))(client,check)
 assert(loadfile("tests/grudge-permissions.lua"))(client,check)
 local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
+local leaderboardPreview=assert(loadfile("tests/grudge-leaderboard.lua"))(client,check)
 local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 local combinedPreview=assert(loadfile("tests/combined-death.lua"))(client,check)
 assert(loadfile("tests/death-instance-guards.lua"))(client,check)
@@ -1083,6 +1084,7 @@ local nativePreview=assert(loadfile("tests/death-reliability.lua"))(client,check
 -- Optional pinned Blizzard source is kept outside the repo and addon package.
 if arg[3] and arg[3]~="" then assert(loadfile("tests/native-death-contract.lua"))(client,check,arg[3]) end
 if arg[2] and arg[2]~="" then
+    snapshot(leaderboardPreview,leaderboardPreview.B.GrudgeUI.frame,arg[2].."-leaderboard.json")
     groupPreview.B.db.combineBeacons=true;groupPreview.B.UI.expanded=true;groupPreview.B.UI.Refresh()
     for _,o in ipairs(groupPreview.objects) do o.box=nil end
     snapshot(groupPreview,groupPreview.B.UI.frame,arg[2].."-group.json")

@@ -180,6 +180,40 @@ function G.List(query)
     end)
     return out
 end
+-- Derive scores from the winning seals in the shared ledger, never from a
+-- separately synced counter. Replays, reloads and conflicting claims therefore
+-- use exactly the same one-kill/one-grudge decision as the book itself.
+function G.Leaderboard()
+    local byAuthor,out={},{}
+    local cutoff=C.Now()-G.retention
+    for id,r in pairs(G.entries or {}) do
+        local seal=r.seal
+        if not G.deleted[id] and seal and seal.evidence=="kill" and seal.guid~=""
+            and r.entry.at>=cutoff and seal.at>=cutoff then
+            local key=P.Identity(seal.author);local member=byAuthor[key]
+            if not member then
+                member={key=key,name=seal.author,count=0,records={}}
+                byAuthor[key]=member;out[#out+1]=member
+            end
+            member.count=member.count+1;member.records[#member.records+1]=r
+        end
+    end
+    for _,member in ipairs(out) do
+        table.sort(member.records,function(a,b)
+            if a.seal.at~=b.seal.at then return a.seal.at>b.seal.at end
+            return a.seal.id<b.seal.id
+        end)
+        member.name=member.records[1].seal.author
+    end
+    table.sort(out,function(a,b)
+        if a.count~=b.count then return a.count>b.count end
+        return a.key<b.key
+    end)
+    for i,member in ipairs(out) do
+        member.rank=i>1 and member.count==out[i-1].count and out[i-1].rank or i
+    end
+    return out
+end
 function G.Phrase(kind,balanced)
     if balanced then return "All grudges avenged." end
     local lines=G.phrases[kind];local chosen=G.options.phrases[kind]

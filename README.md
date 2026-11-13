@@ -4,6 +4,12 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
+**Local test build 1.9.0-test.1 (unreleased)** adds a **Leaderboard** tab to the
+book. Each confirmed killing blow that resolves a grudge earns its killer one
+point; manual marks do not count. Select a guildmate to see whose grudges they
+answered and open the original entries. Rankings use the shared ledger's
+retained history (up to 90 days), including existing verified resolutions.
+
 **[Version 1.8.0](https://github.com/TLT26-churn/LightTheBeacons/releases/tag/v1.8.0)** adds guild-rank ledger permissions, attributed
 text revisions, shared deletions, enemy level at recording and entry age.
 The Guild Master configures rights under **Options → AddOns → Light the Beacons

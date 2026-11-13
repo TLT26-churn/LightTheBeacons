@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.8.0 / 2026-11-13
+Version 1.9.0-test.1 / 2026-11-13
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
@@ -102,6 +102,10 @@ at 1,200 records and 90 days. Guildmates exchange cached history to recover
 missed entries. Live authors are checked against the game's sender, but cached
 history trusts the relaying guildmate and is not cryptographically signed.
 Changing guild discards the old guild's cache and queued ledger packets.
+The leaderboard derives verified-resolution counts and attributed history from
+these same retained entries. It sends no additional data and saves no separate
+scores. Deleted/expired entries stop contributing; local hide filters do not
+change counts, but concealed enemy names remain hidden in the leaderboard.
 Guild permission masks and policy revisions are shared directly by the Guild
 Master and cached locally. The game roster supplies ranks; custom policy is not
 accepted from other senders. Members retain control of their own entries.

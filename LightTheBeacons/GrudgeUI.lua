@@ -1,6 +1,6 @@
 local _,B=...
 local G,C,P=B.Grudges,B.Client,B.Protocol
-local U={mode="index",indexPage=1,recordPage=1,debt=1,rows={},recordRows={},bookText={},skinButtons={},skinFields={},skinPageButtons={}}
+local U={mode="index",indexPage=1,recordPage=1,leaderPage=1,resolutionPage=1,debt=1,rows={},recordRows={},leaderRows={},resolutionRows={},bookText={},skinButtons={},skinFields={},skinPageButtons={}}
 B.GrudgeUI=U
 
 local root="Interface\\AddOns\\LightTheBeacons\\"
@@ -100,6 +100,7 @@ function U.Person() return U.selected and G.people and G.people[U.selected] end
 function U.Record() local p=U.Person();return p and p.debts[U.debt] end
 function U.Reset()
     U.selected=nil;U.indexPage=1;U.recordPage=1;U.debt=1;U.query="";U.confirming=nil;U.deathDraft=nil;U.editing=nil;U.mode="index"
+    U.leaderPage=1;U.resolutionPage=1;U.selectedLeader=nil
     if U.frame then U.search:SetText("");U.name:SetText("");U.note:SetText("");U.Refresh() end
 end
 function U.Mode(mode)
@@ -108,7 +109,7 @@ function U.Mode(mode)
         if B.Settings and B.Settings.Open and B.Settings.Open(page) then if U.frame then U.frame:Hide() end;return end
     end
     if mode=="book" then mode=U.selected and "person" or "index" end
-    if mode~="index" and mode~="person" and mode~="inscribe" then mode="index" end
+    if mode~="index" and mode~="person" and mode~="inscribe" and mode~="leaderboard" then mode="index" end
     U.mode=mode;U.confirming=nil;U.deathDraft=nil;U.editing=nil
     if U.confirm then U.confirm:Hide() end
     if mode=="inscribe" then local p=U.Person();U.name:SetText(p and p.name or "");U.note:SetText("") end
@@ -117,6 +118,15 @@ end
 function U.Select(key)
     if not key or not G.people[key] then return end
     U.selected=key;U.debt=1;U.recordPage=1;U.mode="person";U.confirming=nil;U.Refresh()
+end
+function U.SelectResolution(id)
+    local r=G.entries[id]
+    if not r or G.deleted[id] or G.options.hidden[P.Identity(r.entry.enemy)] then return end
+    U.Select(P.Identity(r.entry.enemy))
+    for i,debt in ipairs(U.Person().debts) do if debt.entry.id==id then
+        U.debt=i;U.recordPage=math.floor((i-1)/4)+1;break
+    end end
+    U.Refresh()
 end
 function U.Edit(id)
     local r=G.entries[id]
@@ -219,10 +229,11 @@ function U.Create()
     if ButtonFrameTemplate_HidePortrait then ButtonFrameTemplate_HidePortrait(f) end
     local function hidePortrait(portrait) if portrait then portrait:Hide() end end
     hidePortrait(f.PortraitContainer);hidePortrait(f.Portrait);hidePortrait(f.portrait);hidePortrait(_G.LightTheBeaconsGrudgeBookPortrait)
-    U.indexTab=nativeButton(f,"Ledger",670,26,82,26,function() U.Mode("index") end)
-    U.addTab=nativeButton(f,"Add grudge",756,26,100,26,function() U.Mode("inscribe") end)
+    U.indexTab=nativeButton(f,"Ledger",536,26,82,26,function() U.Mode("index") end)
+    U.leaderboardTab=nativeButton(f,"Leaderboard",622,26,126,26,function() U.Mode("leaderboard") end)
+    U.addTab=nativeButton(f,"Add grudge",752,26,104,26,function() U.Mode("inscribe") end)
     U.optionsTab=nativeButton(f,"Options",860,26,82,26,function() U.Mode("settings") end)
-    for _,b in ipairs({U.indexTab,U.addTab,U.optionsTab}) do if b.caption then B.Theme.Track(b.caption,B.Theme.colors.gold,"text") end end
+    for _,b in ipairs({U.indexTab,U.leaderboardTab,U.addTab,U.optionsTab}) do if b.caption then B.Theme.Track(b.caption,B.Theme.colors.gold,"text") end end
 
     U.index=CreateFrame("Frame",nil,U.pagePanel);U.index:SetAllPoints(U.pagePanel)
     bookLabel(U.index,32,30,410,44,34,"title",ink,"CENTER"):SetText("Book of Grudges")
@@ -247,6 +258,51 @@ function U.Create()
     U.indexCount=bookLabel(U.index,715,507,88,18,12,"body",faded,"CENTER")
     U.nextIndex=pageButton(U.index,1,811,500,function() U.indexPage=U.indexPage+1;U.Refresh() end)
     U.status=bookLabel(U.pagePanel,240,536,480,18,11,"body",faded,"CENTER")
+
+    U.leaderboard=CreateFrame("Frame",nil,U.pagePanel);U.leaderboard:SetAllPoints(U.pagePanel)
+    bookLabel(U.leaderboard,32,28,410,44,32,"title",ink,"CENTER"):SetText("Leaderboard")
+    U.leaderSummary=bookLabel(U.leaderboard,32,77,410,32,12,"body",faded,"CENTER")
+    bookLabel(U.leaderboard,32,118,36,18,10,"body",faded):SetText("RANK")
+    bookLabel(U.leaderboard,76,118,270,18,10,"body",faded):SetText("GUILDMATE")
+    bookLabel(U.leaderboard,348,118,94,18,10,"body",faded,"RIGHT"):SetText("RESOLVED")
+    for i=1,8 do
+        local row=CreateFrame("Button",nil,U.leaderboard);U.leaderRows[i]=row
+        row:SetPoint("TOPLEFT",32,-138-(i-1)*44);row:SetSize(410,44)
+        row.selected=fill(row,0,0,410,44,brass,.23);row.selected:Hide()
+        row.hover=fill(row,0,0,410,44,brass,.12);row.hover:Hide()
+        row.rank=bookLabel(row,0,9,36,24,18,"body",red)
+        row.name=bookLabel(row,44,5,270,36,13,"body",ink)
+        row.count=bookLabel(row,322,9,88,24,18,"body",red,"RIGHT")
+        fill(row,0,43,410,1,faded,.2)
+        row:SetScript("OnEnter",function(self) self.hover:Show() end)
+        row:SetScript("OnLeave",function(self) self.hover:Hide() end)
+        row:SetScript("OnClick",function(self) if self.key then U.selectedLeader=self.key;U.resolutionPage=1;U.Refresh() end end)
+    end
+    U.emptyLeaders=bookLabel(U.leaderboard,52,206,370,150,16,"body",faded,"CENTER")
+    U.emptyLeaders:SetText("No verified resolutions yet.\n\nA confirmed killing blow against a recorded enemy resolves one open grudge and earns one point.")
+    U.prevLeaders=pageButton(U.leaderboard,-1,151,500,function() U.leaderPage=U.leaderPage-1;U.selectedLeader=nil;U.resolutionPage=1;U.Refresh() end)
+    U.leaderCount=bookLabel(U.leaderboard,191,507,88,18,12,"body",faded,"CENTER")
+    U.nextLeaders=pageButton(U.leaderboard,1,287,500,function() U.leaderPage=U.leaderPage+1;U.selectedLeader=nil;U.resolutionPage=1;U.Refresh() end)
+    bookLabel(U.leaderboard,515,28,410,40,28,"title",ink,"CENTER"):SetText("Recent Resolutions")
+    U.resolver=bookLabel(U.leaderboard,515,76,410,42,15,"body",red,"CENTER")
+    for i=1,4 do
+        local row=CreateFrame("Button",nil,U.leaderboard);U.resolutionRows[i]=row
+        row:SetPoint("TOPLEFT",515,-128-(i-1)*90);row:SetSize(410,86)
+        row.hover=fill(row,0,0,410,86,brass,.12);row.hover:Hide()
+        row.author=bookLabel(row,4,3,402,32,13,"body",ink)
+        row.enemy=bookLabel(row,4,36,402,28,12,"body",faded)
+        row.when=bookLabel(row,4,67,402,15,10,"body",faded)
+        fill(row,0,85,410,1,faded,.25)
+        row:SetScript("OnEnter",function(self) self.hover:Show() end)
+        row:SetScript("OnLeave",function(self) self.hover:Hide() end)
+        row:SetScript("OnClick",function(self) if self.recordID then U.SelectResolution(self.recordID) end end)
+    end
+    U.leaderHelp=bookLabel(U.leaderboard,530,200,380,170,14,"body",faded,"CENTER")
+    U.leaderHelp:SetText("One point per grudge resolved with a verified killing blow.\n\nManual marks do not earn points.\n\nScores use the shared ledger's retained history, up to 90 days. They update as guild pages sync.")
+    U.prevResolutions=pageButton(U.leaderboard,-1,639,500,function() U.resolutionPage=U.resolutionPage-1;U.Refresh() end)
+    U.resolutionCount=bookLabel(U.leaderboard,679,507,88,18,12,"body",faded,"CENTER")
+    U.nextResolutions=pageButton(U.leaderboard,1,775,500,function() U.resolutionPage=U.resolutionPage+1;U.Refresh() end)
+    tooltip(U.leaderboardTab,"Verified grudge resolutions","One point per grudge resolved by a confirmed killing blow. Manual marks do not count. Scores include only retained, undeleted guild entries (up to 90 days), and update as history syncs.")
 
     U.read=CreateFrame("Frame",nil,U.pagePanel);U.read:SetAllPoints(U.pagePanel)
     U.back=nativeButton(U.read,"< Enemies",30,24,100,26,function() U.Mode("index") end)
@@ -347,6 +403,50 @@ function U.Notify(title,body,kind)
     U.lastToast=GetTime();U.toastTitle:SetText(title);U.toastBody:SetText(body);U.toastUntil=GetTime()+8;U.toast:Show();if kind=="avenged" then B.Sound(false,true) end
 end
 
+function U.RefreshLeaderboard()
+    local leaders=G.Leaderboard();local pages=math.max(1,math.ceil(#leaders/8))
+    U.leaderPage=math.max(1,math.min(pages,U.leaderPage))
+    local selected,total=nil,0
+    for _,member in ipairs(leaders) do
+        total=total+member.count
+        if member.key==U.selectedLeader then selected=member end
+    end
+    if not selected then
+        selected=leaders[(U.leaderPage-1)*8+1];U.selectedLeader=selected and selected.key;U.resolutionPage=1
+    end
+    U.leaderSummary:SetText(total.." verified resolutions  |  "..#leaders.." guildmates\nUp to 90 days  |  Manual marks excluded")
+    for i,row in ipairs(U.leaderRows) do
+        local member=leaders[(U.leaderPage-1)*8+i];row:SetShown(member~=nil);row.key=member and member.key
+        row.selected:SetShown(member and member.key==U.selectedLeader or false)
+        if member then
+            row.rank:SetText(member.rank);row.name:SetText(member.name);row.count:SetText(member.count)
+            tooltip(row,member.name,member.count.." verified "..(member.count==1 and "resolution" or "resolutions")..". Select to read whose grudges they answered.")
+            row:HookScript("OnEnter",function(self) self.hover:Show() end)
+            row:HookScript("OnLeave",function(self) self.hover:Hide() end)
+        end
+    end
+    U.emptyLeaders:SetShown(#leaders==0);U.leaderHelp:SetShown(not selected)
+    U.prevLeaders:SetEnabled(U.leaderPage>1);U.nextLeaders:SetEnabled(U.leaderPage<pages);U.leaderCount:SetText(U.leaderPage.." / "..pages)
+    U.resolver:SetText(selected and selected.name or "Verified kills only")
+    local records=selected and selected.records or {};local recordPages=math.max(1,math.ceil(#records/4))
+    U.resolutionPage=math.max(1,math.min(recordPages,U.resolutionPage))
+    for i,row in ipairs(U.resolutionRows) do
+        local r=records[(U.resolutionPage-1)*4+i];row:SetShown(r~=nil);row.recordID=r and r.entry.id
+        if r then
+            local hidden=G.options.hidden[P.Identity(r.entry.enemy)]
+            row.author:SetText("For "..r.entry.author)
+            row.enemy:SetText(hidden and "Hidden enemy" or r.entry.enemy)
+            row.when:SetText(formatDate(r.seal.at).."  |  Verified kill")
+            row:SetEnabled(not hidden)
+            tooltip(row,hidden and "Hidden enemy" or r.entry.enemy,hidden and "Unhide this enemy in settings to open the entry." or ("Resolved by "..r.seal.author.." for "..r.entry.author..". Click to open the recorded grudge."))
+            row:HookScript("OnEnter",function(self) if self.recordID then self.hover:Show() end end)
+            row:HookScript("OnLeave",function(self) self.hover:Hide() end)
+        end
+    end
+    U.prevResolutions:SetEnabled(U.resolutionPage>1);U.nextResolutions:SetEnabled(U.resolutionPage<recordPages)
+    U.resolutionCount:SetText(U.resolutionPage.." / "..recordPages)
+    U.leaderboardNextRefresh=GetTime()+60
+end
 function U.Refresh()
     if not U.frame or not G.store then return end
     local list=G.List(U.query);local pages=math.max(1,math.ceil(#list/10));U.indexPage=math.max(1,math.min(pages,U.indexPage))
@@ -365,6 +465,8 @@ function U.Refresh()
     local person=U.Person()
     if U.mode=="person" and (not person or G.options.hidden[U.selected]) then U.mode="index";U.selected=nil;person=nil end
     U.index:SetShown(U.mode=="index");U.read:SetShown(U.mode=="person" and person~=nil);U.compose:SetShown(U.mode=="inscribe")
+    U.leaderboard:SetShown(U.mode=="leaderboard");U.leaderboardTab:SetEnabled(U.mode~="leaderboard")
+    if U.mode=="leaderboard" then U.RefreshLeaderboard() end
     if person then
         U.enemy:SetText(person.name);U.personState:SetText(person.open>0 and (person.open.." OPEN") or "AVENGED")
         local seen=G.sightings[person.key]
@@ -410,6 +512,7 @@ end
 function U.Tick()
     if U.frame and U.frame:IsShown() then
         U.status:SetText(U.noticeUntil and GetTime()<U.noticeUntil and U.notice or G.status or "Guild ledger ready.")
+        if U.mode=="leaderboard" and GetTime()>=(U.leaderboardNextRefresh or 0) then U.RefreshLeaderboard() end
         if U.mode=="person" then for _,row in ipairs(U.recordRows) do
             local record=row.recordID and G.entries[row.recordID]
             if row:IsShown() and record then row.recorded:SetText(recordDetails(record)) end

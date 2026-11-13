@@ -1,4 +1,4 @@
-# Light the Beacons 1.8.0
+# Light the Beacons 1.9.0-test.1
 
 All configuration is available under **Escape → Options → AddOns → Light the
 Beacons**. Existing per-character choices carry over automatically. Native
@@ -269,6 +269,24 @@ full name and up to 160 characters. **Use hostile target** fills a readable play
 name. Every entry shows its author, date, zone and whether it is not yet avenged or
 avenged; an avenged entry also shows the avenger, date and zone. Index and folio
 pages use the book's native page arrows.
+
+The separate **Leaderboard** tab ranks guildmates by verified grudge resolutions.
+A confirmed killing blow that resolves one open grudge earns its killer one
+point, including when answering another member's grievance. Manual **Mark
+avenged** actions earn no points. Select a guildmate to read their recent
+resolutions, with the original author's name, enemy and resolution date; click a
+resolution to open that exact entry. Rankings and history have separate page
+arrows, and tied scores share the same rank.
+
+Scores are calculated from existing shared ledger records, so earlier verified
+resolutions count automatically and duplicate packets/reloads do not add points.
+They cover retained, undeleted entries (up to 90 days), not lifetime totals.
+Editing an entry keeps its credit; deleting or expiring it removes the credit.
+Local enemy filters do not affect rankings, but hidden enemies stay concealed in
+resolution details. Scores can differ while guild history is still syncing.
+No new messages or separate score database are introduced. As with the existing
+ledger, "verified" distinguishes recorded combat-log killing blows from manual
+marks; cached history still trusts guild peers and is not server-certified.
 
 Any guildmate can **Mark avenged** after witnessing the enemy's defeat.
 The confirmation records one victory against one selected debt, preserves the

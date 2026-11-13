@@ -1,5 +1,23 @@
 # Release notes
 
+## 1.9.0-test.1 — Grudge resolution leaderboard (unreleased)
+
+- Add a dedicated Leaderboard tab in the existing two-page book, with ranked
+  guildmates on the left and their attributed recent resolutions on the right.
+  Each list has independent page arrows; a resolution opens its exact grudge.
+- Award one point to the recorded killer for each resolved grudge with a
+  confirmed killing blow. Manual marks do not count; equal totals share a rank.
+- Derive scores from the shared ledger's accepted seals, including prior
+  verified resolutions. Duplicate events, competing same-kill claims, reloads
+  and history relays never add an extra point or credit the relaying player.
+- Explain that totals use retained, undeleted history (up to 90 days). Edits
+  preserve credit; deletion/expiry removes it. Guild changes clear the board.
+  Hidden enemies remain concealed without changing shared totals.
+- Reuse existing guild sync and theme/skin controls; no new protocol, score
+  storage, moderation rules or restrictions on grudge submissions are added.
+- Validation: 990 checks against the portable package; 1,014 checks with native
+  death handlers plus 180 layout cases. Live-client visual verification pending.
+
 ## 1.8.0 — Guild ledger permissions and UI fixes
 
 - Add guild-rank permissions for editing and deleting other members' entries.
