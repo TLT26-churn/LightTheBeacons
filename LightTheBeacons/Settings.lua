@@ -98,6 +98,48 @@ local function makeFiltersCanvas()
     return f
 end
 
+local function makePermissionsCanvas()
+    local A=B.GrudgePermissions
+    local f=CreateFrame("Frame",nil,UIParent);f:SetSize(700,520);f.rows={}
+    local title=f:CreateFontString(nil,"ARTWORK","GameFontNormalLarge");title:SetPoint("TOPLEFT",18,-18);title:SetText("Guild ledger permissions")
+    local help=f:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall");help:SetPoint("TOPLEFT",18,-48);help:SetSize(650,58);help:SetJustifyH("LEFT")
+    help:SetText("Members can always edit and delete their own entries. These permissions govern other members' entries. Only the Guild Master can change them; Guild Master access is always enabled. Defaults allow the top two guild ranks.")
+    for _,column in ipairs({{18,"Guild rank"},{310,"Edit others' entries"},{480,"Delete others' entries"}}) do
+        local label=f:CreateFontString(nil,"ARTWORK","GameFontNormal");label:SetPoint("TOPLEFT",column[1],-115);label:SetText(column[2])
+    end
+    local scroll=CreateFrame("ScrollFrame",nil,f);scroll:SetPoint("TOPLEFT",18,-144);scroll:SetSize(650,290);scroll:EnableMouseWheel(true)
+    local child=CreateFrame("Frame",nil,scroll);child:SetSize(650,290);scroll:SetScrollChild(child)
+    local status=f:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall");f.status=status;status:SetPoint("TOPLEFT",18,-448);status:SetSize(650,64);status:SetJustifyH("LEFT")
+    function S.RefreshPermissions()
+        local index=0
+        for rank=1,A.maxRanks do if A.ranks and A.ranks[rank] then
+            index=index+1;local row=f.rows[index]
+            if not row then
+                row=CreateFrame("Frame",nil,child);f.rows[index]=row;row:SetSize(650,32);row:SetPoint("TOPLEFT",0,-(index-1)*36)
+                row.name=row:CreateFontString(nil,"ARTWORK","GameFontHighlight");row.name:SetPoint("LEFT",0,0);row.name:SetSize(270,28);row.name:SetJustifyH("LEFT")
+                for _,action in ipairs({"edit","delete"}) do
+                    local control=CreateFrame("CheckButton",nil,row,"UICheckButtonTemplate");row[action]=control;control:SetSize(26,26);control:SetPoint("LEFT",action=="edit" and 335 or 515,0)
+                    control:SetScript("OnClick",function(self)
+                        local ok,why=A.SetRank(row.rank,action,self:GetChecked() and true or false)
+                        S.RefreshPermissions();if not ok then status:SetText(why) end
+                    end)
+                end
+            end
+            row.rank=rank;row:Show();row.name:SetText(A.ranks[rank]..(rank==1 and " (Guild Master)" or ""))
+            for _,action in ipairs({"edit","delete"}) do row[action]:SetChecked(A.RankAllowed(rank,action));row[action]:SetEnabled(A.IsMaster() and rank~=1 and not B.guildPending) end
+        end end
+        for i=index+1,#f.rows do f.rows[i]:Hide() end
+        child:SetHeight(math.max(290,index*36));scroll:SetVerticalScroll(math.min(scroll:GetVerticalScroll() or 0,math.max(0,child:GetHeight()-290)))
+        if index==0 then status:SetText("Waiting for the game's guild roster. Own-entry editing remains available.")
+        elseif A.dirty then status:SetText("Permissions saved. Waiting to share with guild addon users.")
+        elseif A.store and A.store.policy then status:SetText((A.IsMaster() and "Changes are shared with guild addon users." or "Read-only: ask your Guild Master to change these permissions.").."\nThe last received policy is saved; updates sync while the Guild Master is online.")
+        else status:SetText("Using default permissions until the Guild Master shares a policy. Members keep control of their own entries.") end
+    end
+    scroll:SetScript("OnMouseWheel",function(self,delta) self:SetVerticalScroll(math.max(0,math.min(child:GetHeight()-290,(self:GetVerticalScroll() or 0)-delta*36))) end)
+    f.OnRefresh=S.RefreshPermissions;f:SetScript("OnShow",function() A.GuildChanged();S.RefreshPermissions() end)
+    S.RefreshPermissions();return f
+end
+
 function S.Open(page,filterName)
     if not S.registered or not available() then return false end
     if filterName then S.pendingFilter=filterName;if S.RefreshFilters then S.RefreshFilters() end end
@@ -170,6 +212,7 @@ function S.Initialize()
     end
 
     local filterCanvas=makeFiltersCanvas();local filters=Settings.RegisterCanvasLayoutSubcategory(root,filterCanvas,"Friends & filters");S.categories.filters=filters
+    local permissions=Settings.RegisterCanvasLayoutSubcategory(root,makePermissionsCanvas(),"Guild permissions");S.categories.permissions=permissions
     Settings.RegisterAddOnCategory(root)
     return true
 end

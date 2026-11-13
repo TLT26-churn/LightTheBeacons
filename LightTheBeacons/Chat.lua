@@ -63,7 +63,10 @@ function N.Grudge(kind,e,enemy,original)
     if not grudgeAllowed(enemy) or C.Now()-e.at>60 then return end
     local author=who(e.author);local target=plain(enemy);local message
     if kind=="incurred" then message=author.." etched a grudge against "..target..place(e,original).."."
-    elseif kind=="withdrawn" then message=author.." withdrew their grudge against "..target..place(e,original).."."
+    elseif kind=="withdrawn" then
+        if original and P.Identity(original.author)~=P.Identity(e.author) then message=author.." deleted "..who(original.author).."'s grudge against "..target..place(e,original).."."
+        else message=author.." withdrew their grudge against "..target..place(e,original).."." end
+    elseif kind=="edited" then message=author.." edited "..(original and who(original.author) or "a guildmate").."'s grudge against "..target..place(e,original).."."
     else
         local scribe=original and who(original.author) or "a guildmate"
         if e.evidence=="kill" then message=author.." avenged "..scribe.."'s grudge against "..target..place(e,original).."."

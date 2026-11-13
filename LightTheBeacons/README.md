@@ -1,4 +1,4 @@
-# Light the Beacons 1.7.0
+# Light the Beacons 1.8.0-test.1
 
 All configuration is available under **Escape → Options → AddOns → Light the
 Beacons**. Existing per-character choices carry over automatically. Native
@@ -273,9 +273,32 @@ pages use the book's native page arrows.
 Any guildmate can **Mark avenged** after witnessing the enemy's defeat.
 The confirmation records one victory against one selected debt, preserves the
 original words, and adds an attributed wax seal. Manual records are identified
-as manually witnessed victories. Only the original scribe can **Withdraw my
-entry**; a withdrawal is a shared tombstone that hides the entry, not a way to
-forcibly erase copies another player has already received.
+as manually witnessed victories. Authors can **Edit** the grievance text or
+**Delete** their own entries, including avenged entries. Edits preserve the
+original enemy, author, date, location and text and identify the latest editor.
+Deletion hides the entry with a shared tombstone; it cannot forcibly erase
+copies another player has already received.
+
+**Options → AddOns → Light the Beacons → Guild permissions** lists actual guild
+ranks with separate **Edit others' entries** and **Delete others' entries**
+checkboxes. The top two ranks (Guild Master and Officer by default) start enabled.
+Only the Guild Master can customize them and Guild Master access stays enabled.
+Members always retain control of their own entries. Rank changes are read from
+the game's guild roster; missing rank information grants no moderation access.
+Policies sync directly from the online Guild Master and are saved per character.
+A new client uses the defaults until the Guild Master shares their custom policy.
+Missed edits/deletions need their actual author or an updated, currently
+authorized moderator online to verify that history. Previously verified changes remain
+applied after a rank demotion. Use this version on participating clients for
+consistent management: 1.7.0 still receives basic entries but does not understand
+text revisions, rank-managed deletions or level metadata.
+
+Each entry shows **Level at recording: N** and **Recorded today**, **1 day old**,
+or the elapsed number of days. Level is captured only from a matching hostile
+player whose level the game can read at inscription time. Older entries,
+unselected enemies and skull/restricted levels show **Level not recorded**.
+Level is historical: later sightings and edits never update it. Age is the
+number of complete 24-hour periods since the original inscription.
 
 Native **Options → AddOns → Light the Beacons → Grudges → After an outdoor PvP death** offers **Ask first** (default),
 **Auto-save**, and **Off**. Ask first opens one **You have fallen** window with
@@ -337,11 +360,15 @@ the existing beacon alert mute also suppresses them.
 The ledger uses `LTBGR1` on the hidden `GUILD` addon-data channel. It sends no
 ordinary chat. Records include a guild identifier, author, event ID/time, enemy
 name, optional readable player GUID, zone, written grievance and evidence type;
-seals/withdrawals reference the original entry. Packets are bounded, assembled
+seals, revisions, level metadata and deletions reference the original entry. Packets are bounded, assembled
 without evaluating code and sent at most twice per second. Live authors must
 match the game's sender identity. Missed history is copied from current online
 guildmates, **trusting those peers' cached attribution**; historical records are
 not cryptographically signed or independently verified combat evidence.
+Guild permissions use the separate `LTBGP1` guild-addon prefix. Only a sender
+identified by the game as Guild Master may publish policy changes. Moderation
+history requires the actual author or an updated, currently permitted relay; ignored
+unauthorized claims are never forwarded as approved changes.
 
 Records and unsent local changes persist per character. The current guild's
 cache retains at most 1,200 records for 90 days. Switching guild discards the

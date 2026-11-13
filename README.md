@@ -4,6 +4,14 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
+**Local test build 1.8.0-test.1** adds guild-rank ledger permissions, attributed
+text revisions, shared deletions, enemy level at recording and entry age.
+The Guild Master configures rights under **Options → AddOns → Light the Beacons
+→ Guild permissions**. Members keep control of their own entries. It also fixes
+native slider values, player-filter feedback and book parchment drawing.
+This branch has not been published; both participants need the new build for
+the new ledger features. See the [full guide](LightTheBeacons/README.md) for sync behavior.
+
 **Version 1.7.0** moves configuration into WoW Forever's native
 **Options → AddOns → Light the Beacons** screen, expands attributed chat
 reporting, and adds Alliance, Horde, ElvUI Dark and EllesmereUI themes. Existing per-character

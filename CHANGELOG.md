@@ -1,12 +1,25 @@
 # Release notes
 
-## 1.7.1-test.1 — Local settings and parchment fixes
+## 1.8.0-test.1 — Guild ledger permissions and UI fixes
 
-- Show the current combine distance in yards beside the native settings slider,
-  including the saved value when reopening settings.
+- Add guild-rank permissions for editing and deleting other members' entries.
+  The top two ranks (Guild Master and Officer by default) start enabled; only
+  the Guild Master can customize separate edit/delete rights in native
+  **Guild permissions** settings. Members retain control of their own entries.
+- Add an entry editor with attributed revisions. Preserve the original author,
+  enemy, date, location and account; shared deletion records prevent stale
+  copies from restoring removed entries. Validate moderation using game roster
+  data and require an updated authorized moderator to verify missed moderation.
+- Show the enemy's readable level at recording and each entry's age in days.
+  Missing/older level data stays unknown; later sightings and edits never
+  replace the recorded level. Base inscriptions remain compatible with 1.7.0.
+- Show current yards, cooldown seconds and marker percentage beside native
+  sliders. Preserve existing player filters on duplicate adds and retain
+  success/error feedback after refreshing the list.
 - Draw ledger parchment above the opaque window shell. Check atlas availability
   and fall back to Forever's native book parchment or quest texture if needed.
-- Preserve the parchment atlas crop when mirroring the left page.
+- Preserve the parchment atlas crop when mirroring the left page and move the
+  title/navigation below the native top border.
 - Local test build only; not published to GitHub or CurseForge.
 
 ## 1.7.0 — Native settings, attributed chat and themes

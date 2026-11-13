@@ -84,6 +84,13 @@ U.Widgets={label=label,fill=fill,picture=picture,link=link}
 
 local function formatDate(at) return date and date("%d %b %Y, %H:%M",at) or tostring(at) end
 local function shortDate(at) return at and (date and date("%d %b %Y",at) or tostring(at)) or "Unknown" end
+function U.RecordAge(at)
+    local days=math.max(0,math.floor((C.Now()-at)/86400))
+    return days==0 and "Recorded today" or days..(days==1 and " day old" or " days old")
+end
+local function recordDetails(record)
+    return (record.level and ("Level at recording: "..record.level) or "Level not recorded").." | "..U.RecordAge(record.entry.at)
+end
 local function countPeople()
     local enemies,entries,open=0,0,0
     for _,person in pairs(G.people or {}) do enemies=enemies+1;entries=entries+#person.debts;open=open+person.open end
@@ -92,7 +99,7 @@ end
 function U.Person() return U.selected and G.people and G.people[U.selected] end
 function U.Record() local p=U.Person();return p and p.debts[U.debt] end
 function U.Reset()
-    U.selected=nil;U.indexPage=1;U.recordPage=1;U.debt=1;U.query="";U.confirming=nil;U.deathDraft=nil;U.mode="index"
+    U.selected=nil;U.indexPage=1;U.recordPage=1;U.debt=1;U.query="";U.confirming=nil;U.deathDraft=nil;U.editing=nil;U.mode="index"
     if U.frame then U.search:SetText("");U.name:SetText("");U.note:SetText("");U.Refresh() end
 end
 function U.Mode(mode)
@@ -102,7 +109,7 @@ function U.Mode(mode)
     end
     if mode=="book" then mode=U.selected and "person" or "index" end
     if mode~="index" and mode~="person" and mode~="inscribe" then mode="index" end
-    U.mode=mode;U.confirming=nil;U.deathDraft=nil
+    U.mode=mode;U.confirming=nil;U.deathDraft=nil;U.editing=nil
     if U.confirm then U.confirm:Hide() end
     if mode=="inscribe" then local p=U.Person();U.name:SetText(p and p.name or "");U.note:SetText("") end
     U.Refresh()
@@ -110,6 +117,11 @@ end
 function U.Select(key)
     if not key or not G.people[key] then return end
     U.selected=key;U.debt=1;U.recordPage=1;U.mode="person";U.confirming=nil;U.Refresh()
+end
+function U.Edit(id)
+    local r=G.entries[id]
+    if not r or G.deleted[id] or not B.GrudgePermissions.CanChange(r,"edit") then return end
+    U.Mode("inscribe");U.editing=id;U.name:ClearFocus();U.name:SetText(r.entry.enemy);U.note:SetText(r.revision and r.revision.note or r.entry.note);U.Refresh()
 end
 function U.Turn(delta)
     local p=U.Person();if not p then return end
@@ -201,15 +213,15 @@ function U.Create()
     U.pageShade=U.pagePanel:CreateTexture(nil,"BACKGROUND");U.pageShade:SetPoint("TOPLEFT",0,0);U.pageShade:SetSize(475,558);U.pageShade:SetColorTexture(.055,.055,.055,.98);U.pageShade:Hide()
     U.pageShadeRight=U.pagePanel:CreateTexture(nil,"BACKGROUND");U.pageShadeRight:SetPoint("TOPLEFT",485,0);U.pageShadeRight:SetSize(475,558);U.pageShadeRight:SetColorTexture(.055,.055,.055,.98);U.pageShadeRight:Hide()
     fill(U.pagePanel,479,8,2,542,{.21,.15,.09},.38)
-    U.frameTitle=bookLabel(U.shell,28,17,420,25,18,"body",B.Theme.colors.gold);U.frameTitle:SetText("Book of Grudges")
+    U.frameTitle=bookLabel(U.shell,28,28,420,25,18,"body",B.Theme.colors.gold);U.frameTitle:SetText("Book of Grudges")
     U.close=f.CloseButton or CreateFrame("Button",nil,f,"UIPanelCloseButton")
     U.close:ClearAllPoints();U.close:SetPoint("TOPRIGHT",-5,-5);U.close:SetSize(28,28);U.close:SetScript("OnClick",function() f:Hide() end)
     if ButtonFrameTemplate_HidePortrait then ButtonFrameTemplate_HidePortrait(f) end
     local function hidePortrait(portrait) if portrait then portrait:Hide() end end
     hidePortrait(f.PortraitContainer);hidePortrait(f.Portrait);hidePortrait(f.portrait);hidePortrait(_G.LightTheBeaconsGrudgeBookPortrait)
-    U.indexTab=nativeButton(f,"Ledger",670,15,82,26,function() U.Mode("index") end)
-    U.addTab=nativeButton(f,"Add grudge",756,15,100,26,function() U.Mode("inscribe") end)
-    U.optionsTab=nativeButton(f,"Options",860,15,82,26,function() U.Mode("settings") end)
+    U.indexTab=nativeButton(f,"Ledger",670,26,82,26,function() U.Mode("index") end)
+    U.addTab=nativeButton(f,"Add grudge",756,26,100,26,function() U.Mode("inscribe") end)
+    U.optionsTab=nativeButton(f,"Options",860,26,82,26,function() U.Mode("settings") end)
     for _,b in ipairs({U.indexTab,U.addTab,U.optionsTab}) do if b.caption then B.Theme.Track(b.caption,B.Theme.colors.gold,"text") end end
 
     U.index=CreateFrame("Frame",nil,U.pagePanel);U.index:SetAllPoints(U.pagePanel)
@@ -246,10 +258,13 @@ function U.Create()
         if i<=2 then x,y=31,187+(i-1)*168 else x,y=515,62+(i-3)*188 end
         local row=CreateFrame("Frame",nil,U.read);U.recordRows[i]=row;row:SetPoint("TOPLEFT",x,-y);row:SetSize(410,158)
         row.rule=fill(row,0,157,410,1,faded,.22);row.heading=bookLabel(row,0,0,180,19,13,"body",red)
-        row.state=bookLabel(row,205,0,205,19,11,"body",red,"RIGHT");row.prose=bookLabel(row,0,25,270,82,12,"body",ink)
+        row.state=bookLabel(row,205,0,205,19,11,"body",red,"RIGHT");row.prose=bookLabel(row,0,36,270,67,12,"body",ink)
+        row.recorded=bookLabel(row,0,20,270,14,9,"body",faded)
+        row.revision=bookLabel(row,0,105,270,14,9,"body",faded)
         row.signature=bookLabel(row,0,121,270,31,9,"body",faded);row.result=bookLabel(row,278,25,132,58,9,"body",faded,"RIGHT")
         row.avenge=nativeButton(row,"Mark avenged",282,116,128,26,function() if row.recordID then U.Confirm("avenge",row.recordID) end end)
-        row.withdraw=nativeButton(row,"Withdraw",282,116,128,26,function() if row.recordID then U.Confirm("withdraw",row.recordID) end end)
+        row.edit=nativeButton(row,"Edit",282,85,60,26,function() if row.recordID then U.Edit(row.recordID) end end)
+        row.withdraw=nativeButton(row,"Delete",346,85,64,26,function() if row.recordID then U.Confirm("withdraw",row.recordID) end end)
     end
     U.prevRecords=pageButton(U.read,-1,662,500,function() U.recordPage=math.max(1,U.recordPage-1);U.Refresh() end)
     U.recordCount=bookLabel(U.read,702,507,122,18,12,"body",faded,"CENTER")
@@ -265,10 +280,11 @@ function U.Create()
 
     U.compose=CreateFrame("Frame",nil,U.pagePanel);U.compose:SetAllPoints(U.pagePanel)
     nativeButton(U.compose,"< Ledger",30,24,100,26,function() U.Mode(U.selected and "person" or "index") end)
-    bookLabel(U.compose,124,72,330,42,30,"title",ink,"CENTER"):SetText("Enter a Grudge")
+    U.composeTitle=bookLabel(U.compose,124,72,330,42,30,"title",ink,"CENTER");U.composeTitle:SetText("Enter a Grudge")
     bookLabel(U.compose,44,132,390,20,14,"body",red):SetText("Enemy player")
     U.name=field(U.compose,44,158,390,38,false,70,"Full character name");U.name:SetMaxBytes(100)
-    nativeButton(U.compose,"Use hostile target",252,203,182,27,function()
+    U.editEnemy=bookLabel(U.compose,52,168,374,22,15,"body",ink);U.editEnemy:Hide()
+    U.targetButton=nativeButton(U.compose,"Use hostile target",252,203,182,27,function()
         local player,attack=C.Call(UnitIsPlayer,"target"),C.Call(UnitCanAttack,"player","target")
         if P.Plain(player) and P.Plain(attack) and player==true and attack==true then U.name:SetText(C.UnitName("target") or "")
         else U.notice="Select a hostile player, or write their full name.";U.noticeUntil=GetTime()+8;U.Refresh() end
@@ -278,9 +294,15 @@ function U.Create()
     U.charCount=bookLabel(U.compose,204,451,230,18,11,"body",faded,"RIGHT")
     U.note:HookScript("OnTextChanged",function(self) local _,n=P.Message(self:GetText(),true,160);U.charCount:SetText(n.." / 160 characters") end)
     bookLabel(U.compose,530,78,380,38,28,"title",ink,"CENTER"):SetText("Set It in Ink")
-    bookLabel(U.compose,540,145,360,180,14,"body",faded,"CENTER"):SetText("Every entry is signed with its author, date and zone, then shared with guild members who use Light the Beacons.\n\nThe original words remain in the ledger after vengeance is recorded. Only the original scribe can withdraw an entry.")
+    U.composeHelp=bookLabel(U.compose,540,145,360,180,14,"body",faded,"CENTER")
     U.composeBy=bookLabel(U.compose,540,350,360,52,12,"body",faded,"CENTER")
     U.submit=nativeButton(U.compose,"Save to guild ledger",575,425,290,36,function()
+        if U.editing then
+            local e,why=G.Edit(U.editing,U.note:GetText())
+            if e then U.editing=nil;U.mode="person";U.note:ClearFocus();U.note:SetText("")
+            else U.notice=why;U.noticeUntil=GetTime()+12 end
+            U.Refresh();return
+        end
         local draft=U.deathDraft;local identity=P.Identity(G.Clean(U.name:GetText(),70,100))
         if draft and draft.incident and draft.incident.saved[identity] then U.notice="This player already has a grudge from this death.";U.noticeUntil=GetTime()+12;U.Refresh();return end
         local verified=draft and draft.scope==G.scope and draft.evidence=="pvp" and identity==P.Identity(draft.enemy)
@@ -352,10 +374,13 @@ function U.Refresh()
             local debtIndex=(U.recordPage-1)*4+i;local record=person.debts[debtIndex];row:SetShown(record~=nil);row.recordID=record and record.entry.id
             if record then
                 local entry=record.entry;row.heading:SetText("GRIEVANCE "..debtIndex);row.state:SetText(record.seal and "AVENGED" or "NOT YET AVENGED")
-                row.prose:SetText(entry.note);row.signature:SetText("Entered by "..entry.author.." - "..shortDate(entry.at).." - "..entry.where)
+                row.recorded:SetText(recordDetails(record))
+                row.prose:SetText(record.revision and record.revision.note or entry.note);row.signature:SetText("Entered by "..entry.author.." - "..shortDate(entry.at).." - "..entry.where)
+                row.revision:SetText(record.revision and ("Edited by "..record.revision.author.." - "..shortDate(record.revision.at)) or "")
                 row.result:SetText(record.seal and ("Avenged by "..record.seal.author.."\n"..shortDate(record.seal.at).." - "..record.seal.where) or "Awaiting an answer")
                 local mine=P.Identity(entry.author)==B.me;row.avenge:SetShown(not record.seal and not mine);row.avenge:SetEnabled(G.Active() and true or false)
-                row.withdraw:SetShown(not record.seal and mine);row.withdraw:SetEnabled(G.Active() and true or false)
+                row.edit:SetShown(B.GrudgePermissions.CanChange(record,"edit"));row.edit:SetEnabled(G.Active() and true or false)
+                row.withdraw:SetShown(B.GrudgePermissions.CanChange(record,"delete"));row.withdraw:SetEnabled(G.Active() and true or false)
             end
         end
         U.prevRecords:SetEnabled(U.recordPage>1);U.nextRecords:SetEnabled(U.recordPage<recordPages);U.recordCount:SetText(U.recordPage.." / "..recordPages)
@@ -363,10 +388,17 @@ function U.Refresh()
     U.confirm:SetShown(U.confirming~=nil and U.mode=="person")
     if U.confirming then
         local withdraw=U.confirming.kind=="withdraw"
-        U.confirmText:SetText(withdraw and "Withdraw your entry from the guild ledger? Received copies cannot be erased." or "Confirm this enemy's defeat? This keeps the original grievance and records who avenged it.")
-        local text=withdraw and "Withdraw entry" or "Mark avenged";U.accept:SetText(text);if U.accept.caption then U.accept.caption:SetText(text) end
+        U.confirmText:SetText(withdraw and "Delete this entry from the shared ledger? A deletion record prevents older copies from restoring it." or "Confirm this enemy's defeat? This keeps the original grievance and records who avenged it.")
+        local text=withdraw and "Delete entry" or "Mark avenged";U.accept:SetText(text);if U.accept.caption then U.accept.caption:SetText(text) end
     end
-    U.composeBy:SetText("Recorded by "..(B.name or "you")..". Shared with guild addon users.");U.submit:SetEnabled(G.Active() and true or false)
+    local editing=U.editing and G.entries[U.editing]
+    U.composeTitle:SetText(editing and "Edit Grievance" or "Enter a Grudge")
+    U.name:SetShown(not editing);U.targetButton:SetShown(not editing);U.editEnemy:SetShown(editing~=nil)
+    U.editEnemy:SetText(editing and editing.entry.enemy or "")
+    U.composeHelp:SetText(editing and "Revise the grievance text. The original enemy, author, date and location remain unchanged.\n\nYour name is recorded with the revision, which is shared with guild addon users." or "Every entry is signed with its author, date and zone, then shared with guild members who use Light the Beacons.\n\nMembers control their own entries. Permitted guild ranks can edit or delete other members' entries.")
+    local caption=editing and "Save changes" or "Save to guild ledger";U.submit:SetText(caption);if U.submit.caption then U.submit.caption:SetText(caption) end
+    U.composeBy:SetText((editing and "Edited by " or "Recorded by ")..(B.name or "you")..". Shared with guild addon users.")
+    U.submit:SetEnabled(G.Active() and (not editing or not G.deleted[U.editing] and B.GrudgePermissions.CanChange(editing,"edit")) and true or false)
     U.status:SetText(U.noticeUntil and GetTime()<U.noticeUntil and U.notice or G.status or "Guild ledger ready.")
 end
 function U.Toggle(force)
@@ -376,5 +408,11 @@ function U.Toggle(force)
     B.UI.frame:Hide();U.toast:Hide();U.mode="index";U.frame:Show();U.Refresh()
 end
 function U.Tick()
-    if U.frame and U.frame:IsShown() then U.status:SetText(U.noticeUntil and GetTime()<U.noticeUntil and U.notice or G.status or "Guild ledger ready.") end
+    if U.frame and U.frame:IsShown() then
+        U.status:SetText(U.noticeUntil and GetTime()<U.noticeUntil and U.notice or G.status or "Guild ledger ready.")
+        if U.mode=="person" then for _,row in ipairs(U.recordRows) do
+            local record=row.recordID and G.entries[row.recordID]
+            if row:IsShown() and record then row.recorded:SetText(recordDetails(record)) end
+        end end
+    end
 end

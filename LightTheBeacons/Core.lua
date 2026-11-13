@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.7.1-test.1"
+B.version="1.8.0-test.1"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -297,6 +297,7 @@ function B.GuildChanged()
         if B.UI.answerBanner then B.UI.answerBanner:Hide() end
     end
     B.guild=guild;B.members=C.Members()
+    B.GrudgePermissions.GuildChanged()
     if B.db.guild~=guild then B.db.active=nil;B.db.guild=guild end
     B.RestoreOwn()
     B.Grudges.GuildChanged()
@@ -343,6 +344,7 @@ function B.Initialize()
     if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
         C.Call(C_ChatInfo.RegisterAddonMessagePrefix,P.prefix)
         C.Call(C_ChatInfo.RegisterAddonMessagePrefix,B.Grudges.prefix)
+        C.Call(C_ChatInfo.RegisterAddonMessagePrefix,B.GrudgePermissions.prefix)
     end
     B.UI.Create()
     B.Settings.Initialize()
@@ -355,7 +357,7 @@ function B.Initialize()
             local dead=C.Call(UnitIsDeadOrGhost,"player")
             if P.Plain(dead) and dead==true then B.Death(true) end
         end)
-        C_Timer.After(4,function() B.members=C.Members();if IsInGuild and IsInGuild() then C.Send("1|Q");B.BroadcastLocation() end end)
+        C_Timer.After(4,function() B.GuildChanged();if IsInGuild and IsInGuild() then C.Send("1|Q");B.BroadcastLocation() end end)
     end
     B.UI.Refresh()
 end
@@ -378,6 +380,7 @@ frame:SetScript("OnEvent",function(_,event,...)
         local prefix,msg,channel,sender=...
         if P.Plain(prefix) and prefix==P.prefix and P.Plain(channel) and channel=="GUILD" then B.Receive(msg,sender,channel) end
         if P.Plain(prefix) and prefix==B.Grudges.prefix and P.Plain(channel) and channel=="GUILD" then B.Grudges.Receive(msg,sender,channel) end
+        if P.Plain(prefix) and prefix==B.GrudgePermissions.prefix then B.GrudgePermissions.Receive(msg,sender,channel) end
     elseif event=="COMBAT_LOG_EVENT_UNFILTERED" then C.ReadCombatEvent()
     elseif event=="PLAYER_DEAD" then B.Death()
     elseif event=="PLAYER_TARGET_CHANGED" then B.Grudges.ObserveUnit("target")

@@ -50,6 +50,12 @@ function G.Parse(raw,now)
             or e.evidence=="kill" and e.guid=="" then return end
     elseif e.kind=="D" then
         if not idOK(e.target) or e.enemy~="" or e.guid~="" or e.note~="" or e.where~="" or e.evidence~="manual" then return end
+    elseif e.kind=="U" then
+        if not idOK(e.target) or e.enemy~="" or e.guid~="" or e.where~="" or e.evidence~="manual"
+            or not P.Text(e.note,640) or e.note~=G.Clean(e.note) then return end
+    elseif e.kind=="L" then
+        if not idOK(e.target) or e.enemy~="" or e.guid~="" or e.where~="" or e.evidence~="manual"
+            or not e.note:match("^%d+$") or not integer(tonumber(e.note),1,1000) then return end
     else return end
     return e
 end
@@ -87,6 +93,19 @@ function G.GuildChanged()
         end
     end
     old.events=clean;for id in pairs(old.outbox) do if not clean[id] or P.Identity(clean[id].author)~=B.me then old.outbox[id]=nil end end
+    local access=B.GrudgePermissions
+    for _,receipts in ipairs({access.store.accepted,access.store.authored}) do for id in pairs(receipts) do if not clean[id] then receipts[id]=nil end end end
+    if access.migrateWithdrawals then
+        -- Preserve owner withdrawals already trusted by an older installed
+        -- version. New network history must pass author/moderator verification.
+        for id,e in pairs(clean) do
+            local original=clean[e.target]
+            if e.kind=="D" and original and original.kind=="I" and P.Identity(e.author)==P.Identity(original.author) then
+                access.store.authored[id]=G.Hash(G.Encode(e))
+            end
+        end
+        access.migrateWithdrawals=nil
+    end
     local savedSightings=plainTable(B.db.grudgeSightings[B.guild]) and B.db.grudgeSightings[B.guild] or {}
     local sightings={}
     for key,seen in pairs(savedSightings) do
@@ -111,7 +130,11 @@ function G.Rebuild()
     for _,e in ipairs(log) do if e.kind=="I" then entries[e.id]={entry=e} end end
     for _,e in ipairs(log) do
         local r=entries[e.target]
-        if e.kind=="D" and r and e.at>=r.entry.at and P.Identity(e.author)==P.Identity(r.entry.author) then deleted[e.target]=true end
+        if r and e.at>=r.entry.at and (e.kind=="D" or e.kind=="U") and B.GrudgePermissions.Authorized(e,r) then
+            if e.kind=="D" then deleted[e.target]=true else r.revision=e end
+        end
+        if e.kind=="L" and r and not r.level and e.at>=r.entry.at and e.at<=r.entry.at+5
+            and P.Identity(e.author)==P.Identity(r.entry.author) then r.level=tonumber(e.note) end
     end
     local kills={}
     for _,e in ipairs(log) do
@@ -138,7 +161,14 @@ function G.Rebuild()
     end
     G.entries,G.people,G.log=entries,people,log;G.deleted=deleted
     local ids={};for _,e in ipairs(log) do ids[#ids+1]=e.id end;table.sort(ids)
-    G.ids=ids;G.digest=G.Hash(table.concat(ids,","))
+    local approvals={}
+    for _,e in ipairs(log) do
+        local r=entries[e.target]
+        if (e.kind=="U" or e.kind=="D") and r then
+            approvals[#approvals+1]=e.id..":"..(B.GrudgePermissions.Authorized(e,r) and "1" or "0")
+        end
+    end
+    G.ids=ids;G.digest=G.Hash(table.concat(ids,",")..(#approvals>0 and ("|"..table.concat(approvals,",")) or ""))
 end
 function G.List(query)
     local out={};query=(query or ""):lower()
@@ -168,11 +198,20 @@ end
 function G.Merge(e,sender,history,quiet)
     if not G.Active() or e.guild~=G.scope then return false end
     if not history and P.Identity(e.author)~=sender then return false end
-    if G.store.events[e.id] then return false end
+    if G.store.events[e.id] then
+        local existing=G.store.events[e.id]
+        if G.Encode(existing)==G.Encode(e) then
+            local before=B.GrudgePermissions.store.accepted[e.id];local authored=B.GrudgePermissions.store.authored[e.id]
+            B.GrudgePermissions.RecordAuthorization(e,sender,history)
+            if before~=B.GrudgePermissions.store.accepted[e.id] or authored~=B.GrudgePermissions.store.authored[e.id] then G.Rebuild();if B.GrudgeUI then B.GrudgeUI.Refresh() end end
+        end
+        return false
+    end
     if #G.ids>=G.limit then G.status="The book is full (1,200 records; 90-day retention).";return false end
     local previous=G.entries[e.target]
     local wasVisible=previous and not G.deleted[e.target]
     local wasOpen=e.kind=="V" and wasVisible and not previous.seal
+    B.GrudgePermissions.RecordAuthorization(e,sender,history)
     G.store.events[e.id]=e;G.Rebuild()
     if not history and not quiet and ((e.kind=="I" and not G.deleted[e.id]) or
         (wasOpen and G.entries[e.target].seal and G.entries[e.target].seal.id==e.id)) then
@@ -180,6 +219,9 @@ function G.Merge(e,sender,history,quiet)
     end
     if e.kind=="D" and not history and not quiet and wasVisible and G.deleted[e.target] then
         B.Chat.Grudge("withdrawn",e,previous.entry.enemy,previous.entry)
+    end
+    if e.kind=="U" and not history and not quiet and wasVisible and G.entries[e.target].revision==e then
+        B.Chat.Grudge("edited",e,previous.entry.enemy,previous.entry)
     end
     if B.GrudgeUI then B.GrudgeUI.Refresh() end
     return true
@@ -222,7 +264,12 @@ function G.Inscribe(enemy,note,guid,evidence,where,batch)
     enemy=G.Clean(enemy,70,100);note=G.Clean(note)
     if P.Identity(enemy)==B.me then return nil,"The book records your enemies, not yourself." end
     if B.members[P.Identity(enemy)] then return nil,"This name belongs to your guild." end
-    return G.New("I",enemy,note,nil,guid,evidence,where and G.Clean(where,70,100) or G.Place(),batch)
+    local level=C.EnemyLevelAtRecording(enemy,guid)
+    local e,why=G.New("I",enemy,note,nil,guid,evidence,where and G.Clean(where,70,100) or G.Place(),batch)
+    -- Keep the base inscription wire format compatible. Optional level metadata
+    -- is a separate owner-authored event; old clients still receive the grudge.
+    if e and level then G.New("L",nil,tostring(level),e.id,nil,nil,nil,deathBatch) end
+    return e,why
 end
 function G.Avenge(id,guid,evidence)
     local r=G.entries[id]
@@ -231,8 +278,16 @@ function G.Avenge(id,guid,evidence)
 end
 function G.Withdraw(id)
     local r=G.entries[id]
-    if not r or G.deleted[id] or P.Identity(r.entry.author)~=B.me then return nil,"Only the scribe who entered a wrong may withdraw it." end
+    if not r or G.deleted[id] or not B.GrudgePermissions.CanChange(r,"delete") then return nil,"Only the author or a permitted guild rank can delete this entry." end
     return G.New("D",nil,nil,id)
+end
+function G.Edit(id,note)
+    local r=G.entries[id]
+    if not r or G.deleted[id] or not B.GrudgePermissions.CanChange(r,"edit") then return nil,"Only the author or a permitted guild rank can edit this entry." end
+    note=G.Clean(note)
+    if note=="" then return nil,"Write a grievance before saving changes." end
+    if note==(r.revision and r.revision.note or r.entry.note) then return nil,"No changes to save." end
+    return G.New("U",nil,note,id)
 end
 function G.SetEnabled(value)
     G.options.enabled=value==true;G.queue={};G.queued={};G.pending={};G.request=nil;G.offerDue=nil
@@ -274,7 +329,13 @@ function G.Receive(msg,sender,channel)
         G.served[key]=now
         local page={};for _,id in ipairs(G.ids) do if id>f[5] and #page<G.pageSize then page[#page+1]=id end end
         local last=page[#page] or f[5];local more=G.ids[#G.ids] and last<G.ids[#G.ids]
-        for _,id in ipairs(page) do for _,packet in ipairs(G.Packets(G.store.events[id],f[3],G.Hash(key))) do G.Queue(packet) end end
+        for _,id in ipairs(page) do
+            local event=G.store.events[id];local record=G.entries[event.target]
+            -- Never turn an ignored claim into an approved change by relaying it
+            -- from a moderator's client. Only applied/authorized mutations travel.
+            local allowed=event.kind~="U" and event.kind~="D" or record and B.GrudgePermissions.Authorized(event,record)
+            if allowed then for _,packet in ipairs(G.Packets(event,f[3],G.Hash(key))) do G.Queue(packet) end end
+        end
         G.Queue("1|Z|"..f[3].."|"..G.Hash(key).."|"..last.."|"..(more and "1" or "0"));return
     end
     if f[2]=="Z" and #f==6 and q and q.peer==key and q.nonce==f[3] and f[4]==G.Hash(B.me) and (f[5]=="" or idOK(f[5])) then
@@ -290,7 +351,13 @@ function G.Receive(msg,sender,channel)
     end
     part,total=tonumber(part),tonumber(total)
     if not idOK(id) or not integer(total,1,12) or not integer(part,1,total) or not chunk or #chunk>128 then return end
-    if G.store.events[id] then return end
+    local existing=G.store.events[id]
+    if existing then
+        local action=existing.kind=="U" and "edit" or existing.kind=="D" and "delete"
+        local record=G.entries[existing.target]
+        if not action or record and B.GrudgePermissions.Authorized(existing,record)
+            or key~=P.Identity(existing.author) and not B.GrudgePermissions.CanVouch(key,action) then return end
+    end
     local token=key..":"..(history and q.nonce or "live")..":"..id
     local assembly=G.pending[token]
     if not assembly then
@@ -307,6 +374,7 @@ function G.Receive(msg,sender,channel)
 end
 function G.Tick()
     if not G.store then return end
+    B.GrudgePermissions.Tick()
     local now=GetTime()
     if G.lastTick and now-G.lastTick<.25 then return end;G.lastTick=now
     for token,a in pairs(G.pending) do if now-a.at>150 then G.pending[token]=nil end end
@@ -314,7 +382,7 @@ function G.Tick()
     if not G.Active() then return end
     if not G.lastPrune or now-G.lastPrune>60 then
         G.lastPrune=now;local changed=false
-        for id,e in pairs(G.store.events) do if e.at<C.Now()-G.retention then G.store.events[id]=nil;G.store.outbox[id]=nil;changed=true end end
+        for id,e in pairs(G.store.events) do if e.at<C.Now()-G.retention then G.store.events[id]=nil;G.store.outbox[id]=nil;B.GrudgePermissions.store.accepted[id]=nil;B.GrudgePermissions.store.authored[id]=nil;changed=true end end
         for key,seen in pairs(G.sightings) do
             if not G.people[key] or seen.at<C.Now()-G.retention then G.sightings[key]=nil end
         end
@@ -323,8 +391,16 @@ function G.Tick()
     if not G.request and now>=(G.nextQuery or 0) then G.Sync() end
     local q=G.request
     if q and now>=q.deadline then
-        local peer,count=nil,-1
-        if not q.peer then for k,n in pairs(q.offers) do if n>count or n==count and k<(peer or k) then peer,count=k,n end end end
+        local peer,count,authority=nil,-1,-1
+        if not q.peer then for k,n in pairs(q.offers) do
+            local score=(B.GrudgePermissions.CanVouch(k,"edit") and 1 or 0)+(B.GrudgePermissions.CanVouch(k,"delete") and 1 or 0)
+            for _,event in ipairs(G.log) do
+                local record=G.entries[event.target]
+                if (event.kind=="U" or event.kind=="D") and record and not B.GrudgePermissions.Authorized(event,record)
+                    and P.Identity(event.author)==k then score=score+1;break end
+            end
+            if score>authority or score==authority and (n>count or n==count and k<(peer or k)) then peer,count,authority=k,n,score end
+        end end
         if peer then requestPage(peer)
         else G.request=nil;G.status=q.peer and "A page was delayed. Sync will retry." or "Listening for guild pages." end
     end

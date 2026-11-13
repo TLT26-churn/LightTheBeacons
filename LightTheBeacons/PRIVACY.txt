@@ -1,9 +1,9 @@
 Light the Beacons — player privacy information
-Version 1.7.0 / 2026-11-12
+Version 1.8.0-test.1 / 2026-11-12
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
-locations; LTBGR1 for the Book of Grudges).
+locations; LTBGR1 for the Book of Grudges; LTBGP1 for guild ledger permissions).
 There is no external telemetry, analytics endpoint, web request, or ordinary
 chat posting in the addon. The game supplies your character name to recipients.
 
@@ -87,7 +87,8 @@ reception and automatic recording; the saved book becomes read-only.
 
 Ledger records include a guild identifier, record ID/time, scribe's name,
 enemy's full character name, optional player GUID, zone, written grievance,
-evidence type and references to avenged/withdrawn entries. The zone of a newly
+evidence type, optional readable enemy level at recording, attributed text
+revisions and references to avenged/deleted entries. The zone of a newly
 written incident can reveal where its scribe was; this does not depend on the
 separate background location-sharing option. No exact coordinates are included
 in ledger records. Sighting warnings are local target/mouseover observations
@@ -101,6 +102,14 @@ at 1,200 records and 90 days. Guildmates exchange cached history to recover
 missed entries. Live authors are checked against the game's sender, but cached
 history trusts the relaying guildmate and is not cryptographically signed.
 Changing guild discards the old guild's cache and queued ledger packets.
+Guild permission masks and policy revisions are shared directly by the Guild
+Master and cached locally. The game roster supplies ranks; custom policy is not
+accepted from other senders. Members retain control of their own entries.
+Live moderation is checked against the current rank and cached policy. Missed
+edits/deletions require their actual author or an updated authorized moderator
+to vouch for them; accepted decisions persist even if ranks later change. A new client
+uses defaults until the Guild Master shares a policy. Older addon versions do
+not enforce the new guild management rules.
 Withdrawal hides an entry with a shared tombstone; its original record remains
 in caches until expiry and cannot be forcibly erased from another client.
 Hiding a debtor affects your view and sighting warnings only. Local book options,

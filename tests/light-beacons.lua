@@ -15,6 +15,7 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi,nativeSet
     local B,objects,frames={},{},{}
     local state={now=1000,time=startTime or 2000000000,dead=false,ghost=false,guild=true,sent={},sounds={},soundFiles={},timers={},messages={},
         pos={map=1429,px=.1,py=.45},outdoor=true,sendResult=0,known={[2]=true,[5]=true},recapLink="old"}
+    state.guildRoster=uiSuites and uiSuites.guildRoster
     local atlases=uiSuites and uiSuites.atlases or {
         ["Book-bg"]={file="native-book",leftTexCoord=.125,rightTexCoord=.75,topTexCoord=.25,bottomTexCoord=.875},
         ["QuestBG-Parchment"]={file="native-parchment",leftTexCoord=0,rightTexCoord=.6,topTexCoord=.02,bottomTexCoord=.7},
@@ -134,7 +135,13 @@ local function client(first,surname,saved,startTime,coldLogin,skipTaxi,nativeSet
     env.IsInInstance=function() return not state.outdoor,state.outdoor and "none" or "pvp" end
     env.GetPlayerFacing=function() return 0 end
     env.C_Club={GetGuildClubId=function() return state.guild and 42 or nil end,
-        GetClubMembers=function() return {1,2} end,GetMemberInfo=function(_,id) return {name=id==1 and "Aldric Stoneward" or "Elowen Dawnwatch"} end}
+        GetClubMembers=function()
+            if state.guildRoster then local ids={};for i in ipairs(state.guildRoster) do ids[#ids+1]=i end;return ids end
+            return {1,2}
+        end,GetMemberInfo=function(_,id) return state.guildRoster and state.guildRoster[id] or {name=id==1 and "Aldric Stoneward" or "Elowen Dawnwatch"} end}
+    env.C_GuildInfo={GetGuildRankOrder=function()
+        for _,member in ipairs(state.guildRoster or {}) do if member.name==first.." "..surname then return member.guildRankOrder end end
+    end}
     env.C_ChatInfo={RegisterAddonMessagePrefix=function() return true end,InChatMessagingLockdown=function() return state.restricted end,
         SendAddonMessage=function(prefix,msg,channel) state.sent[#state.sent+1]={prefix,msg,channel};return state.sendResult end}
     env.SendChatMessage=function() error("Ordinary chat must NEVER be used") end
@@ -1067,6 +1074,7 @@ assert(loadfile("tests/pve-death-guards.lua"))(client,check)
 local groupPreview=assert(loadfile("tests/beacon-settings.lua"))(client,check)
 assert(loadfile("tests/chat-notices.lua"))(client,check)
 assert(loadfile("tests/native-settings.lua"))(client,check)
+assert(loadfile("tests/grudge-permissions.lua"))(client,check)
 local grudgePreview=assert(loadfile("tests/grudges.lua"))(client,check)
 local deathPreview=assert(loadfile("tests/grudge-deaths.lua"))(client,check)
 local combinedPreview=assert(loadfile("tests/combined-death.lua"))(client,check)

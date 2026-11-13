@@ -68,6 +68,21 @@ function C.Me()
     local name=C.UnitName("player")
     return name and P.Identity(name),name
 end
+function C.EnemyLevelAtRecording(name,guid)
+    local key=P.Identity(name)
+    for _,unit in ipairs({"target","mouseover","focus"}) do
+        local player,hostile=call(UnitIsPlayer,unit),call(UnitCanAttack,"player",unit)
+        if P.Plain(player) and P.Plain(hostile) and player==true and hostile==true then
+            local unitGUID=call(UnitGUID,unit)
+            local hasGUID=P.Text(guid,80)
+            local sameGUID=hasGUID and P.Plain(unitGUID) and unitGUID==guid
+            if sameGUID or not hasGUID and key and P.Identity(C.UnitName(unit))==key then
+                local level=call(UnitLevel,unit)
+                if P.Number(level,1,1000) and level%1==0 then return level end
+            end
+        end
+    end
+end
 function C.Faction()
     local value=call(UnitFactionGroup,"player")
     return P.Plain(value) and value=="Horde" and "H" or "A"
