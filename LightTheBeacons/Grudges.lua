@@ -1,6 +1,6 @@
 local _,B=...
 local P,C=B.Protocol,B.Client
-local G={prefix="LTBGR1",retention=90*86400,limit=1200,pageSize=12};B.Grudges=G
+local G={prefix="LTBGR1",retention=90*86400,limit=1200,pageSize=4};B.Grudges=G
 local deathBatch={}
 G.defaultPhrases={incurred="Grudge recorded.",sighted="Known enemy sighted.",avenged="Grudge avenged."}
 G.phrases={
@@ -79,6 +79,7 @@ end
 local function resetSession()
     G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings={};G.seenAlert={};G.killSeen={}
     G.request=nil;G.offerDue=nil;G.nextQuery=GetTime()+7;G.lastTick=nil;G.deathActive=nil;G.deathSerial=(G.deathSerial or 0)+1
+    G.nextSend=nil;G.retryDelay=nil;G.sendError=nil
     G.pendingDeath=nil
     C.ClearAttackers()
     if B.DeathUI then B.DeathUI.Reset() end
@@ -286,9 +287,17 @@ function G.Packets(e,nonce,target)
     end
     return packets
 end
-function G.Queue(msg,done)
+function G.Queue(msg,done,request,timeout)
     if #G.queue>=256 then return false end
-    G.queue[#G.queue+1]={msg=msg,done=done};return true
+    local item={msg=msg,done=done,request=request,timeout=timeout}
+    -- Inventory offers/requests must not sit behind a full history page: older
+    -- clients only wait eight seconds for an offer. Data and page-end markers
+    -- retain FIFO order, including the final fragment of an outbox entry.
+    if msg:match("^1|[QOW]|") then
+        local at=1;while G.queue[at] and G.queue[at].msg:match("^1|[QOW]|") do at=at+1 end
+        table.insert(G.queue,at,item)
+    else G.queue[#G.queue+1]=item end
+    return true
 end
 function G.New(kind,enemy,note,target,guid,evidence,where,batch)
     if not G.Active() then return nil,"Enable the shared book and join a guild first." end
@@ -337,19 +346,23 @@ function G.Edit(id,note)
 end
 function G.SetEnabled(value)
     G.options.enabled=value==true;G.queue={};G.queued={};G.pending={};G.request=nil;G.offerDue=nil
+    G.sendError=nil
     G.nextQuery=GetTime()+2;G.status=value and "Waiting for guild sync." or "Sharing paused. The saved book is read-only."
     if not value then G.CancelDeathPrompt();C.ClearAttackers() end
     if B.GrudgeUI then B.GrudgeUI.Refresh() end
 end
 local function requestPage(peer,cursor)
-    G.request.peer=peer;G.request.deadline=GetTime()+150
-    G.Queue("1|W|"..G.request.nonce.."|"..G.Hash(peer).."|"..(cursor or ""))
+    local q=G.request;q.peer=peer;q.deadline=nil
+    if not G.Queue("1|W|"..q.nonce.."|"..G.Hash(peer).."|"..(cursor or ""),nil,q,150) then
+        G.request=nil;G.nextQuery=GetTime()+15
+    end
 end
 function G.Sync()
     if not G.Active() or G.request then return end
     local nonce=tostring(math.floor(C.Now())).."."..B.nonce
-    G.request={nonce=nonce,deadline=GetTime()+8,offers={}}
-    G.Queue("1|Q|"..nonce.."|"..G.digest);G.nextQuery=GetTime()+180
+    local q={nonce=nonce,offers={}};G.request=q
+    if not G.Queue("1|Q|"..nonce.."|"..G.digest,nil,q,8) then G.request=nil;return end
+    G.nextQuery=GetTime()+180
     G.status="Syncing guild records."
 end
 function G.Receive(msg,sender,channel)
@@ -371,7 +384,7 @@ function G.Receive(msg,sender,channel)
     end
     if f[2]=="W" and #f==5 and nonceOK(f[3]) and f[4]==G.Hash(B.me) and (f[5]=="" or idOK(f[5])) then
         if G.served[key] and now-G.served[key]<5 then return end
-        if #G.queue>64 then return end
+        if #G.queue>16 then return end
         G.served[key]=now
         local page={};for _,id in ipairs(G.ids) do if id>f[5] and #page<G.pageSize then page[#page+1]=id end end
         local last=page[#page] or f[5];local more=G.ids[#G.ids] and last<G.ids[#G.ids]
@@ -397,6 +410,9 @@ function G.Receive(msg,sender,channel)
     end
     part,total=tonumber(part),tonumber(total)
     if not idOK(id) or not integer(total,1,12) or not integer(part,1,total) or not chunk or #chunk>128 then return end
+    -- Keep a slow but progressing history transfer alive. Old peers retain
+    -- their existing timeout; smaller outgoing pages fit their receive window.
+    if history then q.deadline=now+150 end
     local existing=G.store.events[id]
     if existing then
         local action=existing.kind=="U" and "edit" or existing.kind=="D" and "delete"
@@ -436,7 +452,7 @@ function G.Tick()
     end
     if not G.request and now>=(G.nextQuery or 0) then G.Sync() end
     local q=G.request
-    if q and now>=q.deadline then
+    if q and q.deadline and now>=q.deadline then
         local peer,count,authority=nil,-1,-1
         if not q.peer then for k,n in pairs(q.offers) do
             local score=(B.GrudgePermissions.CanVouch(k,"edit") and 1 or 0)+(B.GrudgePermissions.CanVouch(k,"delete") and 1 or 0)
@@ -457,13 +473,27 @@ function G.Tick()
             break
         end
     end end
-    if #G.queue>0 and (not G.lastSend or now-G.lastSend>=.5) then
+    if #G.queue>0 and now>=(G.nextSend or 0) then
         G.lastSend=now;local item=G.queue[1]
-        local ok=C.Send(item.msg,G.prefix)
+        local ok,why=C.Send(item.msg,G.prefix)
         if ok then
             table.remove(G.queue,1)
-            if item.done then G.store.outbox[item.done]=nil;G.queued[item.done]=nil;G.status="Shared with guild addon users." end
-        else G.status="Waiting for the game to allow guild messages." end
+            G.nextSend=now+1.25;G.retryDelay=nil;G.sendError=nil
+            if item.request and item.request==G.request then item.request.deadline=now+item.timeout end
+            if item.done then G.store.outbox[item.done]=nil;G.queued[item.done]=nil end
+            G.status=G.request and "Waiting for guild pages." or "Guild messages sent. Listening for guild pages."
+        else
+            -- Failed sends never consume the queued packet or saved outbox.
+            -- Leave the game's token bucket time to refill instead of retrying
+            -- twice a second. Continued refusal backs off to one try a minute.
+            G.retryDelay=math.min(60,(G.retryDelay or 2.5)*2)
+            G.nextSend=now+G.retryDelay;G.sendError=why or "Guild messaging is unavailable."
+        end
+    end
+    if #G.queue>0 then
+        if G.sendError then
+            G.status=G.sendError.." "..#G.queue.." pending; retry in "..math.max(0,math.ceil((G.nextSend or now)-now)).."s."
+        else G.status="Sharing guild records: "..#G.queue.." messages pending." end
     end
 end
 function G.CancelDeathPrompt()

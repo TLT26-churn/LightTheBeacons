@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.9.0-test.3 — Rate-limited history sync (local test)
+
+- Include the 1.8.2 sync pacing, retry backoff, response timing and status fixes.
+- Retain the locally tested leaderboard and recovered private character saves.
+
 ## 1.9.0-test.2 — Protect saved guild history (local test)
 
 - Wait for the guild club ID when its API exists. A temporarily available guild
