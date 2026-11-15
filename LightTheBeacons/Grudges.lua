@@ -76,8 +76,24 @@ function G.Initialize()
     G.options.phrases=plainTable(G.options.phrases) and G.options.phrases or {}
     G.GuildChanged()
 end
+local function resetSession()
+    G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings={};G.seenAlert={};G.killSeen={}
+    G.request=nil;G.offerDue=nil;G.nextQuery=GetTime()+7;G.lastTick=nil;G.deathActive=nil;G.deathSerial=(G.deathSerial or 0)+1
+    G.pendingDeath=nil
+    C.ClearAttackers()
+    if B.DeathUI then B.DeathUI.Reset() end
+end
 function G.GuildChanged()
     if not B.db or not G.options or not B.guild then return end
+    if B.guild=="" then
+        -- An absent roster is not proof of a different guild. Hide the book
+        -- and discard session traffic without erasing the last saved ledger.
+        -- A confirmed different guild ID still replaces the cache below.
+        G.store=nil;G.scope=nil;resetSession();G.Rebuild()
+        G.status="Join a guild to open its shared book."
+        if B.GrudgeUI then B.GrudgeUI.Reset() end
+        return
+    end
     local old=B.db.grudges
     if not plainTable(old) or old.guild~=B.guild or old.version~=1 then old={version=1,guild=B.guild,events={},outbox={}} end
     if G.store==old and G.scope==B.guild then return end
@@ -115,11 +131,7 @@ function G.GuildChanged()
         end
     end
     B.db.grudgeSightings[B.guild]=sightings
-    G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings=sightings;G.seenAlert={};G.killSeen={}
-    G.request=nil;G.offerDue=nil;G.nextQuery=GetTime()+7;G.lastTick=nil;G.deathActive=nil;G.deathSerial=(G.deathSerial or 0)+1
-    G.pendingDeath=nil
-    C.ClearAttackers()
-    if B.DeathUI then B.DeathUI.Reset() end
+    resetSession();G.sightings=sightings
     G.Rebuild();G.status=B.guild=="" and "Join a guild to open its shared book." or "Waiting for guild sync."
     if B.GrudgeUI then B.GrudgeUI.Reset() end
 end

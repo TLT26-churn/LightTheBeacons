@@ -1,7 +1,7 @@
 local addon, B = ...
 _G.LightTheBeacons=B
 local C,P,R=B.Client,B.Protocol,B.Routing
-B.version="1.9.0-test.1"
+B.version="1.9.0-test.2"
 BINDING_HEADER_LIGHT_THE_BEACONS="Light the Beacons"
 BINDING_NAME_LTB_TOGGLE="Open Light the Beacons"
 BINDING_NAME_LTB_LIGHT="Light my beacon"
@@ -80,7 +80,7 @@ function B.Replan()
     B.routeIndex=1;B.transportReady=nil
 end
 function B.Receive(msg,sender,channel)
-    if not B.session then return end
+    if not B.session or B.guildPending then return end
     local event,b,sound=P.Receive(B.session,msg,sender,channel,B.members,C.Now())
     if event=="query" then
         B.BroadcastLocation()
@@ -281,12 +281,25 @@ function B.RestoreOwn()
 end
 function B.GuildChanged()
     B.me,B.name=C.Me()
-    local inGuild=IsInGuild and IsInGuild()
+    local inGuild=C.Call(IsInGuild)
     local guild
-    if inGuild then guild=(C_Club and C.Call(C_Club.GetGuildClubId)) or C.Call(GetGuildInfo,"player") else guild="" end
-    if not P.Plain(guild) then guild=nil end
-    if (not guild or guild=="") and IsInGuild and IsInGuild() then B.guildPending=true;B.members=C.Members();return end
+    if P.Plain(inGuild) and inGuild==true then
+        if C_Club and type(C_Club.GetGuildClubId)=="function" then
+            -- Club data may arrive later than the guild name. Switching from
+            -- ID to name would falsely look like joining a different guild.
+            local id=C.Call(C_Club.GetGuildClubId)
+            if P.Number(id,1,9007199254740991) and id%1==0 then guild=tostring(id)
+            elseif P.Text(id,100) and id:match("^[1-9]%d*$") then guild=id end
+        else
+            local name=C.Call(GetGuildInfo,"player")
+            if P.Text(name,100) then guild=name end
+        end
+    elseif P.Plain(inGuild) and inGuild==false then guild="" end
+    if not guild then
+        B.guildPending=true;B.members={};B.nextGuildRetry=GetTime()+3;return
+    end
     B.guildPending=false
+    B.nextGuildRetry=nil
     guild=tostring(guild or "")
     if B.guild and B.guild~=guild then
         B.lastLocationAttempt=nil;B.locationShared=false;B.locationStatus=nil
@@ -421,6 +434,7 @@ frame:SetScript("OnUpdate",function(_,delta)
     B.DeathUI.Tick(delta)
     B.Grudges.Tick()
     elapsed=elapsed+delta;if elapsed<1 then return end;elapsed=0
+    if B.guildPending and GetTime()>=(B.nextGuildRetry or 0) then B.GuildChanged() end
     local now=C.Now();P.Prune(B.session,now)
     if B.own and B.own.expires<=now then B.own=nil;B.db.active=nil end
     if B.selected and not B.Selected() then B.selected=nil;B.route=nil;B.navigating=false end

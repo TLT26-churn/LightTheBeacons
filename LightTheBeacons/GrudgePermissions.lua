@@ -54,6 +54,12 @@ function A.PolicyValid(p)
 end
 function A.GuildChanged()
     if not B.db or not B.guild then return end
+    if B.guild=="" then
+        -- Membership can briefly disappear during loading. Suspend access,
+        -- but keep the guild-scoped saved receipts until a new ID is known.
+        A.store=nil;A.scope=nil;A.members={};A.ranks={};A.leader=nil;A.peers={}
+        return
+    end
     local changed=not A.store or A.scope~=B.guild
     if changed then
         local saved=B.db.grudgePermissions

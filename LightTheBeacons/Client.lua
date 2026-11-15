@@ -104,6 +104,7 @@ function C.Members()
     return members
 end
 function C.Send(msg,prefix)
+    if B.guildPending then return false,"Your guild identity is still loading. Try again shortly." end
     if not IsInGuild or not IsInGuild() then return false,"Join a guild to light a beacon." end
     if not C_ChatInfo or not C_ChatInfo.SendAddonMessage then return false,"Addon messages are unavailable." end
     if C_ChatInfo.InChatMessagingLockdown and call(C_ChatInfo.InChatMessagingLockdown)==true then
