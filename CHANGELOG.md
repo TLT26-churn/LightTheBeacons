@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.8.2 — Reliable guild history under message throttling
+
+- Pace guild ledger packets below one per second and use smaller history pages.
+- Back off rejected sends for 5–60 seconds while retaining unsent entries.
+- Start response timeouts after a request is accepted by the game; extend
+  incoming history timeouts while valid fragments continue to arrive.
+- Prioritize inventory requests and offers ahead of bulk history fragments.
+- Show the actual send failure, pending message count and retry countdown.
+  Clear stale failure text when sending resumes.
+- Verify recovered-history sync, new entries, retries and convergence under a
+  simulated one-message-per-second limit. The guild save protection from 1.8.1
+  remains included. No private recovery records are part of the download.
+
 ## 1.8.1 — Protect saved guild history
 
 - Wait for the guild club ID when its API exists. A temporarily available guild

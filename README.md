@@ -1,6 +1,8 @@
 # Light the Beacons
 
-**1.8.1 fixes grudge history resetting when guild information loads late.**
+**1.8.2 fixes rate-limited guild sync and retains the 1.8.1 save protection.**
+History sends at a slower pace, backs off when WoW throttles messages, and
+shows pending messages and retry status. Larger books can take several minutes.
 Update every participating guildmate. Existing records stay scoped to their
 own guild; already-missing history requires a surviving guildmate copy or
 a private SavedVariables backup. Keep backups of your character saves.

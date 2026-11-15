@@ -113,7 +113,17 @@ function C.Send(msg,prefix)
     local ok,result=pcall(C_ChatInfo.SendAddonMessage,prefix or P.prefix,msg,"GUILD")
     local success=ok and P.Plain(result) and (result==true or result==0 or
         (Enum and Enum.SendAddonMessageResult and result==Enum.SendAddonMessageResult.Success))
-    if not success then return false,"The game did not accept the beacon message. Please try again." end
+    if not success then
+        local code=ok and P.Number(result,0,1000) and result or nil
+        local results=Enum and Enum.SendAddonMessageResult or {}
+        local function is(name,fallback) return code~=nil and code==(results[name] or fallback) end
+        if is("AddonMessageThrottle",3) or is("ChannelThrottle",8) then
+            return false,"WoW is rate-limiting addon messages.",code
+        end
+        if is("AddOnMessageLockdown",11) then return false,"WoW is restricting addon messages.",code end
+        if is("NotInGuild",10) then return false,"WoW has not made guild messaging available yet.",code end
+        return false,"WoW did not accept the addon message"..(code and " (code "..code..")." or "."),code
+    end
     return true
 end
 function C.World(map,x,y)
