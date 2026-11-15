@@ -1,5 +1,10 @@
 # Light the Beacons
 
+**1.8.1 fixes grudge history resetting when guild information loads late.**
+Update every participating guildmate. Existing records stay scoped to their
+own guild; already-missing history requires a surviving guildmate copy or
+a private SavedVariables backup. Keep backups of your character saves.
+
 A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.

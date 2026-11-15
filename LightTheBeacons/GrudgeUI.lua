@@ -348,7 +348,8 @@ function U.Notify(title,body,kind)
 end
 
 function U.Refresh()
-    if not U.frame or not G.store then return end
+    if not U.frame then return end
+    if not G.store then U.frame:Hide();return end
     local list=G.List(U.query);local pages=math.max(1,math.ceil(#list/10));U.indexPage=math.max(1,math.min(pages,U.indexPage))
     for i,row in ipairs(U.rows) do
         local person=list[(U.indexPage-1)*10+i];row:SetShown(person~=nil);row.key=person and person.key

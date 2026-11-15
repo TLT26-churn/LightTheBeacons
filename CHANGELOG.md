@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.8.1 — Protect saved guild history
+
+- Wait for the guild club ID when its API exists. A temporarily available guild
+  name must not be mistaken for a different guild and erase the ledger.
+- Preserve the last guild's saved ledger and moderation receipts while guild
+  membership is unavailable. Hide the book and discard session traffic during
+  that state; a confirmed different guild still receives an empty ledger.
+- Pause addon traffic while identity is uncertain and retry loading the ID.
+- Add regression checks for delayed IDs, unavailable membership, cold login,
+  withdrawal preservation, retries and isolation between different guilds.
+- Recovery data is private character SavedVariables, never bundled addon data.
+
 ## 1.8.0 — Guild ledger permissions and UI fixes
 
 - Add guild-rank permissions for editing and deleting other members' entries.

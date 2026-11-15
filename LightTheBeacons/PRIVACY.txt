@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.8.0 / 2026-11-13
+Version 1.8.1 / 2026-11-14
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
@@ -101,7 +101,12 @@ The current guild's ledger and unsent changes are saved per character, capped
 at 1,200 records and 90 days. Guildmates exchange cached history to recover
 missed entries. Live authors are checked against the game's sender, but cached
 history trusts the relaying guildmate and is not cryptographically signed.
-Changing guild discards the old guild's cache and queued ledger packets.
+A confirmed different guild ID discards the old guild's cache and queued ledger
+packets. If membership is temporarily unavailable, the book is hidden and sharing
+stops; the last guild's saved ledger and moderation receipts remain local so a
+loading delay cannot erase them. They resume only for the same confirmed guild
+ID and are never merged into a different guild. Normal retention validation runs
+when that saved ledger is loaded again.
 Guild permission masks and policy revisions are shared directly by the Guild
 Master and cached locally. The game roster supplies ranks; custom policy is not
 accepted from other senders. Members retain control of their own entries.
