@@ -1,6 +1,6 @@
 local _,B=...
 local P,C=B.Protocol,B.Client
-local G={prefix="LTBGR1",retention=90*86400,limit=1200,pageSize=4};B.Grudges=G
+local G={prefix="LTBGR1",cleanupAge=90*86400,pageSize=4};B.Grudges=G
 local deathBatch={}
 G.defaultPhrases={incurred="Grudge recorded.",sighted="Known enemy sighted.",avenged="Grudge avenged."}
 G.phrases={
@@ -36,12 +36,12 @@ end
 function G.Encode(e)
     return table.concat({"1",e.kind,e.id,e.author,tostring(e.at),e.target or "",e.enemy or "",e.guid or "",e.where or "",e.note or "",e.evidence or "manual",e.guild},"|")
 end
-function G.Parse(raw,now,allowExpired)
+function G.Parse(raw,now)
     if not P.Plain(raw) or type(raw)~="string" or #raw>1500 or raw:find("%c") then return end
     local f=fields(raw);if #f~=12 or f[1]~="1" or f[12]~=G.scope or not P.Text(f[12],100) then return end
     if f[2]=="R" or f[2]=="X" then return B.LedgerCredits.Parse(f,now) end
     local e={kind=f[2],id=f[3],author=f[4],at=tonumber(f[5]),target=f[6],enemy=f[7],guid=f[8],where=f[9],note=f[10],evidence=f[11],guild=f[12]}
-    if not nameOK(e.author) or not idOK(e.id) or not integer(e.at,allowExpired and 0 or now-G.retention,now+60)
+    if not nameOK(e.author) or not idOK(e.id) or not integer(e.at,0,now+60)
         or e.id:sub(1,9)~=G.Hash(P.Identity(e.author)).."." then return end
     if not optional(e.where,100) or e.where~=G.Clean(e.where,70,100) or not guidOK(e.guid) then return end
     if e.kind=="I" then
@@ -104,12 +104,12 @@ function G.GuildChanged()
     B.LedgerCredits.Initialize(old)
     if not integer(old.sequence,0,1000000000) then old.sequence=0 end
     old.events=plainTable(old.events) and old.events or {};old.outbox=plainTable(old.outbox) and old.outbox or {}
-    local clean,n={},0
+    local clean={}
     -- Reloaded saves are validated just like received records.
     for id,e in pairs(old.events) do
         if plainTable(e) and P.Text(e.kind,1) and P.Text(e.author,100) and integer(e.at,0,C.Now()+60) and idOK(e.id) then
-            local ok,raw=pcall(G.Encode,e);local parsed=ok and G.Parse(raw,C.Now(),true)
-            if parsed and parsed.kind~="R" and parsed.kind~="X" and parsed.id==id and n<G.limit then clean[id]=parsed;n=n+1 end
+            local ok,raw=pcall(G.Encode,e);local parsed=ok and G.Parse(raw,C.Now())
+            if parsed and parsed.kind~="R" and parsed.kind~="X" and parsed.id==id then clean[id]=parsed end
         end
     end
     old.events=clean;for id in pairs(old.outbox) do if not clean[id] or P.Identity(clean[id].author)~=B.me then old.outbox[id]=nil end end
@@ -130,20 +130,14 @@ function G.GuildChanged()
     local sightings={}
     for key,seen in pairs(savedSightings) do
         if P.Text(key,100) and plainTable(seen) and P.Text(seen.where,100) and
-            integer(seen.at,C.Now()-G.retention,C.Now()+60) then
+            integer(seen.at,0,C.Now()+60) then
             sightings[key]={where=G.Clean(seen.where,70,100),at=seen.at}
         end
     end
     B.db.grudgeSightings[B.guild]=sightings
     resetSession();G.sightings=sightings
-    -- Capture existing verified resolutions before expiring full entries on
-    -- first upgrade or after a long absence. This never re-broadcasts old text.
+    -- Preserve every valid saved record, regardless of age or ledger size.
     G.Rebuild()
-    local expired=false
-    for id,e in pairs(old.events) do if e.at<C.Now()-G.retention then
-        old.events[id]=nil;old.outbox[id]=nil;access.store.accepted[id]=nil;access.store.authored[id]=nil;expired=true
-    end end
-    if expired then G.Rebuild() end
     G.status=B.guild=="" and "Join a guild to open its shared book." or "Waiting for guild sync."
     if B.GrudgeUI then B.GrudgeUI.Reset() end
 end
@@ -219,7 +213,7 @@ function G.List(query)
     end)
     return out
 end
--- Compact, uniquely keyed credits outlive the full 90-day grievance history.
+-- Compact credits also preserve scores imported from older, age-limited clients.
 function G.Leaderboard()
     return B.LedgerCredits.Leaderboard()
 end
@@ -251,7 +245,6 @@ function G.Merge(e,sender,history,quiet)
         end
         return false
     end
-    if #G.ids>=G.limit then G.status="The book is full (1,200 records; 90-day retention).";return false end
     local previous=G.entries[e.target]
     local wasVisible=previous and not G.deleted[e.target]
     local wasOpen=e.kind=="V" and wasVisible and not previous.seal
@@ -298,7 +291,6 @@ function G.Queue(msg,done,request,timeout)
 end
 function G.New(kind,enemy,note,target,guid,evidence,where,batch)
     if not G.Active() then return nil,"Enable the shared book and join a guild first." end
-    if #G.ids>=G.limit then return nil,"The book is full; older records expire after 90 days." end
     if batch~=deathBatch and (not evidence or evidence=="manual") and G.lastWrite and GetTime()-G.lastWrite<2 then return nil,"Wait two seconds before adding another entry." end
     G.store.sequence=(tonumber(G.store.sequence) or 0)+1
     local at=math.floor(C.Now());local id=G.Hash(B.me).."."..at.."."..B.nonce.."."..G.store.sequence
@@ -330,7 +322,7 @@ function G.Avenge(id,guid,evidence)
 end
 function G.Withdraw(id)
     local r=G.entries[id]
-    if not r or G.deleted[id] or not B.GrudgePermissions.CanChange(r,"delete") then return nil,"Only the author or a permitted guild rank can delete this entry." end
+    if not r or G.deleted[id] or not B.GrudgePermissions.CanChange(r,"delete") then return nil,"Only the author or a guildmate with delete permission can delete this entry." end
     return G.New("D",nil,nil,id)
 end
 function G.Edit(id,note)
@@ -450,12 +442,8 @@ function G.Tick()
     for key,b in pairs(G.budgets) do if now-b.at>30 then G.budgets[key]=nil end end
     if not G.Active() then return end
     if not G.lastPrune or now-G.lastPrune>60 then
-        G.lastPrune=now;local changed=false
-        for id,e in pairs(G.store.events) do if e.at<C.Now()-G.retention then G.store.events[id]=nil;G.store.outbox[id]=nil;B.GrudgePermissions.store.accepted[id]=nil;B.GrudgePermissions.store.authored[id]=nil;changed=true end end
-        for key,seen in pairs(G.sightings) do
-            if not G.people[key] or seen.at<C.Now()-G.retention then G.sightings[key]=nil end
-        end
-        if changed then G.Rebuild();if B.GrudgeUI then B.GrudgeUI.Refresh() end end
+        G.lastPrune=now
+        for key in pairs(G.sightings) do if not G.people[key] then G.sightings[key]=nil end end
     end
     if not G.request and now>=(G.nextQuery or 0) then G.Sync() end
     local q=G.request
@@ -515,7 +503,6 @@ function G.InscribeDeathSelection(draft)
         if draft.selected[entry.key] and not draft.saved[entry.key] then chosen[#chosen+1]=entry end
     end
     if #chosen==0 then return 0,"Select at least one attacker." end
-    if #G.ids+#chosen>G.limit then return 0,"The book is full; select fewer names or wait for older records to expire." end
     for _,entry in ipairs(chosen) do
         if entry.key==B.me or B.members[entry.key] then return 0,"A selected name now belongs to your guild. Deselect it before saving." end
     end

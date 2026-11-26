@@ -213,6 +213,8 @@ function S.Initialize()
 
     local filterCanvas=makeFiltersCanvas();local filters=Settings.RegisterCanvasLayoutSubcategory(root,filterCanvas,"Friends & filters");S.categories.filters=filters
     local permissions=Settings.RegisterCanvasLayoutSubcategory(root,makePermissionsCanvas(),"Guild permissions");S.categories.permissions=permissions
+    S.categories.deleters=Settings.RegisterCanvasLayoutSubcategory(root,B.LedgerMaintenance.AppointmentsCanvas(),"Record deleters")
+    S.categories.cleanup=Settings.RegisterCanvasLayoutSubcategory(root,B.LedgerMaintenance.CleanupCanvas(),"Ledger cleanup")
     Settings.RegisterAddOnCategory(root)
     return true
 end

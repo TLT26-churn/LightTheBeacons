@@ -32,13 +32,13 @@ local receipt=G.store.lifetime["r."..e.id]
 check(receipt and receipt.author==a.B.name,"A verified resolution is archived immediately")
 check(not G.Encode(receipt):find(e.note,1,true) and not G.Encode(receipt):find(e.enemy,1,true),"Lifetime receipts exclude grievance text and enemy names")
 local beforeUpgrade=copy(a.B.db);beforeUpgrade.grudges.lifetime=nil;beforeUpgrade.grudges.lifetimeAccepted=nil
-a.s.time=a.s.time+G.retention+30;a.advance(1);G.Tick()
-check(#G.ids==0 and G.Leaderboard()[1].count==1,"Ninety-day pruning removes full events but keeps earned points")
+a.s.time=a.s.time+365*86400;a.advance(1);G.Tick()
+check(#G.ids==2 and G.Leaderboard()[1].count==1,"A year retains full events and earned points")
 local reload=client("Sample","Avenger",copy(a.B.db),a.s.time)
-check(reload.B.Grudges.Leaderboard()[1].count==1 and #reload.B.Grudges.ids==0,"Lifetime totals survive a reload after the full book has expired")
+check(reload.B.Grudges.Leaderboard()[1].count==1 and #reload.B.Grudges.ids==2,"Lifetime totals and full details survive reload after a year")
 local upgrade=client("Sample","Avenger",beforeUpgrade,a.s.time)
-check(upgrade.B.Grudges.Leaderboard()[1].count==1 and #upgrade.B.Grudges.ids==0,"First upgrade archives existing saved resolutions before pruning an old book")
-check(not upgrade.B.Grudges.Parse(upgrade.B.Grudges.Encode(e),upgrade.s.time),"Live network parsing still rejects expired full grievances")
+check(upgrade.B.Grudges.Leaderboard()[1].count==1 and #upgrade.B.Grudges.ids==2,"First upgrade preserves old books and captures existing resolution credit")
+check(upgrade.B.Grudges.Parse(upgrade.B.Grudges.Encode(e),upgrade.s.time),"Old full grievances remain valid for guild history sync")
 local saved=copy(upgrade.B.db)
 local cold=client("Sample","Avenger",saved,upgrade.s.time,true,true,nil,{noGuildAtLogin=true})
 check(#cold.B.Grudges.Leaderboard()==0 and next(cold.B.db.grudges.lifetime),"Unavailable guild membership hides lifetime scores without erasing their save")
@@ -54,11 +54,11 @@ local removed=award(owner,2);owner.advance(3);assert(O.Withdraw(removed.id))
 local tombstone=copy(O.store.lifetime["x."..removed.id]);local stale=copy(O.store.lifetime["r."..removed.id])
 check(tombstone and #O.Leaderboard()==0,"Deliberate deletion removes lifetime credit immediately")
 local oldDeleted=copy(owner.B.db);oldDeleted.grudges.lifetime=nil;oldDeleted.grudges.lifetimeAccepted=nil
-owner.s.time=owner.s.time+O.retention+60;owner.advance(1);O.Tick()
+owner.s.time=owner.s.time+365*86400;owner.advance(1);O.Tick()
 local deletedReload=client("Example","Author",copy(owner.B.db),owner.s.time)
-check(#deletedReload.B.Grudges.Leaderboard()==0 and deletedReload.B.Grudges.store.lifetime[tombstone.id],"Deletion receipt and zero score survive pruning and reload")
+check(#deletedReload.B.Grudges.Leaderboard()==0 and deletedReload.B.Grudges.store.lifetime[tombstone.id],"Deletion receipt and zero score survive years and reload")
 local deletedUpgrade=client("Example","Author",oldDeleted,owner.s.time)
-check(#deletedUpgrade.B.Grudges.Leaderboard()==0 and deletedUpgrade.B.Grudges.store.lifetime[tombstone.id],"Upgrade preserves an old authorized deletion before pruning its source events")
+check(#deletedUpgrade.B.Grudges.Leaderboard()==0 and deletedUpgrade.B.Grudges.store.lifetime[tombstone.id],"Upgrade preserves an old authorized deletion alongside its source events")
 local reader=client("Sample","Reader",nil,owner.s.time);join(owner,reader)
 local D=reader.B.Grudges
 check(D.Merge(stale,owner.B.me,true) and D.Leaderboard()[1].count==1,"Historical credit can arrive before its withdrawal")
@@ -103,7 +103,9 @@ join(left,right)
 for _,e2 in ipairs({i1,s1}) do left.B.Grudges.Merge(e2,source.B.me,true) end
 for _,e2 in ipairs({i2,s2}) do right.B.Grudges.Merge(e2,source.B.me,true) end
 for _,c in ipairs({left,right}) do
-    c.s.time=source.s.time+c.B.Grudges.retention+120;c.B.Grudges.Tick()
+    c.s.time=source.s.time+365*86400;c.B.Grudges.Tick()
+    -- Simulate an older version that already discarded its full events.
+    c.B.Grudges.store.events={};c.B.Grudges.store.outbox={};c.B.Grudges.Rebuild()
     c.B.Grudges.queue={};c.B.Grudges.request=nil;c.B.Grudges.nextQuery=c.s.now;c.s.sent={}
 end
 check(#left.B.Grudges.ids==0 and #right.B.Grudges.ids==0,"Disjoint cache test has no ordinary ledger history left")
@@ -119,7 +121,7 @@ check(newcomer.B.GrudgeUI.leaderRows[1].count:GetText()==2 and newcomer.B.Grudge
 
 -- A growing lifetime archive does not consume the ordinary book's capacity.
 local large=client("Sample","Archivist",nil,left.s.time);local LG=large.B.Grudges
-for i=1,LG.limit+5 do
+for i=1,1205 do
     local old=copy(receipt);old.target=LG.Hash(old.where:lower())..".1990000000.333."..i
     old.id="r."..old.target;old.at=1990000000+i*12;old.note="1989999999:"
     old.enemy=LG.Hash(old.author:lower()).."."..old.at..".333."..i
@@ -127,7 +129,7 @@ for i=1,LG.limit+5 do
     local parsed=assert(LG.Parse(LG.Encode(old),large.s.time));LG.store.lifetime[parsed.id]=parsed
 end
 LG.Rebuild()
-check(#LG.ids==0 and LG.Leaderboard()[1].count==LG.limit+5,"Lifetime credits continue beyond the full-history 1,200-event cap")
+check(#LG.ids==0 and LG.Leaderboard()[1].count==1205,"Lifetime credits continue beyond the former 1,200-event cap")
 check(LG.Inscribe("Current Example Enemy","The active book still has room."),"A full lifetime archive does not prevent new grudges")
 
 -- Legacy requests get ordinary ledger data, never an unbounded credit archive.

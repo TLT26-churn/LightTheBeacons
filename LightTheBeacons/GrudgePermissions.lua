@@ -6,6 +6,8 @@ local function maskOK(s) return type(s)=="string" and #s==A.maxRanks and not s:f
 local defaults="11"..string.rep("0",A.maxRanks-2)
 local function notify()
     if B.Settings and B.Settings.RefreshPermissions then B.Settings.RefreshPermissions() end
+    if B.LedgerMaintenance and B.LedgerMaintenance.RefreshAppointments then B.LedgerMaintenance.RefreshAppointments() end
+    if B.LedgerMaintenance and B.LedgerMaintenance.RefreshCleanup then B.LedgerMaintenance.RefreshCleanup() end
     if B.GrudgeUI then B.GrudgeUI.Refresh() end
 end
 function A.ReadRoster()
@@ -52,6 +54,19 @@ function A.PolicyValid(p)
     return type(p)=="table" and P.Plain(p) and P.Text(p.by,150) and P.Number(p.at,0,C.Now()+60)
         and p.at%1==0 and P.Number(p.serial,1,1000000000) and p.serial%1==0 and maskOK(p.edit) and maskOK(p.delete)
 end
+local function appointmentValid(p,key)
+    return type(p)=="table" and P.Plain(p) and P.Text(p.name,100) and P.Identity(p.name)==key
+        and P.Number(p.at,0,C.Now()+60) and p.at%1==0
+        and P.Number(p.serial,1,1000000000) and p.serial%1==0 and type(p.enabled)=="boolean"
+end
+local function newer(p,old)
+    return not old or p.at>old.at or p.at==old.at and p.serial>old.serial
+end
+function A.IsAppointed(key)
+    local grants=A.store and A.store.deleters
+    local p=grants and grants.entries[key]
+    return A.leader and grants and grants.by==A.leader and A.members[key] and p and p.enabled or false
+end
 function A.GuildChanged()
     if not B.db or not B.guild then return end
     if B.guild=="" then
@@ -68,11 +83,21 @@ function A.GuildChanged()
         saved.authored=type(saved.authored)=="table" and P.Plain(saved.authored) and saved.authored or {}
         A.migrateWithdrawals=saved.schema~=1;saved.schema=1
         if not A.PolicyValid(saved.policy) then saved.policy=nil end
+        local grants=saved.deleters
+        if type(grants)~="table" or not P.Plain(grants) or not P.Text(grants.by,150)
+            or type(grants.entries)~="table" or not P.Plain(grants.entries) then grants=nil end
+        if grants then
+            local clean={}
+            for key,p in pairs(grants.entries) do if appointmentValid(p,key) then clean[key]=p end end
+            grants.entries=clean
+        end
+        saved.deleters=grants;A.appointmentQueue={}
         A.store=saved;A.scope=B.guild;B.db.grudgePermissions=saved
         A.nextRequest=GetTime()+2;A.nextBroadcast=GetTime()+3;A.dirty=nil;A.lastSend=nil;A.lastRequest=nil;A.peers={}
     end
     A.ReadRoster()
     if A.store.policy and A.leader and A.store.policy.by~=A.leader then A.store.policy=nil end
+    if A.store.deleters and A.leader and A.store.deleters.by~=A.leader then A.store.deleters=nil;A.appointmentQueue={} end
     if A.IsMaster() and not A.store.policy then
         A.store.policy={by=B.me,at=math.floor(C.Now()),serial=1,edit=defaults,delete=defaults};A.dirty=true
     end
@@ -88,7 +113,7 @@ function A.RankAllowed(rank,action)
 end
 function A.CanManage(key,action)
     if not A.store or B.guildPending or not IsInGuild or not IsInGuild() then return false end
-    return A.RankAllowed(A.members and A.members[key],action)
+    return A.RankAllowed(A.members and A.members[key],action) or action=="delete" and A.IsAppointed(key) or false
 end
 function A.CanChange(record,action,key)
     key=key or B.me
@@ -106,6 +131,18 @@ function A.SetRank(rank,action,enabled)
     local nextPolicy={by=B.me,at=math.floor(C.Now()),serial=(p and p.serial or 0)+1,edit=p and p.edit or defaults,delete=p and p.delete or defaults}
     local mask=nextPolicy[action];nextPolicy[action]=mask:sub(1,rank-1)..(enabled and "1" or "0")..mask:sub(rank+1)
     A.store.policy=nextPolicy;A.dirty=true;notify();return true
+end
+function A.SetDeleter(name,enabled)
+    if not A.IsMaster() or not A.store or B.guildPending then return false,"Only the Guild Master can appoint record deleters." end
+    name=B.Grudges.Clean(name,70,100);local key=P.Identity(name)
+    local grants=A.store.deleters
+    if not key or (enabled and not A.members[key]) or (not enabled and not (grants and grants.entries[key])) then
+        return false,"Enter a guildmate's full character name as shown in the roster."
+    end
+    if not grants then grants={by=B.me,entries={}};A.store.deleters=grants end
+    local old=grants.entries[key]
+    grants.entries[key]={name=name,at=math.floor(C.Now()),serial=(old and old.serial or 0)+1,enabled=enabled and true or false}
+    A.appointmentQueue[key]=true;notify();return true
 end
 function A.RecordAuthorization(e,sender,history)
     if not A.store or (e.kind~="U" and e.kind~="D") then return end
@@ -135,6 +172,17 @@ function A.Receive(msg,sender,channel)
         if A.IsMaster() and (not A.lastRequest or GetTime()-A.lastRequest>=15) then A.dirty=true;A.lastRequest=GetTime() end
         return
     end
+    local ng,na,ns,enabled,name=msg:match("^1|N|([^|]+)|(%d+)|(%d+)|([01])|([^|]+)$")
+    if ng then
+        if ng~=A.scope or not A.IsMaster(key) then return end
+        local target=P.Identity(name)
+        local p={name=name,at=tonumber(na),serial=tonumber(ns),enabled=enabled=="1"}
+        if not target or not appointmentValid(p,target) then return end
+        local grants=A.store.deleters
+        if not grants or grants.by~=key then grants={by=key,entries={}};A.store.deleters=grants end
+        if not newer(p,grants.entries[target]) then return end
+        grants.entries[target]=p;A.peers[key]=true;notify();return
+    end
     local guild,at,serial,edit,delete=msg:match("^1|P|([^|]+)|(%d+)|(%d+)|([01]+)|([01]+)$")
     if guild~=A.scope or not A.IsMaster(key) then return end
     local p={by=key,at=tonumber(at),serial=tonumber(serial),edit=edit,delete=delete}
@@ -148,11 +196,24 @@ function A.Tick()
     if not A.store or not B.Grudges.Active() or (A.lastSend and GetTime()-A.lastSend<2) then return end
     local now=GetTime()
     if A.IsMaster() then
-        if not A.dirty and now<(A.nextBroadcast or 0) then return end
-        local p=A.store.policy;if not p then return end
-        A.lastSend=now
-        if C.Send(table.concat({"1","P",A.scope,p.at,p.serial,p.edit,p.delete},"|"),A.prefix) then
-            A.dirty=nil;A.nextBroadcast=now+180;notify()
+        if A.dirty or now>=(A.nextBroadcast or 0) then
+            local p=A.store.policy;if not p then return end
+            A.lastSend=now
+            if C.Send(table.concat({"1","P",A.scope,p.at,p.serial,p.edit,p.delete},"|"),A.prefix) then
+                A.dirty=nil;A.nextBroadcast=now+180
+                for key in pairs(A.store.deleters and A.store.deleters.entries or {}) do A.appointmentQueue[key]=true end
+                notify()
+            end
+            return
+        end
+        local key=next(A.appointmentQueue)
+        if key then
+            local p=A.store.deleters and A.store.deleters.entries[key]
+            if not p then A.appointmentQueue[key]=nil;return end
+            A.lastSend=now
+            if C.Send(table.concat({"1","N",A.scope,p.at,p.serial,p.enabled and "1" or "0",p.name},"|"),A.prefix) then
+                A.appointmentQueue[key]=nil;notify()
+            end
         end
     elseif now>=(A.nextRequest or 0) then
         A.lastSend=now

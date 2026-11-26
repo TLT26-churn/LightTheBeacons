@@ -19,6 +19,7 @@ Chat.lua
 Grudges.lua
 LedgerCredits.lua
 GrudgePermissions.lua
+LedgerMaintenance.lua
 Media.lua
 Theme.lua
 UI.lua

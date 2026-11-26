@@ -113,7 +113,7 @@ function L.Leaderboard()
                 if not member then member={key=key,count=0,records={}};byAuthor[key]=member;out[#out+1]=member end
                 member.count=member.count+1;member.name=e.author
                 local r=G.entries[e.target]
-                if r and not G.deleted[e.target] and r.seal and r.seal.id==e.enemy and r.entry.at>=C.Now()-G.retention then
+                if r and not G.deleted[e.target] and r.seal and r.seal.id==e.enemy then
                     member.records[#member.records+1]=r
                 end
             end

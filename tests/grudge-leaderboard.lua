@@ -69,11 +69,11 @@ a.advance(3);local deletion=assert(A.Withdraw(first.id));deliver(a,b,deletion)
 check(A.Leaderboard()[1].count==1 and K.Leaderboard()[1].count==1,"A deleted grudge is removed from both clients' scores")
 deliver(b,a,seal)
 check(A.Leaderboard()[1].count==1,"A replay cannot resurrect credit for a deleted entry")
-a.s.time=a.s.time+A.retention+1
-check(A.Leaderboard()[1].count==1 and #A.Leaderboard()[1].records==0,"Expiry retains lifetime credit while removing recent detail rows")
+a.s.time=a.s.time+365*86400
+check(A.Leaderboard()[1].count==1 and #A.Leaderboard()[1].records==1,"Full resolution details remain available after a year")
 U.Mode("leaderboard")
-check(not U.emptyLeaders:IsShown() and U.leaderHelp:IsShown() and U.leaderRows[1]:IsShown()
-    and not U.nextLeaders.enabled and not U.nextResolutions.enabled,"Archived credit remains visible with an explanation and inactive detail pagination")
+check(not U.emptyLeaders:IsShown() and U.resolutionRows[1]:IsShown() and U.leaderRows[1]:IsShown()
+    and not U.nextLeaders.enabled and not U.nextResolutions.enabled,"Lifetime credit and details remain visible with inactive single-page pagination")
 reload.B.GrudgeUI.Toggle(true);reload.B.GrudgeUI.Mode("leaderboard")
 reload.env.C_Club.GetGuildClubId=function() return 99 end;reload.B.GuildChanged()
 check(#reload.B.Grudges.Leaderboard()==0 and not reload.B.GrudgeUI.selectedLeader

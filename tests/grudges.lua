@@ -188,9 +188,9 @@ watch.B.GrudgeUI.Confirm("avenge");check(watch.B.GrudgeUI.confirm:IsShown(),"Man
 watch.advance(3);watch.B.GrudgeUI.CommitConfirmation()
 check(watch.B.GrudgeUI.Record().seal,"Native seal action preserves the entry and records its vengeance")
 watch.B.GrudgeUI.Mode("settings");check(watch.B.GrudgeUI.index:IsShown(),"Unavailable native settings fall safely back to the ledger")
--- Expiry keeps the bounded history honest and does not affect flight data.
-local oldCount=#W.ids;watch.s.time=watch.s.time+W.retention+2;watch.s.now=watch.s.now+61;W.Tick()
-check(oldCount>0 and #W.ids==0 and watch.B.db.known[2],"Retention removes aged ledger records while preserving flight knowledge")
+-- Old guild history stays saved without affecting flight data.
+local oldCount=#W.ids;watch.s.time=watch.s.time+365*86400;watch.s.now=watch.s.now+61;W.Tick()
+check(oldCount>0 and #W.ids==oldCount and watch.B.db.known[2],"Aged ledger records and flight knowledge remain intact")
 -- A representative real-widget scene for visual QA.
 local preview=client("Sample","Scribe",nil,os.time({year=2026,month=11,day=11,hour=15,min=42}));local V=preview.B.Grudges
 assert(V.Inscribe("Example Enemy","Fell upon our company at Zoram Strand while our wounded were being tended. Two of our own were slain before the beacon could be answered."));preview.advance(3)
