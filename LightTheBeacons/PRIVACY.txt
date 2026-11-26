@@ -1,5 +1,5 @@
 Light the Beacons — player privacy information
-Version 1.9.0-test.2 / 2026-11-14
+Version 1.9.0 / 2026-11-26
 
 What leaves your client
 All addon transmissions use WoW's GUILD addon-data channel (LTB1 for beacons and
@@ -93,21 +93,20 @@ written incident can reveal where its scribe was; this does not depend on the
 separate background location-sharing option. No exact coordinates are included
 in ledger records. Sighting warnings are local target/mouseover observations
 and are never transmitted. The latest observed zone and server timestamp for
-a recorded enemy are saved only on this character for up to 90 days so the
-book can display "Last seen by you." This local history is pruned with the
-ledger entry or on expiry.
+a recorded enemy are saved only on this character while the enemy remains in
+the book so it can display "Last seen by you." There is no automatic age expiry.
 
-The current guild's ledger and unsent changes are saved per character, capped
-at 1,200 records and 90 days. Guildmates exchange cached history to recover
+The current guild's ledger and unsent changes are saved per character without
+automatic age expiry or a fixed record-count cap. Guildmates exchange cached history to recover
 missed entries. Live authors are checked against the game's sender, but cached
 history trusts the relaying guildmate and is not cryptographically signed.
 A confirmed different guild ID discards the old guild's cache and queued ledger
 packets. If membership is temporarily unavailable, the book is hidden and sharing
 stops; the last guild's saved ledger and moderation receipts remain local so a
 loading delay cannot erase them. They resume only for the same confirmed guild
-ID and are never merged into a different guild. Normal retention validation runs
-when that saved ledger is loaded again.
-Lifetime leaderboard credit is stored separately from the expiring full events,
+ID and are never merged into a different guild. Saved records are validated
+without discarding them because of their age or ledger size.
+Lifetime leaderboard credit is stored alongside the full events,
 inside the same per-character, guild-scoped save. Compact receipts retain the
 grudge and resolution IDs, avenger and original author's names, original and
 resolution timestamps, evidence type, victim GUIDs when available, and guild ID.
@@ -120,15 +119,21 @@ travel only to guild addon peers advertising lifetime-score support, through
 the existing paced guild-data transport. Scores merge by unique source IDs,
 not by adding another client's totals. History still trusts guild peers rather
 than providing server-certified proof of a kill. Available old resolutions are
-imported; already-purged records cannot be reconstructed. Automatic full-history
-expiry preserves points; deliberate deletion removes them. Local hide filters
+imported; already-purged records require another surviving copy or private backup.
+Deliberate deletion removes the corresponding point. Local hide filters
 do not change shared totals, and concealed enemy names remain hidden in recent
 details. A confirmed different guild discards the previous guild's lifetime
 cache. Unavailable membership preserves it locally with all sharing suspended.
-Guild permission masks and policy revisions are shared directly by the Guild
+Guild permission masks, individual delete appointments (character names and
+grant/revocation revisions), and policy revisions are shared directly by the Guild
 Master and cached locally. The game roster supplies ranks; custom policy is not
 accepted from other senders. Members retain control of their own entries.
-Live moderation is checked against the current rank and cached policy. Missed
+Live moderation is checked against the current rank, cached policy and explicit
+individual appointments. Authorized guildmates can review and confirm bulk
+deletion of records older than 90 days; nothing is deleted automatically. This
+hides entries and removes their points, but retains the underlying events and
+deletion receipts to prevent resurrection. It cannot erase copies already held
+by another player. Cleanup defaults to resolved entries and can include open debts. Missed
 edits/deletions require their actual author or an updated authorized moderator
 to vouch for them; accepted decisions persist even if ranks later change. A new client
 uses defaults until the Guild Master shares a policy. Older addon versions do

@@ -4,22 +4,22 @@ A guild rescue addon for **World of Warcraft: Forever (interface 16001)**.
 Sound a war horn and call your guildmates to your aid, with estimated routes
 based on each responding character’s discovered flight points and trained riding tier.
 
-**Local test build 1.9.0-test.4 (unreleased)** adds a **Lifetime Leaderboard** tab to the
-book. Each confirmed killing blow that resolves a grudge earns its killer one
-point; manual marks do not count. Select a guildmate to see whose grudges they
-answered and open recent entries. Lifetime credit survives the book's 90-day
-expiry; deliberate deletion removes its point. Available verified history is
-imported automatically. Already-purged records cannot be reconstructed.
-Guildmates need this version to exchange archived lifetime credit; older
-versions continue to exchange ordinary ledger history.
+**[Version 1.9.0](https://github.com/TLT26-churn/LightTheBeacons/releases/tag/v1.9.0)** adds a
+**Lifetime Leaderboard** tab to Grudges. Each confirmed killing blow that resolves
+one grudge earns its killer one point; manual marks do not count. Select a guildmate
+to see whose grudges they answered and open the original entries.
 
-**[Version 1.8.0](https://github.com/TLT26-churn/LightTheBeacons/releases/tag/v1.8.0)** adds guild-rank ledger permissions, attributed
-text revisions, shared deletions, enemy level at recording and entry age.
-The Guild Master configures rights under **Options → AddOns → Light the Beacons
-→ Guild permissions**. Members keep control of their own entries. It also fixes
-native slider values, player-filter feedback and book parchment drawing.
-Both participants need the new version for
-the new ledger features. See the [full guide](LightTheBeacons/README.md) for sync behavior.
+**Guild ledgers no longer expire or stop at 1,200 records.** Existing saved
+records remain in place. Under **Options → AddOns → Light the Beacons → Ledger
+cleanup**, permitted guildmates can review and confirm deletion of records older
+than 90 days. The default keeps open debts. Deleting a resolved grudge removes its
+point. The Guild Master can appoint individual **Record deleters** as well as
+configure rank permissions. Authors keep control of their own entries.
+
+Update every participating guildmate for the new permissions and permanent
+history. The save protection and paced sync from 1.8.1/1.8.2 remain included.
+Already-purged details require a surviving guildmate copy or a private backup.
+Keep backups of your character saves; no private ledger data is bundled.
 
 **Version 1.7.0** moves configuration into WoW Forever's native
 **Options → AddOns → Light the Beacons** screen, expands attributed chat

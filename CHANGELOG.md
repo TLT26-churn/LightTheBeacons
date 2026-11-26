@@ -1,26 +1,45 @@
 # Release notes
 
-## 1.9.0-test.4 — Lifetime leaderboard (local test)
+## 1.9.0 — Lifetime leaderboard and permanent guild ledgers
 
-- Preserve compact, guild-scoped resolution credits beyond the book's 90-day
-  expiry. One unique verified resolution earns one point; manual marks do not.
-- Import available saved resolutions before pruning full details, including
-  the first login after a long absence. Already-purged history cannot be rebuilt.
-- Retain authorized deletion receipts so deliberately removed points do not
-  return on reload or replay. Ordinary expiry preserves lifetime points.
-- Sync lifetime credits through the existing paced guild transport. Updated
-  peers merge unique credits; older clients continue receiving ordinary history.
-- Show lifetime totals separately from recent details, with an explanation
-  when a score's original grudge has expired.
-- Keep the existing membership-loss and throttled-sync protections. Lifetime
-  credit stays private to the original guild; a different guild starts empty.
+- Add a dedicated Leaderboard tab with lifetime verified grudge resolutions,
+  avenger rankings, original authors, and links back to each available entry.
+  One confirmed killing blow resolves one grudge for one point; manual marks
+  do not count. Existing available verified history is included automatically.
+- Keep full grudge history and local last-seen observations without automatic
+  age expiry. Remove the old 1,200-record cap, including load-time truncation.
+  Existing valid saved records remain in place; no reset is required.
+- Add **Ledger cleanup** in native addon settings. Guildmates with delete
+  permission can review and confirm removal of grudges recorded more than
+  90 days ago. Default to resolved entries only; optionally include open debts.
+  The review lists affected records and credited resolutions. Confirmation
+  rechecks permissions and protects records added or resolved during review.
+- Add **Record deleters** settings where the Guild Master can appoint or revoke
+  individual guildmates, independently of rank. These appointments grant delete
+  and cleanup rights, not editing rights. Members keep control of their own entries.
+- Deliberate deletion, including bulk cleanup, removes the grudge's point.
+  Shared deletion receipts prevent stale copies from restoring deleted entries.
+- Preserve the 1.8.1 guild-identity safeguards and 1.8.2 paced sync/backoff.
+  New clients retain compact lifetime credits from older caches without
+  sharing private recovery files or mixing records from different guilds.
+- Update all participating guildmates for permanent history, the leaderboard,
+  and individual appointments. Older versions can still expire their own cache.
+  Already-purged details require a surviving guildmate copy or private backup.
 
-## 1.9.0-test.3 — Rate-limited history sync (local test)
+## 1.8.2 — Reliable guild history under message throttling
 
-- Include the 1.8.2 sync pacing, retry backoff, response timing and status fixes.
-- Retain the locally tested leaderboard and recovered private character saves.
+- Pace guild ledger packets below one per second and use smaller history pages.
+- Back off rejected sends for 5–60 seconds while retaining unsent entries.
+- Start response timeouts after a request is accepted by the game; extend
+  incoming history timeouts while valid fragments continue to arrive.
+- Prioritize inventory requests and offers ahead of bulk history fragments.
+- Show the actual send failure, pending message count and retry countdown.
+  Clear stale failure text when sending resumes.
+- Verify recovered-history sync, new entries, retries and convergence under a
+  simulated one-message-per-second limit. The guild save protection from 1.8.1
+  remains included. No private recovery records are part of the download.
 
-## 1.9.0-test.2 — Protect saved guild history (local test)
+## 1.8.1 — Protect saved guild history
 
 - Wait for the guild club ID when its API exists. A temporarily available guild
   name must not be mistaken for a different guild and erase the ledger.
@@ -31,24 +50,6 @@
 - Add regression checks for delayed IDs, unavailable membership, cold login,
   withdrawal preservation, retries and isolation between different guilds.
 - Recovery data is private character SavedVariables, never bundled addon data.
-
-## 1.9.0-test.1 — Grudge resolution leaderboard (unreleased)
-
-- Add a dedicated Leaderboard tab in the existing two-page book, with ranked
-  guildmates on the left and their attributed recent resolutions on the right.
-  Each list has independent page arrows; a resolution opens its exact grudge.
-- Award one point to the recorded killer for each resolved grudge with a
-  confirmed killing blow. Manual marks do not count; equal totals share a rank.
-- Derive scores from the shared ledger's accepted seals, including prior
-  verified resolutions. Duplicate events, competing same-kill claims, reloads
-  and history relays never add an extra point or credit the relaying player.
-- Explain that totals use retained, undeleted history (up to 90 days). Edits
-  preserve credit; deletion/expiry removes it. Guild changes clear the board.
-  Hidden enemies remain concealed without changing shared totals.
-- Reuse existing guild sync and theme/skin controls; no new protocol, score
-  storage, moderation rules or restrictions on grudge submissions are added.
-- Validation: 990 checks against the portable package; 1,014 checks with native
-  death handlers plus 180 layout cases. Live-client visual verification pending.
 
 ## 1.8.0 — Guild ledger permissions and UI fixes
 
