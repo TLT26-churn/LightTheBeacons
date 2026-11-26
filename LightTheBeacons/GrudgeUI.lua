@@ -298,11 +298,11 @@ function U.Create()
         row:SetScript("OnClick",function(self) if self.recordID then U.SelectResolution(self.recordID) end end)
     end
     U.leaderHelp=bookLabel(U.leaderboard,530,200,380,170,14,"body",faded,"CENTER")
-    U.leaderHelp:SetText("One point per grudge resolved with a verified killing blow.\n\nManual marks do not earn points.\n\nScores use the shared ledger's retained history, up to 90 days. They update as guild pages sync.")
+    U.leaderHelp:SetText("One lifetime point per grudge resolved with a verified killing blow.\n\nManual marks do not earn points.\n\nGrudge details expire after 90 days; earned points remain. Deliberate deletion removes the point.")
     U.prevResolutions=pageButton(U.leaderboard,-1,639,500,function() U.resolutionPage=U.resolutionPage-1;U.Refresh() end)
     U.resolutionCount=bookLabel(U.leaderboard,679,507,88,18,12,"body",faded,"CENTER")
     U.nextResolutions=pageButton(U.leaderboard,1,775,500,function() U.resolutionPage=U.resolutionPage+1;U.Refresh() end)
-    tooltip(U.leaderboardTab,"Verified grudge resolutions","One point per grudge resolved by a confirmed killing blow. Manual marks do not count. Scores include only retained, undeleted guild entries (up to 90 days), and update as history syncs.")
+    tooltip(U.leaderboardTab,"Lifetime grudge resolutions","One lifetime point per grudge resolved by a confirmed killing blow. Manual marks do not count. Automatic history expiry keeps points; deliberate deletion removes them. Guildmates need a lifetime-capable version to share archived scores.")
 
     U.read=CreateFrame("Frame",nil,U.pagePanel);U.read:SetAllPoints(U.pagePanel)
     U.back=nativeButton(U.read,"< Enemies",30,24,100,26,function() U.Mode("index") end)
@@ -414,7 +414,7 @@ function U.RefreshLeaderboard()
     if not selected then
         selected=leaders[(U.leaderPage-1)*8+1];U.selectedLeader=selected and selected.key;U.resolutionPage=1
     end
-    U.leaderSummary:SetText(total.." verified resolutions  |  "..#leaders.." guildmates\nUp to 90 days  |  Manual marks excluded")
+    U.leaderSummary:SetText(total.." lifetime resolutions  |  "..#leaders.." guildmates\nManual marks excluded")
     for i,row in ipairs(U.leaderRows) do
         local member=leaders[(U.leaderPage-1)*8+i];row:SetShown(member~=nil);row.key=member and member.key
         row.selected:SetShown(member and member.key==U.selectedLeader or false)
@@ -425,10 +425,13 @@ function U.RefreshLeaderboard()
             row:HookScript("OnLeave",function(self) self.hover:Hide() end)
         end
     end
-    U.emptyLeaders:SetShown(#leaders==0);U.leaderHelp:SetShown(not selected)
+    U.emptyLeaders:SetShown(#leaders==0)
     U.prevLeaders:SetEnabled(U.leaderPage>1);U.nextLeaders:SetEnabled(U.leaderPage<pages);U.leaderCount:SetText(U.leaderPage.." / "..pages)
     U.resolver:SetText(selected and selected.name or "Verified kills only")
     local records=selected and selected.records or {};local recordPages=math.max(1,math.ceil(#records/4))
+    U.leaderHelp:SetShown(#records==0)
+    U.leaderHelp:SetText(selected and (selected.count.." lifetime "..(selected.count==1 and "resolution" or "resolutions")..".\n\nNo recent grudge details are available on this character. Details expire after 90 days; lifetime credit remains.") or
+        "One lifetime point per verified resolution.\n\nManual marks do not earn points.\n\nGrudge details expire after 90 days; earned points remain. Deliberate deletion removes the point.")
     U.resolutionPage=math.max(1,math.min(recordPages,U.resolutionPage))
     for i,row in ipairs(U.resolutionRows) do
         local r=records[(U.resolutionPage-1)*4+i];row:SetShown(r~=nil);row.recordID=r and r.entry.id

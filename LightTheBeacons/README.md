@@ -278,15 +278,22 @@ resolutions, with the original author's name, enemy and resolution date; click a
 resolution to open that exact entry. Rankings and history have separate page
 arrows, and tied scores share the same rank.
 
-Scores are calculated from existing shared ledger records, so earlier verified
-resolutions count automatically and duplicate packets/reloads do not add points.
-They cover retained, undeleted entries (up to 90 days), not lifetime totals.
-Editing an entry keeps its credit; deleting or expiring it removes the credit.
+Scores are lifetime totals for this guild. Available verified resolutions are
+imported automatically into compact, uniquely keyed credit records. Duplicate
+packets, overlapping history caches and reloads cannot add a second point for
+the same resolution. Already-purged history cannot be reconstructed.
+Editing an entry keeps its credit. Automatic 90-day expiry removes full details
+but keeps the point; deliberate deletion by its author or a permitted rank
+removes the point. Authorized deletion receipts survive expiry to prevent replay.
 Local enemy filters do not affect rankings, but hidden enemies stay concealed in
 resolution details. Scores can differ while guild history is still syncing.
-No new messages or separate score database are introduced. As with the existing
-ledger, "verified" distinguishes recorded combat-log killing blows from manual
-marks; cached history still trusts guild peers and is not server-certified.
+Updated guildmates exchange lifetime receipts using the existing paced guild
+transport. Older versions continue receiving ordinary history; they cannot
+preserve or relay lifetime scores after their full records expire. As with the
+existing ledger, "verified" distinguishes recorded combat-log killing blows
+from manual marks; cached history still trusts guild peers and is not
+server-certified. Missed deletion receipts need their author or an updated,
+currently authorized moderator online to vouch for them.
 
 Any guildmate can **Mark avenged** after witnessing the enemy's defeat.
 The confirmation records one victory against one selected debt, preserves the
@@ -389,7 +396,11 @@ history requires the actual author or an updated, currently permitted relay; ign
 unauthorized claims are never forwarded as approved changes.
 
 Records and unsent local changes persist per character. The current guild's
-cache retains at most 1,200 records for 90 days. Switching guild discards the
+full-detail cache retains at most 1,200 records for 90 days. Compact lifetime
+resolution and authorized-deletion receipts have no age expiry or fixed count
+cap and contain no grievance text or enemy names. Updated guildmates exchange
+these receipts; older clients receive ordinary book history only.
+Switching guild discards the
 previous guild's ledger cache and pending packets. Login and periodic inventory
 checks recover missing pages in bounded batches from online peers; this can
 take time and needs overlapping online sessions. There is no central server.
@@ -476,7 +487,9 @@ flights, learned connections/times, three message templates, sharing/display
 preferences, global alert mute, Friend marks, player filters, floating-button position and your own unexpired
 beacon including its message and responder names.
 Guild grudge events, unsent ledger changes and local book settings are also
-saved; ledger history expires after 90 days and is cleared on a guild change.
+saved; full ledger history expires after 90 days. Compact lifetime-score and
+authorized-deletion receipts remain until a confirmed guild change or removal
+of your saved data; received copies cannot be erased from other clients.
 Expired or invalid saved beacons are cleared at login; WoW writes the cleanup at
 its next normal save. Remote beacons and shared locations
 are held in memory only. Reloading preserves your ability to extinguish your

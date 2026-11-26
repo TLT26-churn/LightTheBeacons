@@ -57,8 +57,8 @@ check(U.leaderRows[1].name:GetText()==b.B.name and U.leaderRows[1].count:GetText
     "The book shows the avenger's name and verified total")
 check(U.resolutionRows[1].author:GetText()=="For "..a.B.name and U.resolutionRows[1].enemy:GetText()=="Hidden enemy"
     and not U.resolutionRows[1].enabled,"Hidden enemies retain their score without exposing their name or opening their folio")
-check(U.leaderSummary:GetText():find("90 days",1,true) and U.leaderSummary:GetText():find("Manual marks excluded",1,true),
-    "The visible summary explains retention and the manual-resolution exclusion")
+check(U.leaderSummary:GetText():find("lifetime",1,true) and U.leaderSummary:GetText():find("Manual marks excluded",1,true),
+    "The visible summary explains lifetime scores and the manual-resolution exclusion")
 A.options.hidden={};U.Refresh();U.resolutionRows[1].scripts.OnClick(U.resolutionRows[1])
 check(U.mode=="person" and U.Record().entry.id==second.id,"Clicking a resolution opens that exact grudge, not just its enemy")
 U.Mode("leaderboard");U.Mode("inscribe")
@@ -70,10 +70,10 @@ check(A.Leaderboard()[1].count==1 and K.Leaderboard()[1].count==1,"A deleted gru
 deliver(b,a,seal)
 check(A.Leaderboard()[1].count==1,"A replay cannot resurrect credit for a deleted entry")
 a.s.time=a.s.time+A.retention+1
-check(#A.Leaderboard()==0,"Expired entries stop scoring even before pruning or while sharing is paused")
+check(A.Leaderboard()[1].count==1 and #A.Leaderboard()[1].records==0,"Expiry retains lifetime credit while removing recent detail rows")
 U.Mode("leaderboard")
-check(U.emptyLeaders:IsShown() and U.leaderHelp:IsShown() and not U.leaderRows[1]:IsShown()
-    and not U.nextLeaders.enabled and not U.nextResolutions.enabled,"Empty history shows an explanation with inactive pagination")
+check(not U.emptyLeaders:IsShown() and U.leaderHelp:IsShown() and U.leaderRows[1]:IsShown()
+    and not U.nextLeaders.enabled and not U.nextResolutions.enabled,"Archived credit remains visible with an explanation and inactive detail pagination")
 reload.B.GrudgeUI.Toggle(true);reload.B.GrudgeUI.Mode("leaderboard")
 reload.env.C_Club.GetGuildClubId=function() return 99 end;reload.B.GuildChanged()
 check(#reload.B.Grudges.Leaderboard()==0 and not reload.B.GrudgeUI.selectedLeader

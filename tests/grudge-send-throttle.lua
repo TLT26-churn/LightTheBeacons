@@ -31,6 +31,7 @@ D.Sync();local request=D.request;D.Tick()
 for _=1,40 do b.advance(.5);D.Tick() end
 check(D.request==request and not request.deadline,"Inventory request cannot time out while still waiting to send")
 b.s.sendResult=0;b.advance(60);D.Tick()
+b.advance(1.5);D.Tick()
 check(D.request==request and request.deadline==b.s.now+8,"Offer timeout starts when WoW accepts the inventory request")
 
 -- A recovered ledger has no live outbox: it must reach a guildmate through

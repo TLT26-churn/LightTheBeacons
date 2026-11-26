@@ -1,5 +1,20 @@
 # Release notes
 
+## 1.9.0-test.4 — Lifetime leaderboard (local test)
+
+- Preserve compact, guild-scoped resolution credits beyond the book's 90-day
+  expiry. One unique verified resolution earns one point; manual marks do not.
+- Import available saved resolutions before pruning full details, including
+  the first login after a long absence. Already-purged history cannot be rebuilt.
+- Retain authorized deletion receipts so deliberately removed points do not
+  return on reload or replay. Ordinary expiry preserves lifetime points.
+- Sync lifetime credits through the existing paced guild transport. Updated
+  peers merge unique credits; older clients continue receiving ordinary history.
+- Show lifetime totals separately from recent details, with an explanation
+  when a score's original grudge has expired.
+- Keep the existing membership-loss and throttled-sync protections. Lifetime
+  credit stays private to the original guild; a different guild starts empty.
+
 ## 1.9.0-test.3 — Rate-limited history sync (local test)
 
 - Include the 1.8.2 sync pacing, retry backoff, response timing and status fixes.

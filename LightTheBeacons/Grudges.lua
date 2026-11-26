@@ -11,6 +11,7 @@ G.phrases={
 local function plainTable(t) return P.Plain(t) and type(t)=="table" end
 local function integer(n,lo,hi) return P.Number(n,lo,hi) and n%1==0 end
 local function idOK(s) return P.Text(s,68) and s:match("^[%w%.%-]+$")~=nil end
+local function syncID(s) return idOK(s) or P.Text(s,70) and (s:sub(1,2)=="r." or s:sub(1,2)=="x.") and idOK(s:sub(3)) end
 local function nonceOK(s) return P.Text(s,28) and s:match("^[%d%.]+$")~=nil end
 function G.Hash(s)
     local h=5381;for i=1,#s do h=(h*33+s:byte(i))%2147483647 end
@@ -35,11 +36,12 @@ end
 function G.Encode(e)
     return table.concat({"1",e.kind,e.id,e.author,tostring(e.at),e.target or "",e.enemy or "",e.guid or "",e.where or "",e.note or "",e.evidence or "manual",e.guild},"|")
 end
-function G.Parse(raw,now)
+function G.Parse(raw,now,allowExpired)
     if not P.Plain(raw) or type(raw)~="string" or #raw>1500 or raw:find("%c") then return end
     local f=fields(raw);if #f~=12 or f[1]~="1" or f[12]~=G.scope or not P.Text(f[12],100) then return end
+    if f[2]=="R" or f[2]=="X" then return B.LedgerCredits.Parse(f,now) end
     local e={kind=f[2],id=f[3],author=f[4],at=tonumber(f[5]),target=f[6],enemy=f[7],guid=f[8],where=f[9],note=f[10],evidence=f[11],guild=f[12]}
-    if not nameOK(e.author) or not idOK(e.id) or not integer(e.at,now-G.retention,now+60)
+    if not nameOK(e.author) or not idOK(e.id) or not integer(e.at,allowExpired and 0 or now-G.retention,now+60)
         or e.id:sub(1,9)~=G.Hash(P.Identity(e.author)).."." then return end
     if not optional(e.where,100) or e.where~=G.Clean(e.where,70,100) or not guidOK(e.guid) then return end
     if e.kind=="I" then
@@ -77,7 +79,7 @@ function G.Initialize()
     G.GuildChanged()
 end
 local function resetSession()
-    G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings={};G.seenAlert={};G.killSeen={}
+    G.queue={};G.queued={};G.pending={};G.budgets={};G.offers={};G.served={};G.sightings={};G.seenAlert={};G.killSeen={};G.creditPeers={}
     G.request=nil;G.offerDue=nil;G.nextQuery=GetTime()+7;G.lastTick=nil;G.deathActive=nil;G.deathSerial=(G.deathSerial or 0)+1
     G.nextSend=nil;G.retryDelay=nil;G.sendError=nil
     G.pendingDeath=nil
@@ -99,14 +101,15 @@ function G.GuildChanged()
     if not plainTable(old) or old.guild~=B.guild or old.version~=1 then old={version=1,guild=B.guild,events={},outbox={}} end
     if G.store==old and G.scope==B.guild then return end
     G.scope=B.guild;G.store=old;B.db.grudges=old
+    B.LedgerCredits.Initialize(old)
     if not integer(old.sequence,0,1000000000) then old.sequence=0 end
     old.events=plainTable(old.events) and old.events or {};old.outbox=plainTable(old.outbox) and old.outbox or {}
     local clean,n={},0
     -- Reloaded saves are validated just like received records.
     for id,e in pairs(old.events) do
         if plainTable(e) and P.Text(e.kind,1) and P.Text(e.author,100) and integer(e.at,0,C.Now()+60) and idOK(e.id) then
-            local ok,raw=pcall(G.Encode,e);local parsed=ok and G.Parse(raw,C.Now())
-            if parsed and parsed.id==id and n<G.limit then clean[id]=parsed;n=n+1 end
+            local ok,raw=pcall(G.Encode,e);local parsed=ok and G.Parse(raw,C.Now(),true)
+            if parsed and parsed.kind~="R" and parsed.kind~="X" and parsed.id==id and n<G.limit then clean[id]=parsed;n=n+1 end
         end
     end
     old.events=clean;for id in pairs(old.outbox) do if not clean[id] or P.Identity(clean[id].author)~=B.me then old.outbox[id]=nil end end
@@ -133,7 +136,15 @@ function G.GuildChanged()
     end
     B.db.grudgeSightings[B.guild]=sightings
     resetSession();G.sightings=sightings
-    G.Rebuild();G.status=B.guild=="" and "Join a guild to open its shared book." or "Waiting for guild sync."
+    -- Capture existing verified resolutions before expiring full entries on
+    -- first upgrade or after a long absence. This never re-broadcasts old text.
+    G.Rebuild()
+    local expired=false
+    for id,e in pairs(old.events) do if e.at<C.Now()-G.retention then
+        old.events[id]=nil;old.outbox[id]=nil;access.store.accepted[id]=nil;access.store.authored[id]=nil;expired=true
+    end end
+    if expired then G.Rebuild() end
+    G.status=B.guild=="" and "Join a guild to open its shared book." or "Waiting for guild sync."
     if B.GrudgeUI then B.GrudgeUI.Reset() end
 end
 function G.Rebuild()
@@ -148,6 +159,12 @@ function G.Rebuild()
         end
         if e.kind=="L" and r and not r.level and e.at>=r.entry.at and e.at<=r.entry.at+5
             and P.Identity(e.author)==P.Identity(r.entry.author) then r.level=tonumber(e.note) end
+    end
+    for _,e in pairs(G.store and G.store.lifetime or {}) do
+        local r=entries[e.target]
+        if e.kind=="X" and r and e.where==r.entry.author and e.note==tostring(r.entry.at)..":"..r.entry.guid then
+            deleted[e.target]=true
+        end
     end
     local kills={}
     for _,e in ipairs(log) do
@@ -173,6 +190,7 @@ function G.Rebuild()
         p.latestAt=p.debts[#p.debts] and p.debts[#p.debts].entry.at
     end
     G.entries,G.people,G.log=entries,people,log;G.deleted=deleted
+    B.LedgerCredits.Capture(entries,log)
     local ids={};for _,e in ipairs(log) do ids[#ids+1]=e.id end;table.sort(ids)
     local approvals={}
     for _,e in ipairs(log) do
@@ -181,7 +199,15 @@ function G.Rebuild()
             approvals[#approvals+1]=e.id..":"..(B.GrudgePermissions.Authorized(e,r) and "1" or "0")
         end
     end
-    G.ids=ids;G.digest=G.Hash(table.concat(ids,",")..(#approvals>0 and ("|"..table.concat(approvals,",")) or ""))
+    G.ids=ids;G.syncIDs={};for _,id in ipairs(ids) do G.syncIDs[#G.syncIDs+1]=id end
+    local credits={}
+    for id,e in pairs(G.store and G.store.lifetime or {}) do
+        G.syncIDs[#G.syncIDs+1]=id;credits[#credits+1]=id..":"..G.Hash(G.Encode(e))
+    end
+    table.sort(G.syncIDs);table.sort(credits)
+    local ledger=table.concat(ids,",")..(#approvals>0 and ("|"..table.concat(approvals,",")) or "")
+    G.ledgerDigest=G.Hash(ledger)
+    G.digest=G.Hash(ledger..(#credits>0 and ("|credits|"..table.concat(credits,",")) or ""))
 end
 function G.List(query)
     local out={};query=(query or ""):lower()
@@ -193,39 +219,9 @@ function G.List(query)
     end)
     return out
 end
--- Derive scores from the winning seals in the shared ledger, never from a
--- separately synced counter. Replays, reloads and conflicting claims therefore
--- use exactly the same one-kill/one-grudge decision as the book itself.
+-- Compact, uniquely keyed credits outlive the full 90-day grievance history.
 function G.Leaderboard()
-    local byAuthor,out={},{}
-    local cutoff=C.Now()-G.retention
-    for id,r in pairs(G.entries or {}) do
-        local seal=r.seal
-        if not G.deleted[id] and seal and seal.evidence=="kill" and seal.guid~=""
-            and r.entry.at>=cutoff and seal.at>=cutoff then
-            local key=P.Identity(seal.author);local member=byAuthor[key]
-            if not member then
-                member={key=key,name=seal.author,count=0,records={}}
-                byAuthor[key]=member;out[#out+1]=member
-            end
-            member.count=member.count+1;member.records[#member.records+1]=r
-        end
-    end
-    for _,member in ipairs(out) do
-        table.sort(member.records,function(a,b)
-            if a.seal.at~=b.seal.at then return a.seal.at>b.seal.at end
-            return a.seal.id<b.seal.id
-        end)
-        member.name=member.records[1].seal.author
-    end
-    table.sort(out,function(a,b)
-        if a.count~=b.count then return a.count>b.count end
-        return a.key<b.key
-    end)
-    for i,member in ipairs(out) do
-        member.rank=i>1 and member.count==out[i-1].count and out[i-1].rank or i
-    end
-    return out
+    return B.LedgerCredits.Leaderboard()
 end
 function G.Phrase(kind,balanced)
     if balanced then return "All grudges avenged." end
@@ -244,6 +240,7 @@ function G.Notify(kind,e)
 end
 function G.Merge(e,sender,history,quiet)
     if not G.Active() or e.guild~=G.scope then return false end
+    if e.kind=="R" or e.kind=="X" then return B.LedgerCredits.Merge(e,sender,history) end
     if not history and P.Identity(e.author)~=sender then return false end
     if G.store.events[e.id] then
         local existing=G.store.events[e.id]
@@ -293,8 +290,8 @@ function G.Queue(msg,done,request,timeout)
     -- Inventory offers/requests must not sit behind a full history page: older
     -- clients only wait eight seconds for an offer. Data and page-end markers
     -- retain FIFO order, including the final fragment of an outbox entry.
-    if msg:match("^1|[QOW]|") then
-        local at=1;while G.queue[at] and G.queue[at].msg:match("^1|[QOW]|") do at=at+1 end
+    if msg:match("^1|[BQOW]|") then
+        local at=1;while G.queue[at] and G.queue[at].msg:match("^1|[BQOW]|") do at=at+1 end
         table.insert(G.queue,at,item)
     else G.queue[#G.queue+1]=item end
     return true
@@ -359,8 +356,12 @@ local function requestPage(peer,cursor)
 end
 function G.Sync()
     if not G.Active() or G.request then return end
+    if #G.queue>254 then return end
     local nonce=tostring(math.floor(C.Now())).."."..B.nonce
     local q={nonce=nonce,offers={}};G.request=q
+    -- Old addons ignore this capability announcement and keep receiving only
+    -- the ordinary ledger. Lifetime history never crowds their receive queue.
+    G.Queue("1|B|"..G.scope.."|credits1")
     if not G.Queue("1|Q|"..nonce.."|"..G.digest,nil,q,8) then G.request=nil;return end
     G.nextQuery=GetTime()+180
     G.status="Syncing guild records."
@@ -372,32 +373,38 @@ function G.Receive(msg,sender,channel)
     if not b or now-b.at>=10 then b={at=now,count=0};G.budgets[key]=b end
     b.count=b.count+1;if b.count>40 then return end
     local f=fields(msg);if f[1]~="1" then return end
+    if f[2]=="B" and #f==4 and f[3]==G.scope and f[4]=="credits1" then G.creditPeers[key]=now+600;return end
     if f[2]=="Q" and #f==4 and nonceOK(f[3]) and f[4]:match("^%x%x%x%x%x%x%x%x$") then
-        if f[4]~=G.digest and #G.ids>0 and (not G.offers[key] or now-G.offers[key]>30) then
+        local supportsCredits=(G.creditPeers[key] or 0)>=now
+        local ids=supportsCredits and G.syncIDs or G.ids
+        local digest=supportsCredits and G.digest or G.ledgerDigest
+        if f[4]~=digest and #ids>0 and (not G.offers[key] or now-G.offers[key]>30) then
             G.offers[key]=now
-            G.Queue("1|O|"..f[3].."|"..G.Hash(key).."|"..G.digest.."|"..#G.ids)
+            G.Queue("1|O|"..f[3].."|"..G.Hash(key).."|"..digest.."|"..#ids)
         end;return
     end
     local q=G.request
-    if f[2]=="O" and #f==6 and q and not q.peer and q.nonce==f[3] and f[4]==G.Hash(B.me) and integer(tonumber(f[6]),1,G.limit) then
+    if f[2]=="O" and #f==6 and q and not q.peer and q.nonce==f[3] and f[4]==G.Hash(B.me) and integer(tonumber(f[6]),1,1000000000) then
         q.offers[key]=tonumber(f[6]);return
     end
-    if f[2]=="W" and #f==5 and nonceOK(f[3]) and f[4]==G.Hash(B.me) and (f[5]=="" or idOK(f[5])) then
+    if f[2]=="W" and #f==5 and nonceOK(f[3]) and f[4]==G.Hash(B.me) and (f[5]=="" or syncID(f[5])) then
         if G.served[key] and now-G.served[key]<5 then return end
         if #G.queue>16 then return end
         G.served[key]=now
-        local page={};for _,id in ipairs(G.ids) do if id>f[5] and #page<G.pageSize then page[#page+1]=id end end
-        local last=page[#page] or f[5];local more=G.ids[#G.ids] and last<G.ids[#G.ids]
+        local ids=(G.creditPeers[key] or 0)>=now and G.syncIDs or G.ids
+        local page={};for _,id in ipairs(ids) do if id>f[5] and #page<G.pageSize then page[#page+1]=id end end
+        local last=page[#page] or f[5];local more=ids[#ids] and last<ids[#ids]
         for _,id in ipairs(page) do
-            local event=G.store.events[id];local record=G.entries[event.target]
+            local event=G.store.events[id] or G.store.lifetime[id];local record=G.entries[event.target]
             -- Never turn an ignored claim into an approved change by relaying it
             -- from a moderator's client. Only applied/authorized mutations travel.
             local allowed=event.kind~="U" and event.kind~="D" or record and B.GrudgePermissions.Authorized(event,record)
+            if event.kind=="X" then allowed=B.LedgerCredits.CanRelay(event) end
             if allowed then for _,packet in ipairs(G.Packets(event,f[3],G.Hash(key))) do G.Queue(packet) end end
         end
         G.Queue("1|Z|"..f[3].."|"..G.Hash(key).."|"..last.."|"..(more and "1" or "0"));return
     end
-    if f[2]=="Z" and #f==6 and q and q.peer==key and q.nonce==f[3] and f[4]==G.Hash(B.me) and (f[5]=="" or idOK(f[5])) then
+    if f[2]=="Z" and #f==6 and q and q.peer==key and q.nonce==f[3] and f[4]==G.Hash(B.me) and (f[5]=="" or syncID(f[5])) then
         if f[6]=="1" and f[5]~=(q.cursor or "") then q.cursor=f[5];requestPage(key,f[5])
         elseif f[6]=="0" then G.request=nil;G.status="Guild pages received. Listening for further entries." end
         if B.GrudgeUI then B.GrudgeUI.Refresh() end;return
@@ -409,7 +416,7 @@ function G.Receive(msg,sender,channel)
         id,part,total,chunk=msg:match("^1|S|[^|]+|[^|]+|([^|]+)|(%d+)|(%d+)|(.*)$");history=true
     end
     part,total=tonumber(part),tonumber(total)
-    if not idOK(id) or not integer(total,1,12) or not integer(part,1,total) or not chunk or #chunk>128 then return end
+    if not syncID(id) or not integer(total,1,12) or not integer(part,1,total) or not chunk or #chunk>128 then return end
     -- Keep a slow but progressing history transfer alive. Old peers retain
     -- their existing timeout; smaller outgoing pages fit their receive window.
     if history then q.deadline=now+150 end
